@@ -42,7 +42,7 @@ npm install
 npm run db:push
 npm run db:seed
 npm run db:seed:pricing     # the rate book and the product catalogue
-npm run dev
+npm run dev            # http://localhost:3001
 ```
 
 Postgres does not survive a reboot — run `./scripts/dev-db.sh start` again
@@ -52,6 +52,29 @@ from scratch, which is the fastest way back to a clean slate mid-testing.
 For a hosted database instead, put a Neon connection string in `.env` (see
 [Deploying to Vercel + Neon](#deploying-to-vercel--neon)) and skip the
 `dev-db.sh` step.
+
+### Kept separate from Target Express
+
+AITRANSIT shares no running state with the project it was forked from. Four
+things were deliberately given their own identity, because on one laptop the
+defaults would have collided:
+
+| | Target Express | AITRANSIT |
+| --- | --- | --- |
+| Postgres cluster | `/opt/homebrew/var/postgresql@16` | `~/.aitransit-pg` |
+| Port / database | `5432` · `targetexpress` | `55432` · `aitransit` |
+| Dev server | `3000` | `3001` |
+| Session cookies | `authjs.*` | `aitransit.*` |
+
+The cookie names are the non-obvious one. **Cookies are scoped by domain, not
+by port**, so on `localhost` every Next.js app shares one cookie jar — with the
+NextAuth defaults, signing into one app silently logs you out of the other.
+Not a security hole (the two sign their tokens with different `AUTH_SECRET`s,
+so neither can read the other's session) but a genuinely confusing hour. See
+the note on `cookies` in [`auth.config.ts`](auth.config.ts).
+
+Resetting or dropping either database cannot affect the other — they are two
+separate server processes over two separate directories on disk.
 
 ### Signing in
 

@@ -27,7 +27,10 @@ const { auth } = NextAuth(authConfig);
  *
  * Readable by scripts on purpose. The session cookie stays httpOnly.
  */
-const STAFF_HINT = "tx.staff";
+/* Namespaced for the same reason as the auth cookies above — see the note
+   on `cookies` in auth.config.ts. "tx.staff" was Target Express's name and
+   would have collided with it on localhost. */
+const STAFF_HINT = "aitransit.staff";
 
 function withHint(res: NextResponse, signedIn: boolean) {
   if (signedIn) {

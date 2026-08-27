@@ -30,6 +30,48 @@ export const authConfig = {
      */
     updateAge: 60 * 30,
   },
+  /*
+    AITRANSIT'S OWN COOKIE NAMES.
+
+    Cookies are scoped by DOMAIN, not by port — so on localhost every Next.js
+    app a developer runs shares one cookie jar. With the NextAuth defaults,
+    signing into this app overwrites the session cookie of any other one on
+    localhost, and vice versa: you sign into AITRANSIT, go back to the other
+    tab, and you have been silently logged out of a system you were mid-way
+    through using.
+
+    It is not a security hole — the two apps sign their tokens with different
+    AUTH_SECRETs, so neither can read the other's session — but it is a
+    confusing hour for anyone running both side by side, and the fix is just a
+    name. Prefixed rather than defaulted for exactly that reason.
+
+    `__Secure-` in production because these are cross-site-sensitive auth
+    cookies and the platform enforces the prefix only over HTTPS; plain names
+    in development, where there is no TLS.
+  */
+  cookies: (() => {
+    const secure = process.env.NODE_ENV === "production";
+    const name = (suffix: string) =>
+      `${secure ? "__Secure-" : ""}aitransit.${suffix}`;
+    const base = {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      path: "/",
+      secure,
+    };
+    return {
+      sessionToken: { name: name("session-token"), options: base },
+      callbackUrl: {
+        name: name("callback-url"),
+        options: { ...base, httpOnly: false },
+      },
+      // Auth.js signs the CSRF cookie and expects the host prefix in production.
+      csrfToken: {
+        name: secure ? "__Host-aitransit.csrf-token" : "aitransit.csrf-token",
+        options: base,
+      },
+    };
+  })(),
   trustHost: true,
   callbacks: {
     jwt({ token, user }) {
