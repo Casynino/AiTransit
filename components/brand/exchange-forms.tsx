@@ -180,8 +180,7 @@ export function CurrencyCalculator({ board }: { board: FxBoardRow[] }) {
       </div>
 
       <div
-        className="mt-6 rounded-[var(--ai-radius)] p-6"
-        style={{ background: "hsl(var(--ai-ink))", color: "hsl(var(--ai-stone))" }}
+        className="ai-on-ink mt-6 rounded-[var(--ai-radius)] p-6"
       >
         {quote ? (
           <>

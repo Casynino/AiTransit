@@ -13,6 +13,7 @@ import {
 
 import { MarketFilter } from "@/components/brand/market-filter";
 import { CountUp, Reveal } from "@/components/brand/motion";
+import { StarField } from "@/components/brand/star-field";
 import {
   BtnLink,
   Card,
@@ -72,8 +73,9 @@ export default async function MarketsPage() {
             }}
           />
         </div>
+        <StarField />
 
-        <Wrap className="relative">
+        <Wrap className="relative z-10">
           <div className="max-w-3xl">
             <Eyebrow copper>Explore China</Eyebrow>
             <h1 className="ai-display-xl mt-5">

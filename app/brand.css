@@ -9,11 +9,12 @@
    their own type and their own primitives, scoped under `.ai-site`, and the
    two never collide.
 
-   FIXED, NOT THEMED. These values do not respond to the light/dark toggle.
-   A brand is a printed thing — the flyer, the invoice, the sticker on the box
-   all look the same in any light, and a customer who sees navy on stone today
-   should see navy on stone tomorrow. The staff app keeps its toggle; this is a
-   brochure and behaves like one.
+   LIGHT AND DARK, both first-class. The tokens below are the light theme; the
+   `.dark .ai-site` block further down is the night one. Customers read this on
+   a phone in a market at midday and on a laptop in the evening, and the brand
+   has to be itself in both — which is why the dark theme is a deep NAVY rather
+   than black, and why emerald and copper are re-mixed for it instead of simply
+   inverted.
    =========================================================================== */
 
 /*
@@ -28,8 +29,29 @@
 body:has(> .ai-site) {
   background: hsl(40 33% 97%);
 }
+.dark body:has(> .ai-site) {
+  background: hsl(222 52% 4%);
+}
 
-.ai-site {
+/* ===========================================================================
+   TOKENS ARE ROLES, NOT COLOURS.
+
+   Read `--ai-stone` as "the page", `--ai-white` as "a raised surface" and
+   `--ai-charcoal` as "body text". In the light theme those really are stone,
+   white and charcoal; in the dark theme the same roles are deep space, a lifted
+   navy and warm off-white. The names kept their original values' flavour
+   because two hundred call sites already use them and renaming would have
+   bought nothing but risk — but nothing here reads them literally, so the
+   theme can invert every one and every component follows.
+
+   The only tokens that mean the same thing in both themes are the three brand
+   inks: emerald, copper and the navy band. A brand does not change colour when
+   the lights go out; it changes how bright it has to be, which is what the
+   dark block below adjusts.
+   =========================================================================== */
+
+:where(.ai-site) {
+
   /* --- Ink: deep midnight navy. Structure, headlines, dark bands. -------- */
   --ai-ink: 213 62% 11%;        /* #0A1B33 */
   --ai-ink-2: 213 48% 17%;      /* raised navy — cards on dark bands */
@@ -41,8 +63,17 @@ body:has(> .ai-site) {
   --ai-emerald-soft: 168 44% 94%;
 
   /* --- Copper: warmth and value. Rates, numerals, quiet emphasis. -------- */
-  --ai-copper: 28 66% 47%;      /* #C77A2B */
+  /*
+    Deep enough to be TEXT. The flyer's copper is a brighter #C77A2B, which is
+    the right colour for a button fill and the wrong one for the 11px eyebrows
+    and inline arrows that use it all over the light pages — it measured 3.5:1
+    on stone, under AA. This value keeps the hue and reads at 4.7:1. The bright
+    original still appears wherever copper sits on a dark band, because the
+    band redefines the token (see `.ai-on-ink`).
+  */
+  --ai-copper: 28 74% 38%;
   --ai-copper-soft: 32 68% 94%;
+  --ai-copper-ink: 28 72% 32%;  /* copper text on --ai-copper-soft */
 
   /* --- Stone: warm off-white. The page itself. -------------------------- */
   --ai-stone: 40 33% 97%;       /* #FAF8F4 */
@@ -54,6 +85,28 @@ body:has(> .ai-site) {
 
   --ai-white: 0 0% 100%;
   --ai-danger: 4 66% 45%;
+
+  /*
+    The one colour that does NOT flip with the theme.
+
+    Most tokens here are roles — `--ai-stone` means "the page", and the page is
+    stone by day and deep space by night. That works everywhere except on a
+    surface that is dark in BOTH themes: the navy hero band, the header floating
+    over it. Content there needs a foreground that is always light, and reading
+    `--ai-stone` for it produced dark text on a dark band the moment the dark
+    theme existed. This is that foreground.
+  */
+  --ai-light: 40 33% 97%;
+
+  /*
+    The emerald BAND, as opposed to the emerald INK. `--ai-emerald` is a
+    foreground role and so it brightens at night to stay readable on a dark
+    page — but the money-exchange band paints itself with it and lays light
+    text on top, and a brightened emerald under near-white text measures 2.3:1.
+    The band therefore has its own colour, deep in both themes, and never
+    participates in the light/dark flip.
+  */
+  --ai-emerald-band: 168 80% 20%;
 
   /* --- Type ------------------------------------------------------------- */
   /* An editorial serif over a warm grotesque. The staff app is Sora + Inter;
@@ -88,34 +141,83 @@ body:has(> .ai-site) {
   -webkit-font-smoothing: antialiased;
 }
 
+
+/* ---------------------------------------------------------------------------
+   THE DARK THEME.
+
+   Not an inversion. A page that simply flips black-on-white to white-on-black
+   is glaring: pure white text on pure black vibrates, and brand colours mixed
+   for paper go muddy against it. So the surfaces are a deep navy rather than
+   black — the same family as the brand's ink, which is what keeps it feeling
+   like AITRANSIT at night rather than a generic dark mode — and emerald and
+   copper are lifted in lightness to hold their saturation against it.
+   --------------------------------------------------------------------------- */
+:where(.dark .ai-site) {
+  /* Page, bands and hairlines. */
+  --ai-stone: 222 52% 5%;      /* the page — deep space */
+  --ai-stone-2: 221 44% 8%;    /* alternating band */
+  --ai-stone-3: 218 30% 17%;   /* hairlines */
+
+  /* Raised surfaces: cards, fields, anything that sits above the page. */
+  --ai-white: 220 40% 9%;
+
+  /* Text. Warm off-white rather than #fff — pure white on near-black is the
+     commonest cause of eye strain in a dark theme. */
+  --ai-charcoal: 40 30% 94%;
+  --ai-charcoal-soft: 217 16% 66%;
+
+  /* The deep band. In light it is the darkest thing on the page; in dark it has
+     to be LIGHTER than the page or the bands disappear entirely. */
+  --ai-ink: 220 44% 11%;
+  --ai-ink-2: 219 38% 15%;
+  --ai-ink-3: 217 28% 24%;
+
+  /* Brand inks, brightened to survive a dark ground. */
+  --ai-emerald: 165 62% 45%;
+  --ai-emerald-bright: 164 68% 55%;
+  --ai-emerald-soft: 168 40% 14%;
+
+  --ai-copper: 32 88% 60%;
+  --ai-copper-soft: 30 45% 15%;
+  --ai-copper-ink: 32 90% 74%;
+
+  --ai-danger: 4 78% 62%;
+
+  /* Shadows do almost nothing on a dark ground — depth comes from the surface
+     being lighter than the page. Kept faint so cards do not smear. */
+  --ai-shadow-sm: 0 1px 2px hsl(222 60% 2% / 0.5);
+  --ai-shadow: 0 2px 6px hsl(222 60% 2% / 0.45), 0 16px 34px -18px hsl(222 60% 2% / 0.8);
+  --ai-shadow-lg: 0 4px 12px hsl(222 60% 2% / 0.5), 0 34px 68px -30px hsl(222 60% 2% / 0.9);
+}
+
 /* ---------------------------------------------------------------------------
    Type scale.
 
    Display sizes clamp so a headline is a headline on a phone too — the
    commonest way a site like this is read is one-handed, on data, in a market.
    --------------------------------------------------------------------------- */
-.ai-site .ai-display-xl {
+:where(.ai-site) .ai-display-xl {
   font-family: var(--ai-display);
   font-size: clamp(2.5rem, 6.2vw, 4.75rem);
   line-height: 1.02;
   letter-spacing: -0.022em;
   font-weight: 600;
 }
-.ai-site .ai-display-lg {
+:where(.ai-site) .ai-display-lg {
   font-family: var(--ai-display);
   font-size: clamp(2rem, 4.4vw, 3.25rem);
   line-height: 1.06;
   letter-spacing: -0.02em;
   font-weight: 600;
 }
-.ai-site .ai-display {
+:where(.ai-site) .ai-display {
   font-family: var(--ai-display);
   font-size: clamp(1.5rem, 2.8vw, 2.1rem);
   line-height: 1.14;
   letter-spacing: -0.016em;
   font-weight: 600;
 }
-.ai-site .ai-display-sm {
+:where(.ai-site) .ai-display-sm {
   font-family: var(--ai-display);
   font-size: 1.25rem;
   line-height: 1.25;
@@ -125,23 +227,23 @@ body:has(> .ai-site) {
 
 /* The small caps label that opens a section. Letterspaced wide enough to read
    as a signpost rather than as shouting. */
-.ai-site .ai-eyebrow {
+:where(.ai-site) .ai-eyebrow {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.19em;
   text-transform: uppercase;
   color: hsl(var(--ai-emerald));
 }
-.ai-site .ai-eyebrow-copper { color: hsl(var(--ai-copper)); }
-.ai-site .ai-on-ink .ai-eyebrow { color: hsl(var(--ai-copper)); }
+:where(.ai-site) .ai-eyebrow-copper { color: hsl(var(--ai-copper)); }
+:where(.ai-site) .ai-on-ink .ai-eyebrow { color: hsl(var(--ai-copper)); }
 
-.ai-site .ai-lede {
+:where(.ai-site) .ai-lede {
   font-size: clamp(1.02rem, 1.5vw, 1.18rem);
   line-height: 1.65;
   color: hsl(var(--ai-charcoal-soft));
 }
 
-.ai-site .ai-num {
+:where(.ai-site) .ai-num {
   font-family: var(--ai-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -150,37 +252,76 @@ body:has(> .ai-site) {
 /* --------------------------------------------------------------------------
    Layout
    -------------------------------------------------------------------------- */
-.ai-site .ai-wrap {
+:where(.ai-site) .ai-wrap {
   width: 100%;
   max-width: 76rem;
   margin-inline: auto;
   padding-inline: clamp(1.1rem, 4vw, 2.5rem);
 }
-.ai-site .ai-wrap-narrow { max-width: 52rem; }
-.ai-site .ai-section { padding-block: var(--ai-section); }
-.ai-site .ai-band-stone { background: hsl(var(--ai-stone-2)); }
+:where(.ai-site) .ai-wrap-narrow { max-width: 52rem; }
+:where(.ai-site) .ai-section { padding-block: var(--ai-section); }
+:where(.ai-site) .ai-band-stone { background: hsl(var(--ai-stone-2)); }
 
-/* A dark band. Sets its own foreground so anything dropped inside inherits
-   legible colour without each component knowing which band it sits on. */
-.ai-site .ai-on-ink {
+/*
+  GROUND THAT IS DARK IN BOTH THEMES.
+
+  Rather than rewrite the hundred places that already read `--ai-stone` for
+  "light thing on this ground", these redefine the roles locally: inside them,
+  "the page" is light again, "text" is light again, "a raised surface" is a
+  lifted navy, and the brand inks brighten. Custom properties inherit, so every
+  descendant follows without knowing what it was dropped onto — which is the
+  whole point, because a card should not have to ask.
+
+  `.ai-on-ink` paints the navy itself. `.ai-on-photo` does not paint anything:
+  it is for captions laid over a photograph that already carries its own dark
+  scrim, where a background would cover the picture.
+*/
+:where(.ai-site) .ai-on-ink,
+:where(.ai-site) .ai-on-photo {
+  --ai-stone: var(--ai-light);
+  --ai-stone-2: 220 40% 12%;
+  --ai-stone-3: 217 28% 24%;
+  --ai-white: 219 38% 15%;
+  --ai-charcoal: var(--ai-light);
+  --ai-charcoal-soft: 217 16% 72%;
+  --ai-emerald: 165 62% 48%;
+  --ai-emerald-soft: 168 40% 16%;
+  --ai-copper: 32 88% 62%;
+  --ai-copper-ink: 32 90% 74%;
+
+  color: hsl(var(--ai-light));
+}
+:where(.ai-site) .ai-on-ink {
   background: hsl(var(--ai-ink));
-  color: hsl(var(--ai-stone));
 }
-.ai-site .ai-on-ink .ai-lede { color: hsl(var(--ai-stone) / 0.72); }
-.ai-site .ai-on-emerald {
-  background: hsl(var(--ai-emerald));
-  color: hsl(var(--ai-white));
+:where(.ai-site) .ai-on-ink .ai-lede,
+:where(.ai-site) .ai-on-photo .ai-lede { color: hsl(var(--ai-light) / 0.72); }
+
+:where(.ai-site) .ai-on-emerald {
+  --ai-stone: var(--ai-light);
+  --ai-stone-3: 168 30% 34%;
+  --ai-white: 168 44% 22%;
+  --ai-charcoal: var(--ai-light);
+  --ai-charcoal-soft: 168 20% 82%;
+
+  --ai-emerald: 165 62% 62%;
+  --ai-emerald-soft: 168 40% 22%;
+  --ai-copper: 32 88% 68%;
+  --ai-copper-ink: 32 90% 76%;
+
+  background: hsl(var(--ai-emerald-band));
+  color: hsl(var(--ai-light));
 }
-.ai-site .ai-on-emerald .ai-lede { color: hsl(var(--ai-white) / 0.82); }
+:where(.ai-site) .ai-on-emerald .ai-lede { color: hsl(var(--ai-light) / 0.84); }
 
 /* The hairline rule that separates editorial blocks. */
-.ai-site .ai-rule { border-top: 1px solid hsl(var(--ai-stone-3)); }
-.ai-site .ai-on-ink .ai-rule { border-color: hsl(var(--ai-ink-3)); }
+:where(.ai-site) .ai-rule { border-top: 1px solid hsl(var(--ai-stone-3)); }
+:where(.ai-site) .ai-on-ink .ai-rule { border-color: hsl(var(--ai-ink-3)); }
 
 /* --------------------------------------------------------------------------
    Buttons
    -------------------------------------------------------------------------- */
-.ai-site .ai-btn {
+:where(.ai-site) .ai-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -196,9 +337,9 @@ body:has(> .ai-site) {
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
     background-color 180ms, border-color 180ms, color 180ms, box-shadow 180ms;
 }
-.ai-site .ai-btn:hover { transform: translateY(-1px); }
-.ai-site .ai-btn:active { transform: translateY(0); }
-.ai-site .ai-btn:focus-visible {
+:where(.ai-site) .ai-btn:hover { transform: translateY(-1px); }
+:where(.ai-site) .ai-btn:active { transform: translateY(0); }
+:where(.ai-site) .ai-btn:focus-visible {
   outline: 2px solid hsl(var(--ai-copper));
   outline-offset: 3px;
 }
@@ -206,50 +347,50 @@ body:has(> .ai-site) {
   .ai-site .ai-btn:hover { transform: none; }
 }
 
-.ai-site .ai-btn-primary {
+:where(.ai-site) .ai-btn-primary {
   background: hsl(var(--ai-emerald));
   color: hsl(var(--ai-white));
   box-shadow: var(--ai-shadow-sm);
 }
-.ai-site .ai-btn-primary:hover { background: hsl(var(--ai-emerald) / 0.9); }
+:where(.ai-site) .ai-btn-primary:hover { background: hsl(var(--ai-emerald) / 0.9); }
 
-.ai-site .ai-btn-ink {
+:where(.ai-site) .ai-btn-ink {
   background: hsl(var(--ai-ink));
-  color: hsl(var(--ai-stone));
+  color: hsl(var(--ai-light));
 }
-.ai-site .ai-btn-ink:hover { background: hsl(var(--ai-ink-2)); }
+:where(.ai-site) .ai-btn-ink:hover { background: hsl(var(--ai-ink-2)); }
 
-.ai-site .ai-btn-copper {
+:where(.ai-site) .ai-btn-copper {
   background: hsl(var(--ai-copper));
   color: hsl(var(--ai-ink));
 }
-.ai-site .ai-btn-copper:hover { background: hsl(var(--ai-copper) / 0.9); }
+:where(.ai-site) .ai-btn-copper:hover { background: hsl(var(--ai-copper) / 0.9); }
 
-.ai-site .ai-btn-outline {
+:where(.ai-site) .ai-btn-outline {
   border-color: hsl(var(--ai-stone-3));
   background: hsl(var(--ai-white));
   color: hsl(var(--ai-charcoal));
 }
-.ai-site .ai-btn-outline:hover { border-color: hsl(var(--ai-ink) / 0.35); }
+:where(.ai-site) .ai-btn-outline:hover { border-color: hsl(var(--ai-ink) / 0.35); }
 
 /* On a dark band the outline button has to draw its own edge — the stone
    hairline disappears entirely against navy. */
-.ai-site .ai-on-ink .ai-btn-outline,
-.ai-site .ai-btn-outline-invert {
+:where(.ai-site) .ai-on-ink .ai-btn-outline,
+:where(.ai-site) .ai-btn-outline-invert {
   background: transparent;
-  border-color: hsl(var(--ai-stone) / 0.28);
-  color: hsl(var(--ai-stone));
+  border-color: hsl(var(--ai-light) / 0.3);
+  color: hsl(var(--ai-light));
 }
-.ai-site .ai-on-ink .ai-btn-outline:hover,
-.ai-site .ai-btn-outline-invert:hover {
-  background: hsl(var(--ai-stone) / 0.08);
-  border-color: hsl(var(--ai-stone) / 0.5);
+:where(.ai-site) .ai-on-ink .ai-btn-outline:hover,
+:where(.ai-site) .ai-btn-outline-invert:hover {
+  background: hsl(var(--ai-light) / 0.1);
+  border-color: hsl(var(--ai-light) / 0.5);
 }
 
-.ai-site .ai-btn-sm { min-height: 2.5rem; padding-inline: 1.1rem; font-size: 0.875rem; }
+:where(.ai-site) .ai-btn-sm { min-height: 2.5rem; padding-inline: 1.1rem; font-size: 0.875rem; }
 
 /* A text link that behaves like a button's quieter sibling. */
-.ai-site .ai-link {
+:where(.ai-site) .ai-link {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -257,21 +398,21 @@ body:has(> .ai-site) {
   color: hsl(var(--ai-emerald));
   text-underline-offset: 4px;
 }
-.ai-site .ai-link:hover { text-decoration: underline; }
-.ai-site .ai-on-ink .ai-link { color: hsl(var(--ai-copper)); }
+:where(.ai-site) .ai-link:hover { text-decoration: underline; }
+:where(.ai-site) .ai-on-ink .ai-link { color: hsl(var(--ai-copper)); }
 
 /* --------------------------------------------------------------------------
    Cards
    -------------------------------------------------------------------------- */
-.ai-site .ai-card {
+:where(.ai-site) .ai-card {
   background: hsl(var(--ai-white));
   border: 1px solid hsl(var(--ai-stone-3));
   border-radius: var(--ai-radius-lg);
   padding: clamp(1.4rem, 2.6vw, 2rem);
   box-shadow: var(--ai-shadow-sm);
 }
-.ai-site .ai-card-lift { transition: box-shadow 260ms, transform 260ms, border-color 260ms; }
-.ai-site .ai-card-lift:hover {
+:where(.ai-site) .ai-card-lift { transition: box-shadow 260ms, transform 260ms, border-color 260ms; }
+:where(.ai-site) .ai-card-lift:hover {
   box-shadow: var(--ai-shadow);
   transform: translateY(-3px);
   border-color: hsl(var(--ai-emerald) / 0.35);
@@ -279,7 +420,7 @@ body:has(> .ai-site) {
 @media (prefers-reduced-motion: reduce) {
   .ai-site .ai-card-lift:hover { transform: none; }
 }
-.ai-site .ai-on-ink .ai-card {
+:where(.ai-site) .ai-on-ink .ai-card {
   background: hsl(var(--ai-ink-2));
   border-color: hsl(var(--ai-ink-3));
   box-shadow: none;
@@ -288,7 +429,7 @@ body:has(> .ai-site) {
 /* --------------------------------------------------------------------------
    Badges
    -------------------------------------------------------------------------- */
-.ai-site .ai-badge {
+:where(.ai-site) .ai-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -299,22 +440,39 @@ body:has(> .ai-site) {
   letter-spacing: 0.01em;
   border: 1px solid transparent;
 }
-.ai-site .ai-badge-emerald {
+:where(.ai-site) .ai-badge-emerald {
   background: hsl(var(--ai-emerald-soft));
   color: hsl(var(--ai-emerald));
   border-color: hsl(var(--ai-emerald) / 0.2);
 }
-.ai-site .ai-badge-copper {
+:where(.ai-site) .ai-badge-copper {
   background: hsl(var(--ai-copper-soft));
-  color: hsl(28 72% 34%);
+  color: hsl(var(--ai-copper-ink));
   border-color: hsl(var(--ai-copper) / 0.28);
 }
-.ai-site .ai-badge-ink {
-  background: hsl(var(--ai-ink) / 0.06);
-  color: hsl(var(--ai-ink));
-  border-color: hsl(var(--ai-ink) / 0.14);
+/*
+  For a badge dropped on a PHOTOGRAPH, where there is no known background to
+  tint against and the picture underneath can be any colour at all. The others
+  are translucent tints, which is right on a card and useless over an image.
+  Always dark, in both themes, because the alternative is a badge that changes
+  legibility depending on which photo the CMS happens to serve.
+*/
+:where(.ai-site) .ai-badge-photo {
+  background: hsl(213 62% 8% / 0.72);
+  color: hsl(var(--ai-light));
+  border-color: hsl(var(--ai-light) / 0.22);
+  backdrop-filter: blur(10px);
 }
-.ai-site .ai-on-ink .ai-badge-ink {
+
+:where(.ai-site) .ai-badge-ink {
+  /* Reads the TEXT role, not the band role: `--ai-ink` is dark in both themes,
+     so using it as a foreground put a near-black label on a near-black card
+     the moment the dark theme landed. */
+  background: hsl(var(--ai-charcoal) / 0.07);
+  color: hsl(var(--ai-charcoal));
+  border-color: hsl(var(--ai-charcoal) / 0.16);
+}
+:where(.ai-site) .ai-on-ink .ai-badge-ink {
   background: hsl(var(--ai-stone) / 0.1);
   color: hsl(var(--ai-stone));
   border-color: hsl(var(--ai-stone) / 0.2);
@@ -327,7 +485,7 @@ body:has(> .ai-site) {
    often by somebody entering a bank account number they cannot afford to get
    wrong — so the target is generous and the focus state is unmistakable.
    -------------------------------------------------------------------------- */
-.ai-site .ai-field {
+:where(.ai-site) .ai-field {
   display: block;
   width: 100%;
   min-height: 3.25rem;
@@ -340,52 +498,52 @@ body:has(> .ai-site) {
   font-family: inherit;
   transition: border-color 160ms, box-shadow 160ms;
 }
-.ai-site .ai-field::placeholder { color: hsl(var(--ai-charcoal-soft) / 0.6); }
-.ai-site .ai-field:focus {
+:where(.ai-site) .ai-field::placeholder { color: hsl(var(--ai-charcoal-soft) / 0.6); }
+:where(.ai-site) .ai-field:focus {
   outline: none;
   border-color: hsl(var(--ai-emerald));
   box-shadow: 0 0 0 4px hsl(var(--ai-emerald) / 0.13);
 }
-.ai-site textarea.ai-field { min-height: 7rem; resize: vertical; }
+:where(.ai-site) textarea.ai-field { min-height: 7rem; resize: vertical; }
 
-.ai-site .ai-label {
+:where(.ai-site) .ai-label {
   display: block;
   margin-bottom: 0.4rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: hsl(var(--ai-charcoal));
 }
-.ai-site .ai-hint {
+:where(.ai-site) .ai-hint {
   margin-top: 0.4rem;
   font-size: 0.78rem;
   color: hsl(var(--ai-charcoal-soft));
 }
 
-.ai-site .ai-on-ink .ai-field {
+:where(.ai-site) .ai-on-ink .ai-field {
   background: hsl(var(--ai-stone) / 0.06);
   border-color: hsl(var(--ai-stone) / 0.18);
   color: hsl(var(--ai-stone));
 }
-.ai-site .ai-on-ink .ai-field::placeholder { color: hsl(var(--ai-stone) / 0.4); }
-.ai-site .ai-on-ink .ai-field:focus {
+:where(.ai-site) .ai-on-ink .ai-field::placeholder { color: hsl(var(--ai-stone) / 0.4); }
+:where(.ai-site) .ai-on-ink .ai-field:focus {
   border-color: hsl(var(--ai-copper));
   box-shadow: 0 0 0 4px hsl(var(--ai-copper) / 0.18);
 }
-.ai-site .ai-on-ink .ai-label { color: hsl(var(--ai-stone) / 0.86); }
-.ai-site .ai-on-ink .ai-hint { color: hsl(var(--ai-stone) / 0.5); }
+:where(.ai-site) .ai-on-ink .ai-label { color: hsl(var(--ai-stone) / 0.86); }
+:where(.ai-site) .ai-on-ink .ai-hint { color: hsl(var(--ai-stone) / 0.5); }
 
-.ai-site .ai-notice {
+:where(.ai-site) .ai-notice {
   border-radius: var(--ai-radius);
   padding: 0.85rem 1rem;
   font-size: 0.88rem;
   border: 1px solid;
 }
-.ai-site .ai-notice-error {
+:where(.ai-site) .ai-notice-error {
   background: hsl(var(--ai-danger) / 0.07);
   border-color: hsl(var(--ai-danger) / 0.3);
   color: hsl(var(--ai-danger));
 }
-.ai-site .ai-notice-ok {
+:where(.ai-site) .ai-notice-ok {
   background: hsl(var(--ai-emerald-soft));
   border-color: hsl(var(--ai-emerald) / 0.28);
   color: hsl(var(--ai-emerald));
@@ -398,11 +556,11 @@ body:has(> .ai-site) {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
-.ai-site .ai-rise { animation: ai-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.ai-site .ai-rise-1 { animation-delay: 60ms; }
-.ai-site .ai-rise-2 { animation-delay: 140ms; }
-.ai-site .ai-rise-3 { animation-delay: 220ms; }
-.ai-site .ai-rise-4 { animation-delay: 300ms; }
+:where(.ai-site) .ai-rise { animation: ai-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+:where(.ai-site) .ai-rise-1 { animation-delay: 60ms; }
+:where(.ai-site) .ai-rise-2 { animation-delay: 140ms; }
+:where(.ai-site) .ai-rise-3 { animation-delay: 220ms; }
+:where(.ai-site) .ai-rise-4 { animation-delay: 300ms; }
 @media (prefers-reduced-motion: reduce) {
   .ai-site .ai-rise { animation: none; }
 }
@@ -414,10 +572,169 @@ body:has(> .ai-site) {
    requests — and repeating an inline style for "secondary text" on forty
    elements is how a colour ends up slightly different in three places.
    -------------------------------------------------------------------------- */
-.ai-site .ai-muted { color: hsl(var(--ai-charcoal-soft)); }
-.ai-site .ai-on-ink .ai-muted { color: hsl(var(--ai-stone) / 0.66); }
+:where(.ai-site) .ai-muted { color: hsl(var(--ai-charcoal-soft)); }
+:where(.ai-site) .ai-on-ink .ai-muted { color: hsl(var(--ai-stone) / 0.66); }
 
 /* A list of rows inside a card: hairlines between, none at the ends. */
-.ai-site .ai-rows > * + * {
+:where(.ai-site) .ai-rows > * + * {
   border-top: 1px solid hsl(var(--ai-stone-3));
 }
+
+/* ===========================================================================
+   THE SKY
+
+   Used by components/brand/star-field.tsx. Declared here rather than inline so
+   the light and dark inkings live beside each other and can be compared.
+   =========================================================================== */
+
+:where(.ai-site) .ai-sky {
+  /* Sits behind content but above the band's own background. */
+  z-index: 0;
+}
+
+/* --- Nebulae ------------------------------------------------------------- */
+:where(.ai-site) .ai-sky-glow {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(46% 42% at 78% 22%, hsl(var(--ai-emerald) / 0.16) 0%, transparent 68%),
+    radial-gradient(40% 38% at 14% 82%, hsl(var(--ai-copper) / 0.11) 0%, transparent 66%);
+}
+:where(.dark .ai-site) .ai-sky-glow {
+  background:
+    radial-gradient(48% 44% at 78% 20%, hsl(165 62% 40% / 0.22) 0%, transparent 66%),
+    radial-gradient(42% 40% at 12% 84%, hsl(32 88% 52% / 0.14) 0%, transparent 64%),
+    radial-gradient(70% 60% at 50% 0%, hsl(218 60% 22% / 0.55) 0%, transparent 70%);
+}
+
+/* --- Stars --------------------------------------------------------------- */
+/*
+  In DAYLIGHT these are navy specks at 5–7% opacity: at arm's length they read
+  as the tooth of good paper. In the DARK they become the white points they were
+  always drawn as. One set of geometry, two inks.
+*/
+:where(.ai-site) .ai-sky-stars {
+  position: absolute;
+  inset: -25%;
+  background-repeat: repeat;
+}
+:where(.ai-site) .ai-sky-stars-near {
+  opacity: 0.07;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, hsl(var(--ai-ink)) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 70% 65%, hsl(var(--ai-ink)) 50%, transparent 50%),
+    radial-gradient(2px 2px at 45% 15%, hsl(var(--ai-ink)) 50%, transparent 50%);
+  background-size: 190px 190px, 270px 270px, 350px 350px;
+  animation: ai-drift-a 150s linear infinite;
+}
+:where(.ai-site) .ai-sky-stars-far {
+  opacity: 0.05;
+  background-image:
+    radial-gradient(1.2px 1.2px at 35% 55%, hsl(var(--ai-ink)) 50%, transparent 50%),
+    radial-gradient(1.2px 1.2px at 85% 25%, hsl(var(--ai-ink)) 50%, transparent 50%);
+  background-size: 130px 130px, 210px 210px;
+  animation: ai-drift-b 220s linear infinite;
+}
+:where(.dark .ai-site) .ai-sky-stars-near {
+  opacity: 0.62;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, #fff 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 70% 65%, #fff 50%, transparent 50%),
+    radial-gradient(2px 2px at 45% 15%, hsl(200 80% 88%) 50%, transparent 50%);
+}
+:where(.dark .ai-site) .ai-sky-stars-far {
+  opacity: 0.34;
+  background-image:
+    radial-gradient(1.2px 1.2px at 35% 55%, #fff 50%, transparent 50%),
+    radial-gradient(1.2px 1.2px at 85% 25%, #fff 50%, transparent 50%);
+}
+
+/* The ambient variant: the same sky, turned down for reading sections. */
+:where(.ai-site) .ai-sky-ambient .ai-sky-glow,
+:where(.ai-site).ai-sky-ambient .ai-sky-glow { opacity: 0.6; }
+:where(.ai-site) .ai-sky-ambient.ai-sky .ai-sky-stars { opacity: 0.035; }
+:where(.dark .ai-site) .ai-sky-ambient.ai-sky .ai-sky-stars-near { opacity: 0.3; }
+:where(.dark .ai-site) .ai-sky-ambient.ai-sky .ai-sky-stars-far { opacity: 0.16; }
+
+/* --- The shooting star ---------------------------------------------------- */
+/*
+  Dark theme only. A streak of light across a stone-coloured page is not a
+  shooting star, it is a scratch.
+*/
+:where(.ai-site) .ai-sky-shot { display: none; }
+:where(.dark .ai-site) .ai-sky-shot {
+  display: block;
+  position: absolute;
+  top: 12%;
+  left: 62%;
+  width: 140px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(200 90% 92% / 0.9), transparent);
+  opacity: 0;
+  transform: rotate(18deg);
+  animation: ai-shot 14s ease-in infinite;
+}
+
+@keyframes ai-drift-a {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-190px, 95px, 0); }
+}
+@keyframes ai-drift-b {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(130px, 105px, 0); }
+}
+@keyframes ai-shot {
+  0%, 92% { opacity: 0; transform: translate3d(0, 0, 0) rotate(18deg); }
+  94% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(-320px, 120px, 0) rotate(18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-site .ai-sky-stars,
+  .dark .ai-site .ai-sky-shot {
+    animation: none;
+  }
+  .dark .ai-site .ai-sky-shot { opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Dark-theme component overrides
+
+   These live at the BOTTOM of the file on purpose. Every selector here is
+   wrapped in `:where()` so it cannot out-specify a Tailwind utility, which
+   means it weighs exactly the same — (0,1,0) — as the base component rule it
+   is meant to override. At equal specificity the later rule wins, so if this
+   block sat next to the dark token block near the top, as it originally did,
+   every rule in it would be silently dead: the base rule further down the file
+   would win in BOTH themes and the dark theme would quietly get the light
+   treatment. Tailwind's utilities are emitted after this whole file, so they
+   still beat everything here.
+
+   Anything added here must stay below the rule it overrides.
+   -------------------------------------------------------------------------- */
+
+/* On a dark page the "on ink" band is barely distinct from the page, so it
+   earns a hairline to keep the section boundary readable. Full-width bands
+   only — `.ai-on-ink` is also worn by rounded result panels, and a hairline
+   across the top and bottom of a rounded card just looks broken. */
+:where(.dark .ai-site) :where(section, footer, header, aside).ai-on-ink {
+  border-block: 1px solid hsl(var(--ai-ink-3) / 0.5);
+}
+
+/* The emerald band is a solid brand colour in light. On dark it is too loud at
+   full strength across a whole section, so it deepens. */
+:where(.dark .ai-site) .ai-on-emerald {
+  background: hsl(168 58% 15%);
+}
+
+/* Outline buttons on the light page draw on white; on dark they need the
+   raised surface instead or they read as holes. */
+:where(.dark .ai-site) .ai-btn-outline {
+  background: hsl(var(--ai-white));
+  border-color: hsl(var(--ai-stone-3));
+  color: hsl(var(--ai-charcoal));
+}
+:where(.dark .ai-site) .ai-btn-outline:hover {
+  border-color: hsl(var(--ai-emerald) / 0.55);
+}
+

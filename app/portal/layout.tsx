@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { AitransitLockup } from "@/components/brand/logo";
 import { PortalNav } from "@/components/portal/portal-nav";
 import { SiteFooter } from "@/components/brand/site-footer";
+import { ThemeSwitch } from "@/components/brand/theme-switch";
 import { requireCustomer } from "@/lib/portal";
 
 /**
@@ -37,7 +38,7 @@ export default async function PortalLayout({
         className="sticky top-0 z-40 border-b backdrop-blur-md"
         style={{
           borderColor: "hsl(var(--ai-stone-3))",
-          background: "hsl(var(--ai-stone)/0.92)",
+          background: "hsl(var(--ai-stone) / 0.88)",
         }}
       >
         <div className="ai-wrap flex h-[4.5rem] items-center justify-between gap-4">
@@ -45,7 +46,8 @@ export default async function PortalLayout({
             <AitransitLockup />
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeSwitch />
             <span className="hidden text-right sm:block">
               <span className="block text-sm font-semibold leading-tight">
                 {viewer.name}

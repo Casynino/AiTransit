@@ -40,11 +40,21 @@ export function AitransitMark({
   className?: string;
   tone?: Tone;
 }) {
+  /*
+    The letter follows the TEXT role, not the ink one.
+
+    It was painted with `--ai-ink` — the navy of the dark bands — which is dark
+    in both themes, so the moment the site gained a dark mode the wordmark
+    disappeared into the header. `--ai-charcoal` is the body-text role: near-
+    black on a light page, warm off-white on a dark one. The mark is the one
+    thing that must be legible on every surface, so it borrows the token whose
+    entire job is being legible.
+  */
   const letter =
     tone === "brand"
-      ? "hsl(var(--ai-ink))"
+      ? "hsl(var(--ai-charcoal))"
       : tone === "invert"
-        ? "hsl(var(--ai-stone))"
+        ? "hsl(var(--ai-light))"
         : "currentColor";
   const route =
     tone === "mono" ? "currentColor" : "hsl(var(--ai-emerald-bright))";
@@ -91,7 +101,10 @@ export function AitransitLockup({
   tagline?: boolean;
   tone?: Tone;
 }) {
-  const ink = tone === "invert" ? "hsl(var(--ai-stone))" : "hsl(var(--ai-ink))";
+  // Same reasoning as the mark above: the wordmark reads as text, so it uses
+  // the text token and inverts with the theme.
+  const ink =
+    tone === "invert" ? "hsl(var(--ai-light))" : "hsl(var(--ai-charcoal))";
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>

@@ -12,6 +12,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+import { StarField } from "@/components/brand/star-field";
 import { Badge, BtnLink, Card, Eyebrow, Section, Wrap } from "@/components/brand/ui";
 import { COMPANY } from "@/lib/constants";
 import { img, marketImage } from "@/lib/imagery";
@@ -71,8 +72,9 @@ export default async function MarketPage({
             }}
           />
         </div>
+        <StarField />
 
-        <Wrap className="relative">
+        <Wrap className="relative z-10">
           <Link
             href="/markets"
             className="ai-link mb-6 inline-flex text-sm"

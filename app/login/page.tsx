@@ -1,37 +1,33 @@
 import Link from "next/link";
-import { ArrowLeft, Lock, Plane, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, Coins, PackageSearch, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 
-import { BrandLockup } from "@/components/brand-mark";
-import { LoginForm } from "@/components/login-form";
-import { LoginSky } from "@/components/login-sky";
+import { AitransitLockup } from "@/components/brand/logo";
+import { SignInForm } from "@/components/brand/sign-in-form";
+import { StarField } from "@/components/brand/star-field";
+import { ThemeSwitch } from "@/components/brand/theme-switch";
 import { COMPANY } from "@/lib/constants";
-import { t } from "@/lib/i18n";
-import { viewerLocale } from "@/lib/viewer";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = await viewerLocale();
-  return {
-    title: t(locale, "Staff sign in"),
-    robots: { index: false, follow: false },
-  };
-}
+export const metadata: Metadata = {
+  title: "Sign in",
+  robots: { index: false, follow: false },
+};
 
 /**
- * The first thing the company says to its own staff.
+ * One door into everything.
  *
- * It was a form on a white half and a flat blue half — correct, and it looked
- * like the login of something bought rather than built. This is the same form
- * over the corridor the business actually runs: Guangzhou, Hong Kong and Dubai
- * into Lusaka, drawn from the real route list rather than invented
- * cities, because the first screen should not open with a decoration that is
- * not true.
+ * Admin, finance, both warehouses, support and customers all sign in here, and
+ * the role on the account decides where they land — middleware sends a customer
+ * to /portal and everybody else to their dashboard. The page therefore says
+ * nothing about who it is for, because asking a visitor to classify themselves
+ * before they have typed an email is how people end up hunting for a second
+ * login that was never built.
  *
- * Dark on purpose, and always dark regardless of the theme toggle: this page
- * sits outside the app shell and is read at six in the morning on a warehouse
- * floor and at midnight from a phone. The backdrop is one server component with
- * no JavaScript at all — see LoginSky — so nothing here delays the form a
- * person is trying to type into.
+ * The sky behind it is the same one the marketing pages use, and it follows the
+ * theme like the rest of the site. It used to be pinned dark on the reasoning
+ * that a warehouse reads it at six in the morning — which was true and still
+ * left somebody on a bright phone in a market squinting at a black screen. The
+ * toggle is right there instead.
  */
 export default async function LoginPage({
   searchParams,
@@ -39,132 +35,113 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const { callbackUrl } = await searchParams;
-  const locale = await viewerLocale();
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden bg-[#05070f] text-white">
-      <LoginSky />
+    <div className="ai-site relative flex min-h-dvh flex-col overflow-hidden">
+      <StarField />
 
-      <div className="relative flex min-h-screen flex-col">
-        <header className="flex items-center justify-between gap-4 p-6 sm:px-10">
-          <Link href="/" className="focus-ring rounded-lg">
-            <BrandLockup />
+      <header className="relative z-10">
+        <div className="ai-wrap flex h-[4.5rem] items-center justify-between gap-4">
+          <Link href="/" aria-label="AITRANSIT — home">
+            <AitransitLockup />
           </Link>
-          <Link
-            href="/"
-            className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm text-white/70 backdrop-blur-sm transition-colors hover:border-white/30 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t(locale, "Back to site")}
-          </Link>
-        </header>
+          <div className="flex items-center gap-2">
+            <ThemeSwitch />
+            <Link href="/" className="ai-btn ai-btn-sm ai-btn-outline">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Back to site</span>
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        <main className="flex flex-1 items-center px-6 py-10 sm:px-10">
-          <div className="mx-auto grid grid-cols-1 w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
-            {/* The claim, on the side the routes are flying through. Hidden on
-                a phone: the form is why anybody opened this page, and it should
-                not start below the fold. */}
-            <div className="hidden lg:block">
-              {/* No pill. A border and a tinted fill around three place names
-                  is chrome doing the work that letter-spacing and a brighter
-                  ink already do — and on a dark page it reads as a button
-                  nobody can press. */}
-              <span className="inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-white/75">
-                <Plane className="h-3.5 w-3.5 text-signal" />
-                {t(locale, "Guangzhou · Hong Kong · Dubai — Lusaka")}
-              </span>
+      <main className="relative z-10 flex flex-1 items-center py-10">
+        <div className="ai-wrap grid w-full items-center gap-14 lg:grid-cols-[1.05fr_minmax(0,26rem)]">
+          {/* The welcome. Hidden on a phone: somebody opening this on a handset
+              is signing in, not being introduced to the company. */}
+          <div className="hidden lg:block">
+            <p className="ai-eyebrow ai-eyebrow-copper">
+              Guangzhou · Hong Kong → Lusaka
+            </p>
+            <h1 className="ai-display-xl mt-5">Welcome back</h1>
+            <p className="ai-lede mt-6 max-w-lg">
+              One account for everything AITRANSIT does — your cargo, your
+              invoices, your bookings and your money. Staff and customers sign in
+              in the same place; we will take you where you belong.
+            </p>
 
-              <h1 className="mt-6 font-display text-[42px] font-bold leading-none tracking-tight">
-                {t(locale, "Welcome on board")}
-              </h1>
+            <ul className="mt-12 grid max-w-lg gap-x-8 gap-y-6 sm:grid-cols-2">
+              {[
+                [PackageSearch, "Track every consignment", "China warehouse to Makeni counter"],
+                [Coins, "Rates and money requests", "Quoted, confirmed, recorded"],
+                [Building2, "Two warehouses, one record", "Guangzhou and Lusaka"],
+                [ShieldCheck, "Released only against a scan", "QR on every box"],
+              ].map(([Icon, title, hint]) => {
+                const I = Icon as typeof PackageSearch;
+                return (
+                  <li key={title as string} className="flex gap-3">
+                    <I
+                      className="mt-0.5 h-[1.15rem] w-[1.15rem] shrink-0"
+                      style={{ color: "hsl(var(--ai-emerald))" }}
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold">
+                        {title as string}
+                      </span>
+                      <span className="ai-muted block text-sm">
+                        {hint as string}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
 
-              {/* Three lines to the person signing in, not to a customer. The
-                  claim about kilos belongs on the public site; this is the
-                  screen a clerk opens at six in the morning. */}
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/70">
-                {t(locale, "Every shipment has a journey.")}
-                <br />
-                {t(locale, "Every detail matters.")}
-                <br />
-                {t(locale, "Every action keeps our customers moving forward.")}
-              </p>
+            <p
+              className="mt-12 text-sm font-semibold uppercase tracking-[0.18em]"
+              style={{ color: "hsl(var(--ai-copper))" }}
+            >
+              {COMPANY.tagline}
+            </p>
+          </div>
 
-              <p className="mt-6 font-display text-lg font-bold tracking-tight text-white/90">
-                AITRANSIT Cargo
-              </p>
-              {/* The company's own words, in the company's own language. */}
-              <p className="mt-1 font-display text-xl font-bold tracking-[0.08em] text-signal">
-                SHIP WITH YOUR OWN, PROUDLY ZAMBIAN
-              </p>
-
-              <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-5">
-                {[
-                  {
-                    k: COMPANY.promiseDays + " " + t(locale, "days"),
-                    v: t(locale, "door to door"),
-                  },
-                  { k: "2", v: t(locale, "warehouses, one record") },
-                  { k: "1", v: t(locale, "QR code per box") },
-                ].map((stat) => (
-                  <div key={stat.v}>
-                    <dt className="font-display text-2xl font-bold tabular-nums">
-                      {stat.k}
-                    </dt>
-                    <dd className="mt-0.5 text-xs uppercase tracking-[0.14em] text-white/45">
-                      {stat.v}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+          {/* The form. */}
+          <div className="ai-card w-full">
+            {/* On a phone this is the whole page, so the wordmark comes with it
+                — otherwise the card floats with nothing identifying it. */}
+            <div className="mb-7 lg:hidden">
+              <AitransitLockup />
             </div>
 
-            {/* The card. Glass over the routes rather than a panel beside
-                them, so the backdrop is something it sits in, not next to. */}
-            <div className="relative w-full">
-              <div
-                aria-hidden
-                className="absolute -inset-px rounded-3xl bg-gradient-to-b from-white/25 via-white/5 to-transparent"
-              />
-              <div className="relative rounded-3xl border border-white/10 bg-white/[0.06] p-7 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl sm:p-8">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                  <Lock className="h-3 w-3" />
-                  {t(locale, "Staff access only")}
-                </span>
+            <h2 className="ai-display">Sign in</h2>
+            <p className="ai-muted mt-2 text-[0.95rem]">
+              Customers and staff, same place. Your dashboard opens
+              automatically.
+            </p>
 
-                <h2 className="mt-4 font-display text-3xl font-bold tracking-tight">
-                  {t(locale, "Sign in")}
-                </h2>
-                <p className="mt-2 text-sm text-white/55">
-                  {t(
-                    locale,
-                    "Your dashboard opens automatically based on your department."
-                  )}
-                </p>
-
-                <div className="mt-7">
-                  <LoginForm callbackUrl={callbackUrl} />
-                </div>
-
-                <p className="mt-6 flex items-start gap-2 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/45">
-                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/35" />
-                  {t(
-                    locale,
-                    "Lost your password? Ask the CEO to reset it — accounts are managed internally, and nobody else can issue one."
-                  )}
-                </p>
-              </div>
+            <div className="mt-7">
+              <SignInForm callbackUrl={callbackUrl} />
             </div>
           </div>
-        </main>
+        </div>
+      </main>
 
-        <footer className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 p-6 text-xs leading-relaxed text-white/35 sm:px-10">
-          <p className="font-medium text-white/60">{COMPANY.name}</p>
-          <div className="flex flex-wrap gap-x-8 gap-y-1">
-            <p>🇨🇳 {COMPANY.chinaAddress}</p>
-            <p>🇹🇿 {COMPANY.zambiaAddress}</p>
-          </div>
-        </footer>
-      </div>
+      <footer className="relative z-10 py-8">
+        <div className="ai-wrap">
+          <p className="ai-muted text-xs">
+            © {new Date().getFullYear()} {COMPANY.name}. Trouble signing in?{" "}
+            <a
+              href={`https://wa.me/${COMPANY.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ai-link"
+            >
+              Message us
+            </a>
+            .
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

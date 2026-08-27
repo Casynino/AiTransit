@@ -57,7 +57,10 @@ export function MarketCard({
               "linear-gradient(to top, hsl(213 62% 8% / 0.86) 0%, hsl(213 62% 8% / 0.25) 45%, transparent 75%)",
           }}
         />
-        <span className="absolute inset-x-0 bottom-0 p-5">
+        {/* `ai-on-photo` flips the colour roles for this caption only: it sits
+            over the scrim above, which is dark in both themes, so the page's
+            light/dark tokens would get it exactly backwards half the time. */}
+        <span className="ai-on-photo absolute inset-x-0 bottom-0 p-5">
           <span
             className="block text-[0.68rem] font-bold uppercase tracking-[0.16em]"
             style={{ color: "hsl(var(--ai-copper))" }}
@@ -68,14 +71,14 @@ export function MarketCard({
           </span>
           <span
             className="ai-display-sm mt-1.5 block"
-            style={{ color: "hsl(var(--ai-stone))" }}
+            style={{ color: "hsl(var(--ai-charcoal))" }}
           >
             {market.name}
           </span>
           {market.nameCn ? (
             <span
               className="mt-0.5 block text-sm"
-              style={{ color: "hsl(var(--ai-stone)/0.66)" }}
+              style={{ color: "hsl(var(--ai-charcoal)/0.66)" }}
             >
               {market.nameCn}
             </span>

@@ -152,7 +152,7 @@ function Chip({
           ? {
               background: "hsl(var(--ai-ink))",
               borderColor: "hsl(var(--ai-ink))",
-              color: "hsl(var(--ai-stone))",
+              color: "hsl(var(--ai-light))",
             }
           : {
               borderColor: "hsl(var(--ai-stone-3))",

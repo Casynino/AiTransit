@@ -164,11 +164,12 @@ export function QuoteCalculator({
         </button>
       </form>
 
-      {/* The answer, and how it was reached. */}
-      <div
-        className="rounded-[var(--ai-radius-lg)] p-7 md:p-8"
-        style={{ background: "hsl(var(--ai-ink))", color: "hsl(var(--ai-stone))" }}
-      >
+      {/* The answer, and how it was reached. `ai-on-ink` rather than an inline
+          navy: the class also redefines the colour roles for everything inside
+          it, so the nested labels and figures below stay light without each one
+          being told the panel is dark. An inline background did not, and they
+          went black-on-black the moment the dark theme landed. */}
+      <div className="ai-on-ink rounded-[var(--ai-radius-lg)] p-7 md:p-8">
         {!quote ? (
           <div className="flex h-full flex-col justify-center">
             <Info

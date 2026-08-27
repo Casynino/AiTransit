@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { StarField } from "@/components/brand/star-field";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -191,6 +193,7 @@ export type BadgeTone =
   | "emerald"
   | "copper"
   | "ink"
+  | "photo"
   | "success"
   | "warning"
   | "info"
@@ -202,6 +205,7 @@ const BADGE_CLASS: Record<BadgeTone, string> = {
   emerald: "ai-badge-emerald",
   copper: "ai-badge-copper",
   ink: "ai-badge-ink",
+  photo: "ai-badge-photo",
   // Semantic → brand. Anything that means "good" is emerald, anything that
   // means "needs attention" is copper, and everything neutral is ink.
   success: "ai-badge-emerald",
@@ -285,12 +289,8 @@ export function PageHero({
 }) {
   return (
     <section className="ai-on-ink relative overflow-hidden pb-16 pt-32 md:pb-20 md:pt-40">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-32 -top-40 h-[30rem] w-[30rem] rounded-full opacity-[0.14] blur-3xl"
-        style={{ background: "hsl(var(--ai-emerald))" }}
-      />
-      <Wrap className="relative">
+      <StarField />
+      <Wrap className="relative z-10">
         <div className="max-w-3xl">
           <Eyebrow copper>{eyebrow}</Eyebrow>
           <h1 className="ai-display-lg mt-5">{title}</h1>

@@ -27,6 +27,7 @@ import { CountUp, Reveal } from "@/components/brand/motion";
 import { ProcessTimeline } from "@/components/brand/process";
 import { QuickPanel } from "@/components/brand/quick-panel";
 import { RouteGlobe } from "@/components/brand/route-globe";
+import { StarField } from "@/components/brand/star-field";
 import { Testimonials } from "@/components/brand/testimonials";
 import { TrackInput } from "@/components/brand/track-input";
 import {
@@ -198,11 +199,11 @@ export default async function HomePage() {
                 "linear-gradient(100deg, hsl(213 62% 8% / 0.97) 0%, hsl(213 62% 8% / 0.9) 42%, hsl(213 62% 8% / 0.55) 100%)",
             }}
           />
-          <span
-            className="absolute -right-40 -top-32 h-[40rem] w-[40rem] rounded-full opacity-[0.18] blur-3xl"
-            style={{ background: "hsl(var(--ai-emerald))" }}
-          />
         </div>
+        {/* The sky sits over the photograph and under the copy. It is what
+            carries the hero in the light theme, where the same image behind a
+            pale scrim would otherwise read as a washed-out stock photo. */}
+        <StarField />
 
         <Wrap className="relative">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
@@ -274,15 +275,24 @@ export default async function HomePage() {
               </ul>
             </div>
 
-            {/* The corridor, live. Drag it. */}
-            <div className="ai-rise ai-rise-3 relative hidden lg:block">
-              <RouteGlobe className="mx-auto w-full max-w-[30rem]" />
+            {/*
+              The corridor, live — and shown on a phone too.
+
+              It was desktop-only, which meant the single most striking thing on
+              the site was invisible to most of the people who visit it. It is
+              capped smaller on a handset so it never pushes the calls to action
+              below the fold, and cobe scales its own buffer to the rendered
+              width, so the smaller canvas is genuinely cheaper rather than the
+              same work drawn smaller.
+            */}
+            <div className="ai-rise ai-rise-3 relative">
+              <RouteGlobe className="mx-auto w-full max-w-[16rem] sm:max-w-[20rem] lg:max-w-[30rem]" />
               <p
                 className="mt-4 text-center text-xs"
-                style={{ color: "hsl(var(--ai-stone)/0.42)" }}
+                style={{ color: "hsl(var(--ai-stone)/0.45)" }}
               >
-                Our two loading airports, the hubs we connect through, and home.
-                Drag to spin.
+                Our loading airports, the hubs we connect through, and home.
+                <span className="hidden sm:inline"> Drag to spin.</span>
               </p>
             </div>
           </div>
@@ -355,7 +365,7 @@ export default async function HomePage() {
                       }}
                     />
                     <span className="absolute left-4 top-4">
-                      <Badge tone={tag === "Free" ? "copper" : "ink"}>{tag}</Badge>
+                      <Badge tone="photo">{tag}</Badge>
                     </span>
                   </span>
                   <span className="flex flex-1 flex-col p-6">
