@@ -55,7 +55,6 @@ export default async function RegisterPage() {
         title="Create your AITRANSIT account"
         lede="Track your cargo, read your invoices and send us requests — without waiting for a reply on WhatsApp."
         photo={IMAGES.warehouseDesk}
-        photoAlt="An account being opened at the counter"
       />
 
       <Section tone="stone">

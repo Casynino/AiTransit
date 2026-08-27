@@ -78,6 +78,27 @@ export function img(url: string, width: number, quality = 68) {
 }
 
 /**
+ * The source URL for a full-bleed banner.
+ *
+ * Two things this does that `img` does not, both learned the hard way.
+ *
+ * It pins the ASPECT. Several of these photographs are portrait — one is
+ * 1800×2400 — and asking for `w=1800` alone returns the whole 800 kB of it to
+ * be cropped to a letterbox afterwards. Asking for the crop up front means the
+ * bytes we pay for are the bytes we show.
+ *
+ * And it stays SMALL. Next's image optimizer aborts an upstream fetch at seven
+ * seconds; a heavy original from Unsplash regularly took longer, and the whole
+ * banner then 500s and renders as flat navy — which is exactly what happened
+ * to the contact page. 1600px across a 16:9 crop is plenty for a hero at any
+ * width we serve, and it arrives in well under a second.
+ */
+export function banner(url: string, width = 1600) {
+  const height = Math.round((width * 9) / 16);
+  return `${url}?auto=format&fit=crop&w=${width}&h=${height}&q=62`;
+}
+
+/**
  * Which photograph belongs to which market.
  *
  * Falls back to a warehouse aisle rather than a random image: a generic but

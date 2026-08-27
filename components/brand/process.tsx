@@ -94,7 +94,7 @@ export function ProcessTimeline() {
             </p>
             <p
               className="mt-3 text-[0.7rem] font-semibold uppercase tracking-[0.13em]"
-              style={{ color: "hsl(var(--ai-charcoal-soft)/0.75)" }}
+              style={{ color: "hsl(var(--ai-charcoal-soft))" }}
             >
               {step.who}
             </p>

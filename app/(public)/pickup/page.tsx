@@ -25,7 +25,6 @@ export default function PickupPage() {
         title="We will collect from your supplier"
         lede="Your supplier does not need to arrange shipping or find our warehouse. Give us their address and we go to them — anywhere in Guangzhou, at no cost."
         photo={IMAGES.freightTruck}
-        photoAlt="A collection truck on the road"
         stats={[
           { value: "Free", label: "anywhere in Guangzhou" },
           { value: "Photographed", label: "the moment we take them" },

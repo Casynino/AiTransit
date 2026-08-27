@@ -26,7 +26,6 @@ export default function BookPage() {
         title="Tell us what is coming"
         lede="A booking is not a shipment — it is a heads-up so we know to expect your goods and can tell you exactly where to send them."
         photo={IMAGES.loadingRamp}
-        photoAlt="Freight being loaded at the ramp"
       />
 
       <Section tone="stone">

@@ -20,7 +20,6 @@ import { COMPANY } from "@/lib/constants";
 import { publishedFxBoard } from "@/lib/exchange";
 import { IMAGES } from "@/lib/imagery";
 import { PhotoBand } from "@/components/brand/photo-band";
-import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "Money exchange & China payments",
@@ -46,15 +45,7 @@ export default async function ExchangePage() {
         eyebrow="Money exchange"
         title="Change money and pay China, at a rate we confirm first"
         lede="The same company that flies your cargo handles the currency behind it. Book a rate here; our finance desk agrees it with you before any money moves."
-        media={
-          <PhotoDuo
-            main={IMAGES.countingCash}
-            inset={IMAGES.banknotesFan}
-            mainAlt="Banknotes being counted at a desk"
-            insetAlt="Assorted currency"
-            priority
-          />
-        }
+        photo={IMAGES.countingCash}
       >
         <div className="flex flex-wrap gap-2.5">
           <BtnLink href="#book" tone="copper">

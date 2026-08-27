@@ -16,10 +16,7 @@ import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 import { publicRateCard } from "@/lib/rate-card";
 import { IMAGES } from "@/lib/imagery";
 import { PhotoBand } from "@/components/brand/photo-band";
-import {
-  Photo,
-  PhotoDuo,
-} from "@/components/brand/photo";
+import { Photo } from "@/components/brand/photo";
 import { Reveal } from "@/components/brand/motion";
 
 export const metadata: Metadata = {
@@ -37,15 +34,7 @@ export default async function CalculatorPage() {
         eyebrow="Rates & quote"
         title="Know what it costs before you send it"
         lede={`Every rate below covers freight and duty to our Lusaka warehouse. Cargo under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg, and from 10 kg the rate per kilo drops.`}
-        media={
-          <PhotoDuo
-            main={IMAGES.cargoHold}
-            inset={IMAGES.packedCartons}
-            mainAlt="Freight secured in the hold"
-            insetAlt="Cartons ready to be weighed"
-            priority
-          />
-        }
+        photo={IMAGES.cargoHold}
         stats={[
           { value: "USD 13.50", label: "per kg, normal goods" },
           { value: "Duty in", label: "nothing added at the counter" },

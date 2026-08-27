@@ -73,7 +73,6 @@ export default async function AppointmentsPage({
         title="Book a pickup, a market day, or a factory tour"
         lede="One form for everything with a date on it — collecting your cargo in Makeni, or meeting a supplier in Guangzhou with someone who speaks the language."
         photo={IMAGES.clothingRail}
-        photoAlt="A wholesale market stall in Guangzhou"
       />
 
       <Section tone="stone">
@@ -179,6 +178,7 @@ export default async function AppointmentsPage({
                 <Card className="flex h-full flex-col overflow-hidden !p-0">
                   <span className="relative block aspect-[16/9]">
                     <Image
+                    unoptimized
                       src={img(place.image, 900)}
                       alt=""
                       fill

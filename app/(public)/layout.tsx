@@ -1,3 +1,4 @@
+import { SiteBackdrop } from "@/components/brand/site-backdrop";
 import { SiteFooter } from "@/components/brand/site-footer";
 import { SiteHeader } from "@/components/brand/site-header";
 
@@ -19,8 +20,9 @@ export default function PublicLayout({
 }) {
   return (
     <div className="ai-site flex min-h-screen flex-col overflow-x-clip">
+      <SiteBackdrop />
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      <main className="relative flex-1">{children}</main>
       <SiteFooter />
     </div>
   );

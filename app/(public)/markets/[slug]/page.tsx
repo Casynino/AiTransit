@@ -57,6 +57,7 @@ export default async function MarketPage({
       <section className="ai-on-ink relative overflow-hidden pb-16 pt-32 md:pb-20 md:pt-40">
         <div aria-hidden className="absolute inset-0">
           <Image
+          unoptimized
             src={img(marketImage(market.slug), 1800)}
             alt=""
             fill
@@ -241,6 +242,7 @@ export default async function MarketPage({
                 >
                   <span className="relative block aspect-[16/10] overflow-hidden">
                     <Image
+                    unoptimized
                       src={img(marketImage(other.slug), 640)}
                       alt=""
                       fill

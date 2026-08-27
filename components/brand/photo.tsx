@@ -69,6 +69,9 @@ export function Photo({
       fill
       sizes={sizes}
       priority={priority}
+      /* Unsplash has already cropped, sized and format-negotiated this; see
+         the note in PageHero. Re-optimising it buys nothing and can time out. */
+      unoptimized
       className={cn(
         "object-cover",
         zoom &&

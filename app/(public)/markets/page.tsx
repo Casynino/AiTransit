@@ -58,6 +58,7 @@ export default async function MarketsPage() {
       <section className="ai-on-ink relative overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
         <div aria-hidden className="absolute inset-0">
           <Image
+          unoptimized
             src={img(IMAGES.clothingRail, 1800)}
             alt=""
             fill
@@ -118,7 +119,7 @@ export default async function MarketsPage() {
                     </span>
                     <span
                       className="block text-xs"
-                      style={{ color: "hsl(var(--ai-stone)/0.5)" }}
+                      style={{ color: "hsl(var(--ai-stone)/0.66)" }}
                     >
                       {hint as string}
                     </span>
@@ -262,6 +263,7 @@ export default async function MarketsPage() {
 
             <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--ai-radius-lg)]">
               <Image
+              unoptimized
                 src={img(IMAGES.warehouseAisle, 1200)}
                 alt="Inside a Chinese wholesale market"
                 fill

@@ -1,9 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { Reveal } from "@/components/brand/motion";
-import { Photo } from "@/components/brand/photo";
 import { StarField } from "@/components/brand/star-field";
 
+import { banner } from "@/lib/imagery";
 import { cn } from "@/lib/utils";
 
 /**
@@ -352,55 +353,104 @@ export function PageHero({
   title,
   lede,
   children,
-  media,
   photo,
-  photoAlt = "",
+  media,
   stats,
-  align = "split",
 }: {
   eyebrow: string;
   title: React.ReactNode;
   lede?: React.ReactNode;
   children?: React.ReactNode;
-  /** A composition for the right column. Wins over `photo`. */
-  media?: React.ReactNode;
-  /** A single photograph, framed and given depth by this component. */
+  /** The full-bleed photograph behind the whole banner. */
   photo?: string;
-  photoAlt?: string;
+  /** Something in the right-hand half — a globe, a card. Optional. */
+  media?: React.ReactNode;
   stats?: { value: string; label: string }[];
-  /**
-   * `split` puts the copy in a column beside the media. `wide` lets the copy
-   * run the full width — for a page whose own first section is the visual,
-   * where a hero picture would be the second photograph in one screen.
-   */
-  align?: "split" | "wide";
 }) {
-  const hasMedia = Boolean(media || photo);
-  const split = align === "split" && hasMedia;
-
   return (
-    <section className="ai-on-ink relative isolate overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
+    <section className="ai-on-ink relative isolate flex min-h-[clamp(34rem,74vh,46rem)] items-center overflow-hidden pb-20 pt-36 md:pb-28 md:pt-44">
+      {/*
+        FULL-BLEED, like the homepage and the market directory.
+
+        This used to be a photograph in a rounded card floating in the right
+        half of a navy band, which filled the space but did not look like the
+        landing page — the landing page is rich because the picture IS the
+        banner, edge to edge, with the copy sitting on it. A card in a field of
+        flat navy reads as a section; a photograph the width of the screen
+        reads as a cover.
+
+        A plain <Image fill> rather than the Photo component, deliberately.
+        Photo wraps its picture in an oversized absolutely-positioned layer for
+        parallax, and nesting that inside another absolute layer is what made
+        two of these heroes render an empty rectangle. A banner background does
+        not need parallax; it needs to be there.
+      */}
+      {photo ? (
+        /* No negative z-index. `.ai-on-ink` paints the section's own navy
+           background, and a child at -z sits BEHIND that background rather
+           than behind the content — which rendered a flat navy banner with an
+           invisible photograph under it. Positioned children at auto z paint
+           above the parent's background, which is what this wants. */
+        <div aria-hidden className="absolute inset-0">
+          {/*
+            `unoptimized` — straight to Unsplash, no Next image proxy.
+
+            Unsplash already returns exactly what the optimizer would produce:
+            the crop we asked for, at the width we asked for, negotiated to
+            WebP or AVIF by `auto=format` against the browser's own Accept
+            header. Proxying that through Next re-decodes and re-encodes it for
+            no gain, and adds a failure mode — the optimizer aborts an upstream
+            fetch at seven seconds, and Unsplash regularly takes longer the
+            first time it is asked for a particular crop. Every one of those
+            aborts rendered a hero as flat navy with the photograph missing.
+          */}
+          <Image
+            src={banner(photo)}
+            alt=""
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
+
+      {/* Heavy where the words are, clear where the picture should show. */}
+      <span
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          /* The same weights the market directory uses, because that banner
+             is the one that reads right: opaque enough under the words to
+             carry them at any brightness in the picture, and light enough on
+             the far side that the photograph is unmistakably a photograph
+             rather than a texture. */
+          background: photo
+            ? "linear-gradient(105deg, hsl(213 62% 8% / 0.95) 0%, hsl(213 62% 8% / 0.82) 45%, hsl(213 62% 8% / 0.42) 100%)"
+            : "linear-gradient(105deg, hsl(213 62% 8% / 0.6) 0%, transparent 70%)",
+        }}
+      />
+
       <StarField />
 
-      {/* A wash of brand colour across the band so the navy is never flat.
-          Sits under the content and over the stars. */}
+      {/* The brand wash that stops the navy reading as flat. */}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[1]"
         style={{
           background:
-            "radial-gradient(58% 55% at 88% 12%, hsl(var(--ai-emerald) / 0.16) 0%, transparent 70%), radial-gradient(44% 44% at 6% 92%, hsl(var(--ai-copper) / 0.13) 0%, transparent 68%)",
+            "radial-gradient(58% 55% at 88% 10%, hsl(var(--ai-emerald) / 0.20) 0%, transparent 70%), radial-gradient(46% 46% at 4% 94%, hsl(var(--ai-copper) / 0.16) 0%, transparent 68%)",
         }}
       />
 
-      <Wrap className="relative z-10">
+      <Wrap className="relative z-10 w-full">
         <div
           className={cn(
-            split &&
-              "grid items-center gap-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-20"
+            media && "grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]"
           )}
         >
-          <div className={cn(!split && "max-w-3xl")}>
+          <div className={cn(!media && "max-w-3xl")}>
             <Reveal>
               <Eyebrow copper>{eyebrow}</Eyebrow>
             </Reveal>
@@ -422,18 +472,17 @@ export function PageHero({
               <Reveal delay={240}>
                 <dl
                   className="mt-12 grid max-w-xl grid-cols-2 gap-x-8 gap-y-7 border-t pt-8 sm:grid-cols-3"
-                  style={{ borderColor: "hsl(var(--ai-light) / 0.16)" }}
+                  style={{ borderColor: "hsl(var(--ai-light) / 0.18)" }}
                 >
                   {stats.map((stat) => (
                     <div key={stat.label}>
-                      {/* The display serif, not the mono. These read as
-                          headlines rather than as readings off an instrument,
-                          and half of them are words ("Free", "Same day") that
-                          a monospace face makes look like console output. */}
+                      {/* The display serif, not the mono. Half of these are
+                          words ("Free", "Same day") that a monospace face
+                          makes look like console output. */}
                       <dt className="ai-display-sm leading-none">{stat.value}</dt>
                       <dd
-                        className="mt-1.5 text-[0.82rem] leading-snug"
-                        style={{ color: "hsl(var(--ai-light) / 0.62)" }}
+                        className="mt-2 text-[0.82rem] leading-snug"
+                        style={{ color: "hsl(var(--ai-light) / 0.66)" }}
                       >
                         {stat.label}
                       </dd>
@@ -444,48 +493,9 @@ export function PageHero({
             ) : null}
           </div>
 
-          {split ? (
-            <Reveal delay={140} className="lg:pl-4">
-              {media ?? (
-                <PageHeroPhoto src={photo as string} alt={photoAlt} />
-              )}
-            </Reveal>
-          ) : null}
+          {media ? <Reveal delay={140}>{media}</Reveal> : null}
         </div>
       </Wrap>
     </section>
-  );
-}
-
-/**
- * The default treatment for a hero's single photograph.
- *
- * A plain rectangle beside a headline reads as a stock template, so it gets a
- * ring, a deep shadow and a slow parallax — the three things that make a
- * picture look placed rather than pasted.
- */
-function PageHeroPhoto({ src, alt }: { src: string; alt: string }) {
-  return (
-    <div className="relative">
-      <span
-        aria-hidden
-        className="absolute -inset-4 -z-10 rounded-[calc(var(--ai-radius-lg)+1rem)] opacity-70 blur-2xl"
-        style={{
-          background:
-            "linear-gradient(140deg, hsl(var(--ai-emerald) / 0.35), transparent 55%, hsl(var(--ai-copper) / 0.28))",
-        }}
-      />
-      <Photo
-        src={src}
-        alt={alt}
-        ratio="wide"
-        width={1100}
-        priority
-        parallax={7}
-        scrim="soft"
-        sizes="(max-width: 1024px) 92vw, 46vw"
-        className="ring-1 ring-[hsl(var(--ai-light)/0.14)] shadow-[0_46px_90px_-34px_hsl(213_62%_3%/0.85)]"
-      />
-    </div>
   );
 }

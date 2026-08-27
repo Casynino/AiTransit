@@ -42,6 +42,7 @@ export function MarketCard({
         className="relative block aspect-[4/3] overflow-hidden"
       >
         <Image
+        unoptimized
           src={img(marketImage(market.slug), 800)}
           alt=""
           fill

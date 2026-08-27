@@ -133,7 +133,7 @@ export function SiteFooter() {
                 </a>
                 <p
                   className="mt-0.5 text-xs"
-                  style={{ color: "hsl(var(--ai-stone)/0.48)" }}
+                  style={{ color: "hsl(var(--ai-stone)/0.62)" }}
                 >
                   {contact.channels} ·{" "}
                   {contact.country === "CHINA" ? "China" : "Zambia"}
@@ -165,7 +165,7 @@ export function SiteFooter() {
 
         <div
           className="ai-rule mt-10 flex flex-col justify-between gap-3 pt-7 text-xs sm:flex-row"
-          style={{ color: "hsl(var(--ai-stone)/0.46)" }}
+          style={{ color: "hsl(var(--ai-stone)/0.56)" }}
         >
           <p>
             © {year} {COMPANY.name}. All rights reserved.

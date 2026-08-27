@@ -15,7 +15,6 @@ import {
 import { COMPANY } from "@/lib/constants";
 import { IMAGES } from "@/lib/imagery";
 import { PhotoBand } from "@/components/brand/photo-band";
-import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -35,15 +34,7 @@ export default function ContactPage() {
         eyebrow="Contact"
         title="Talk to a person, in the country your question is in"
         lede="Guangzhou for suppliers, inspection and collection. Lusaka for cargo, money and pickup. All three of us are on WeChat and WhatsApp."
-        media={
-          <PhotoDuo
-            main={IMAGES.lusakaStreet}
-            inset={IMAGES.pearlRiver}
-            mainAlt="A street in Lusaka"
-            insetAlt="Guangzhou on the Pearl River"
-            priority
-          />
-        }
+        photo={IMAGES.lusakaStreet}
         stats={[
           { value: "3", label: "people you can ring by name" },
           { value: "2", label: "countries, one company" },

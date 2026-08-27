@@ -65,7 +65,6 @@ export default async function TrackPage({
         title="Where is my cargo?"
         lede="Enter the tracking number from the label on your box. It works from the moment we register it in Guangzhou until you collect it in Makeni."
         photo={IMAGES.warehouseTablet}
-        photoAlt="A parcel being scanned into the warehouse"
       >
         <TrackInput autoFocus={!q} />
       </PageHero>

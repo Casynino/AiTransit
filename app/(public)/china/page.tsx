@@ -14,7 +14,6 @@ import {
 import { COMPANY } from "@/lib/constants";
 import { IMAGES } from "@/lib/imagery";
 import { PhotoBand } from "@/components/brand/photo-band";
-import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "China warehouse address",
@@ -42,15 +41,7 @@ export default function ChinaPage() {
         eyebrow="China warehouse"
         title="Send your supplier this address"
         lede="Copy the Chinese block below and send it to them on WeChat or WhatsApp. It is what their driver reads at our gate in Baiyun District."
-        media={
-          <PhotoDuo
-            main={IMAGES.guangzhouSkyline}
-            inset={IMAGES.warehouseTablet}
-            mainAlt="The Guangzhou skyline"
-            insetAlt="Goods being checked in at the counter"
-            priority
-          />
-        }
+        photo={IMAGES.guangzhouSkyline}
         stats={[
           { value: "Baiyun", label: "district, Guangzhou" },
           { value: "Free", label: "collection from your supplier" },

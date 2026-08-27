@@ -144,7 +144,10 @@ body:has(> .ai-site) {
   --ai-shadow: 0 2px 4px hsl(28 30% 20% / 0.05), 0 12px 28px -14px hsl(213 50% 18% / 0.22);
   --ai-shadow-lg: 0 4px 10px hsl(28 30% 20% / 0.06), 0 30px 60px -28px hsl(213 50% 18% / 0.34);
 
-  background: hsl(var(--ai-stone));
+  /* Transparent on purpose: `SiteBackdrop` paints the page colour on a fixed
+     layer beneath, so the sky behind it is continuous down the whole document
+     instead of stopping where each hero ends. */
+  background: transparent;
   color: hsl(var(--ai-charcoal));
   font-family: var(--ai-sans);
   -webkit-font-smoothing: antialiased;
@@ -270,7 +273,20 @@ body:has(> .ai-site) {
 }
 :where(.ai-site) .ai-wrap-narrow { max-width: 52rem; }
 :where(.ai-site) .ai-section { padding-block: var(--ai-section); }
-:where(.ai-site) .ai-band-stone { background: hsl(var(--ai-stone-2)); }
+/*
+  TRANSLUCENT, all of them.
+
+  Each of these used to be an opaque fill, which meant the sky behind the page
+  was invisible everywhere except a hero. At these alphas the surface still
+  reads as its own band — the eye sees a distinct panel — but the starfield and
+  the colour drifts carry through it, so a long page has depth all the way down
+  instead of only at the top.
+
+  The alphas are high enough that TEXT CONTRAST IS UNCHANGED: what is behind is
+  the page colour plus a few percent of star, which moves the measured ratio by
+  less than a hundredth. Do not lower them without re-measuring.
+*/
+:where(.ai-site) .ai-band-stone { background: hsl(var(--ai-stone-2) / 0.72); }
 
 /*
   GROUND THAT IS DARK IN BOTH THEMES.
@@ -302,7 +318,7 @@ body:has(> .ai-site) {
   color: hsl(var(--ai-light));
 }
 :where(.ai-site) .ai-on-ink {
-  background: hsl(var(--ai-ink));
+  background: hsl(var(--ai-ink) / 0.86);
 }
 :where(.ai-site) .ai-on-ink .ai-lede,
 :where(.ai-site) .ai-on-photo .ai-lede { color: hsl(var(--ai-light) / 0.72); }
@@ -312,7 +328,9 @@ body:has(> .ai-site) {
   --ai-stone-3: 168 30% 34%;
   --ai-white: 168 44% 22%;
   --ai-charcoal: var(--ai-light);
-  --ai-charcoal-soft: 168 20% 82%;
+  /* 82% measured 4.49:1 for the 14px "Buy"/"Sell" labels — one hundredth
+     under AA, which is still under. */
+  --ai-charcoal-soft: 168 22% 87%;
 
   --ai-emerald: 165 62% 62%;
   --ai-emerald-soft: 168 40% 22%;
@@ -415,7 +433,8 @@ body:has(> .ai-site) {
    Cards
    -------------------------------------------------------------------------- */
 :where(.ai-site) .ai-card {
-  background: hsl(var(--ai-white));
+  background: hsl(var(--ai-white) / 0.82);
+  backdrop-filter: blur(6px);
   border: 1px solid hsl(var(--ai-stone-3));
   border-radius: var(--ai-radius-lg);
   padding: clamp(1.4rem, 2.6vw, 2rem);
@@ -734,7 +753,7 @@ body:has(> .ai-site) {
 /* The emerald band is a solid brand colour in light. On dark it is too loud at
    full strength across a whole section, so it deepens. */
 :where(.dark .ai-site) .ai-on-emerald {
-  background: hsl(168 58% 15%);
+  background: hsl(168 58% 15% / 0.9);
 }
 
 /* Outline buttons on the light page draw on white; on dark they need the
@@ -748,3 +767,61 @@ body:has(> .ai-site) {
   border-color: hsl(var(--ai-emerald) / 0.55);
 }
 
+
+/* ---------------------------------------------------------------------------
+   THE SITE BACKDROP
+
+   One fixed layer behind every public page — see components/brand/site-backdrop.
+   -------------------------------------------------------------------------- */
+
+:where(.ai-site) .ai-backdrop-base { background: hsl(var(--ai-stone)); }
+
+/*
+  The colour drifts.
+
+  Enormous and very faint, moving over a minute and a half, so the page is
+  never quite the same colour twice without anything on it appearing to move.
+  `filter: blur()` on a soft radial is what keeps the edge from banding on a
+  cheap panel, which a plain gradient at this size will do every time.
+*/
+:where(.ai-site) .ai-aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  will-change: transform;
+}
+:where(.ai-site) .ai-aurora-a {
+  top: -18vh;
+  right: -12vw;
+  width: 62vw;
+  height: 62vh;
+  background: radial-gradient(circle, hsl(var(--ai-emerald) / 0.28) 0%, transparent 68%);
+  animation: ai-aurora-a 92s ease-in-out infinite alternate;
+}
+:where(.ai-site) .ai-aurora-b {
+  bottom: -22vh;
+  left: -16vw;
+  width: 58vw;
+  height: 58vh;
+  background: radial-gradient(circle, hsl(var(--ai-copper) / 0.22) 0%, transparent 68%);
+  animation: ai-aurora-b 118s ease-in-out infinite alternate;
+}
+
+/* Brighter at night, where they are the nebulae; barely there by day, where
+   they are the wash of colour behind type on good paper. */
+:where(.dark .ai-site) .ai-aurora { opacity: 0.65; }
+:where(.ai-site:not(.dark .ai-site)) .ai-aurora { opacity: 0.42; }
+
+@keyframes ai-aurora-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-6vw, 5vh, 0) scale(1.16); }
+}
+@keyframes ai-aurora-b {
+  from { transform: translate3d(0, 0, 0) scale(1.1); }
+  to   { transform: translate3d(7vw, -4vh, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.ai-site) .ai-aurora { animation: none; }
+}

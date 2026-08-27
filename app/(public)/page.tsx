@@ -187,6 +187,7 @@ export default async function HomePage() {
       <section className="ai-on-ink relative overflow-hidden pb-36 pt-32 md:pb-44 md:pt-40">
         <div aria-hidden className="absolute inset-0">
           <Image
+          unoptimized
             src={img(IMAGES.apron, 2000)}
             alt=""
             fill
@@ -291,7 +292,7 @@ export default async function HomePage() {
               <RouteGlobe className="mx-auto w-full max-w-[16rem] sm:max-w-[20rem] lg:max-w-[30rem]" />
               <p
                 className="mt-4 text-center text-xs"
-                style={{ color: "hsl(var(--ai-stone)/0.45)" }}
+                style={{ color: "hsl(var(--ai-light)/0.62)" }}
               >
                 Our loading airports, the hubs we connect through, and home.
                 <span className="hidden sm:inline"> Drag to spin.</span>
@@ -372,6 +373,7 @@ export default async function HomePage() {
                 <Card lift className="flex h-full flex-col overflow-hidden !p-0">
                   <span className="relative block aspect-[16/10] overflow-hidden">
                     <Image
+                    unoptimized
                       src={img(image, 800)}
                       alt=""
                       fill
@@ -646,11 +648,11 @@ export default async function HomePage() {
                         </p>
                         <dl className="mt-4 space-y-1.5 text-sm">
                           <div className="flex justify-between gap-3">
-                            <dt className="text-white/60">Buy</dt>
+                            <dt style={{ color: "hsl(var(--ai-charcoal-soft))" }}>Buy</dt>
                             <dd className="ai-num">{pair.buy}</dd>
                           </div>
                           <div className="flex justify-between gap-3">
-                            <dt className="text-white/60">Sell</dt>
+                            <dt style={{ color: "hsl(var(--ai-charcoal-soft))" }}>Sell</dt>
                             <dd className="ai-num">{pair.sell}</dd>
                           </div>
                         </dl>
@@ -658,13 +660,13 @@ export default async function HomePage() {
                     ))}
                   </div>
                   {fx[0]?.updatedLabel ? (
-                    <p className="mt-4 text-xs text-white/55">
+                    <p className="mt-4 text-xs" style={{ color: "hsl(var(--ai-charcoal-soft))" }}>
                       Board last updated {fx[0].updatedLabel}.
                     </p>
                   ) : null}
                 </>
               )}
-              <p className="mt-3 text-xs text-white/60">
+              <p className="mt-3 text-xs" style={{ color: "hsl(var(--ai-charcoal-soft))" }}>
                 Indicative and subject to confirmation by our finance desk at the
                 time of your booking.
               </p>
@@ -725,6 +727,7 @@ export default async function HomePage() {
                 <Card className="flex h-full flex-col overflow-hidden !p-0">
                   <span className="relative block aspect-[16/9]">
                     <Image
+                    unoptimized
                       src={img(place.image, 1000)}
                       alt=""
                       fill
@@ -832,7 +835,7 @@ export default async function HomePage() {
                     </span>
                     <span
                       className="mt-0.5 block text-xs"
-                      style={{ color: "hsl(var(--ai-stone)/0.44)" }}
+                      style={{ color: "hsl(var(--ai-stone)/0.62)" }}
                     >
                       {contact.channels}
                     </span>
