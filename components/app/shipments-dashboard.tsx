@@ -231,7 +231,7 @@ export function ShipmentsDashboard({
   }, [visible]);
 
   /* Kwacha lead, as they do everywhere money is shown in this app. */
-  const tsh = (usd: number) =>
+  const zmw = (usd: number) =>
     rate === null ? formatUsd(usd) : formatLocal(usd * rate);
   /*
     Nothing is a dash, not a nought.
@@ -240,7 +240,7 @@ export function ShipmentsDashboard({
     collected and zero spent are the ordinary state of a flight that has just
     landed, so they are set as an absence and the eye passes over them.
   */
-  const tshCompact = (usd: number) =>
+  const zmwCompact = (usd: number) =>
     usd === 0 ? "—" : rate === null ? compact(usd) : compact(usd * rate);
 
   const cells: {
@@ -260,18 +260,18 @@ export function ShipmentsDashboard({
     cells.push(
       {
         k: t("Expected"),
-        main: tsh(totals.expected),
+        main: zmw(totals.expected),
         sub: formatUsd(totals.expected),
       },
       {
         k: t("Collected"),
-        main: tsh(totals.collected),
+        main: zmw(totals.collected),
         sub: formatUsd(totals.collected),
         tone: "text-success",
       },
       {
         k: t("Outstanding"),
-        main: tsh(totals.outstanding),
+        main: zmw(totals.outstanding),
         sub: formatUsd(totals.outstanding),
         tone: totals.outstanding > 0 ? "text-destructive" : undefined,
       }
@@ -295,7 +295,7 @@ export function ShipmentsDashboard({
       },
       {
         k: t("Expected profit"),
-        main: tsh(profitUsd),
+        main: zmw(profitUsd),
         sub: formatUsd(profitUsd),
         tone: profitUsd < 0 ? "text-destructive" : undefined,
       }
@@ -497,7 +497,7 @@ export function ShipmentsDashboard({
                   {row.money ? (
                     <>
                       <span className={cn(COL.moneySm, "font-medium tabular-nums")}>
-                        {tshCompact(row.money.expected)}
+                        {zmwCompact(row.money.expected)}
                       </span>
                       <span
                         className={cn(
@@ -508,7 +508,7 @@ export function ShipmentsDashboard({
                             : "text-muted-foreground"
                         )}
                       >
-                        {tshCompact(row.money.collected)}
+                        {zmwCompact(row.money.collected)}
                       </span>
                       <span
                         className={cn(
@@ -519,7 +519,7 @@ export function ShipmentsDashboard({
                             : "text-muted-foreground"
                         )}
                       >
-                        {tshCompact(row.money.outstanding)}
+                        {zmwCompact(row.money.outstanding)}
                       </span>
                       {/* The cost column is absent for a desk without
                           expense.view, not blanked — nothing is sent to the

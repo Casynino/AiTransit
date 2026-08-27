@@ -1203,9 +1203,9 @@ export async function recordPayment(
 
         const alreadyActive = shipment?.pickupNote?.status === "ACTIVE";
         const blocked = (shipment?.exceptions.length ?? 0) > 0;
-        const atDar = shipment?.status === "RECEIVED_AT_ZAMBIA";
+        const atLusaka = shipment?.status === "RECEIVED_AT_ZAMBIA";
 
-        if (shipment && !alreadyActive && !blocked && atDar) {
+        if (shipment && !alreadyActive && !blocked && atLusaka) {
           const note = await tx.pickupNote.create({
             data: {
               noteNumber: await nextPickupNoteNumber(tx),

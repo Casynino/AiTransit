@@ -152,7 +152,7 @@ type CostLine = {
   special: boolean;
   description: string;
   /** Exact kwacha when it was paid in kwacha; null means convert. */
-  tsh: number | null;
+  zmw: number | null;
   usd: number;
   incurredAt: Date;
   recordedBy: string | null;
@@ -320,7 +320,7 @@ export default async function AdminBatches({
       /* A kwacha cost is already an exact kwacha figure; converting it to
          dollars and back rounds it twice — the same rule batch-finance applies
          to its own kwacha total. Only dollar costs are converted. */
-      tsh: c.currency === "ZMW" ? toNumber(c.amount) : null,
+      zmw: c.currency === "ZMW" ? toNumber(c.amount) : null,
       usd: toNumber(c.amountUsd),
       incurredAt: c.incurredAt,
       recordedBy: c.recordedBy?.name ?? null,
@@ -785,8 +785,8 @@ export default async function AdminBatches({
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="tabular text-xs font-medium">
-                                {cost.tsh !== null
-                                  ? formatLocal(cost.tsh)
+                                {cost.zmw !== null
+                                  ? formatLocal(cost.zmw)
                                   : formatKwacha(cost.usd, rate)}
                               </p>
                               <p className="tabular font-mono text-[11px] text-muted-foreground">

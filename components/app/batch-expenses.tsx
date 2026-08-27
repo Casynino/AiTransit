@@ -102,7 +102,7 @@ export function BatchExpenses({
   >(recordExpense, { ok: true });
 
   /** Every figure in kwacha, whichever currency it was paid in. */
-  const tsh = (row: { amount: number; currency: string; amountUsd: number }) =>
+  const zmw = (row: { amount: number; currency: string; amountUsd: number }) =>
     row.currency === "ZMW" ? row.amount : rate ? row.amountUsd * rate : null;
 
   const kwacha = (n: number | null) => (n === null ? "—" : formatLocal(n));
@@ -128,7 +128,7 @@ export function BatchExpenses({
     bank charge belongs below the fold.
   */
   const bySize = (a: BatchExpenseRow, b: BatchExpenseRow) =>
-    (tsh(b) ?? 0) - (tsh(a) ?? 0);
+    (zmw(b) ?? 0) - (zmw(a) ?? 0);
   const operating = live
     .filter((e) => e.expenseClass !== "NON_OPERATING")
     .sort(bySize);
@@ -153,14 +153,14 @@ export function BatchExpenses({
       ? { label: "", category: "OTHER", free: true }
       : { label: current.label, category: current.category, free: false };
 
-  const totalTsh = operating.reduce((sum, e) => sum + (tsh(e) ?? 0), 0);
+  const totalTsh = operating.reduce((sum, e) => sum + (zmw(e) ?? 0), 0);
   const totalUsd = operating.reduce((sum, e) => sum + e.amountUsd, 0);
-  const specialTsh = special.reduce((sum, e) => sum + (tsh(e) ?? 0), 0);
+  const specialTsh = special.reduce((sum, e) => sum + (zmw(e) ?? 0), 0);
   const payFrom = accounts.filter((a) => a.currency === "ZMW");
 
   /** How much of the clearing bill this one cost is. */
   const share = (row: BatchExpenseRow) =>
-    totalTsh > 0 ? ((tsh(row) ?? 0) / totalTsh) * 100 : 0;
+    totalTsh > 0 ? ((zmw(row) ?? 0) / totalTsh) * 100 : 0;
 
   /** What the box cannot show. Four rows at 40px, cut to the row. */
   const hiddenRows = Math.max(0, operating.length - VISIBLE_ROWS);
@@ -312,7 +312,7 @@ export function BatchExpenses({
                 {Math.round(share(e))}%
               </span>
               <span className="w-32 shrink-0 text-right font-medium tabular-nums text-destructive">
-                {kwacha(tsh(e))}
+                {kwacha(zmw(e))}
               </span>
               {/*
                 Correcting a cost, from the row it is on.
@@ -379,7 +379,7 @@ export function BatchExpenses({
               >
                 <span className="min-w-0 flex-1 truncate">{e.description}</span>
                 <span className="w-32 shrink-0 text-right tabular-nums">
-                  {kwacha(tsh(e))}
+                  {kwacha(zmw(e))}
                 </span>
               </li>
             ))}

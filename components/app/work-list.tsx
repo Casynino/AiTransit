@@ -49,7 +49,7 @@ export async function WorkList({
   rate: number | null;
 }) {
   const locale = await viewerLocale();
-  const tsh = (usd: number) =>
+  const zmw = (usd: number) =>
     rate
       ? `${t(locale, "K")} ${Math.round(usd * rate).toLocaleString("en-US")}`
       : formatUsd(usd);
@@ -89,7 +89,7 @@ export async function WorkList({
                           in kwacha, and the desk on the phone is quoting
                           kwacha. */}
                       <span className="block font-display text-lg font-bold leading-none tabular">
-                        {tsh(item.usd)}
+                        {zmw(item.usd)}
                       </span>
                       <span className="mt-1 block font-mono text-xs text-muted-foreground">
                         {formatUsd(item.usd)}

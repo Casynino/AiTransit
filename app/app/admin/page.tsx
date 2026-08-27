@@ -841,7 +841,7 @@ export default async function AdminHome() {
               <div className="text-right">
                 <p className="font-display text-[22px] font-bold leading-none tabular-nums">
                   {kwacha(
-                    finance.bankTzs + finance.mobileMoneyTzs + finance.cashTzs
+                    finance.bankZmw + finance.mobileMoneyZmw + finance.cashZmw
                   )}
                 </p>
                 {/* The one figure here that IS converted, and it says so. */}

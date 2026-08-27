@@ -1595,7 +1595,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
   ]);
 
   const rate = rateRow ? toNumber(rateRow.rate) : null;
-  const tsh = (usd: number) =>
+  const zmw = (usd: number) =>
     rate ? `K ${Math.round(usd * rate).toLocaleString("en-US")}` : formatUsd(usd);
 
   const draftValue = toNumber(drafts._sum.total);
@@ -1755,7 +1755,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
       label: job.label,
       detail: job.detail,
       href: job.href,
-      value: job.usd !== undefined ? tsh(job.usd) : job.aside,
+      value: job.usd !== undefined ? zmw(job.usd) : job.aside,
       valueSub: job.usd !== undefined ? formatUsd(job.usd) : undefined,
     })),
     ...alerts.map((alert) => ({
@@ -1993,20 +1993,20 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
 
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3 lg:grid-cols-5">
             {[
-              { k: "Sold on credit", v: tsh(creditBook.soldUsd), tone: "" },
+              { k: "Sold on credit", v: zmw(creditBook.soldUsd), tone: "" },
               {
                 k: "Collected",
-                v: tsh(creditBook.collectedUsd),
+                v: zmw(creditBook.collectedUsd),
                 tone: "text-success",
               },
               {
                 k: "Still owed",
-                v: tsh(creditBook.outstandingUsd),
+                v: zmw(creditBook.outstandingUsd),
                 tone: "text-brand",
               },
               {
                 k: "Overdue",
-                v: tsh(creditBook.overdueUsd),
+                v: zmw(creditBook.overdueUsd),
                 tone: "text-destructive",
               },
               {
@@ -2057,8 +2057,8 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {tsh(month.cashRevenue)} {t(locale, "cash")} ·{" "}
-                    {tsh(month.creditRevenue)} {t(locale, "credit")}
+                    {zmw(month.cashRevenue)} {t(locale, "cash")} ·{" "}
+                    {zmw(month.creditRevenue)} {t(locale, "credit")}
                   </p>
                 </>
               )}
@@ -2097,16 +2097,16 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {tsh(outlook.actualUsd)} {t(locale, "of")}{" "}
-                    {tsh(outlook.expectedUsd)}
+                    {zmw(outlook.actualUsd)} {t(locale, "of")}{" "}
+                    {zmw(outlook.expectedUsd)}
                     {outlook.shortfallUsd > 0.005
-                      ? ` · ${tsh(outlook.shortfallUsd)} ${t(locale, "still short")}`
+                      ? ` · ${zmw(outlook.shortfallUsd)} ${t(locale, "still short")}`
                       : ""}
                     {/* Forgiven debt is out of the expectation above but never
                         off the screen: a desk that wrote off everything it was
                         owed must not read as a desk that collected it. */}
                     {outlook.waivedUsd > 0.005
-                      ? ` · ${tsh(outlook.waivedUsd)} ${t(locale, "written off")}`
+                      ? ` · ${zmw(outlook.waivedUsd)} ${t(locale, "written off")}`
                       : ""}
                   </p>
                 </>
@@ -2167,7 +2167,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                   <Donut
                     size={118}
                     stroke={18}
-                    label={tsh(cashUsd).replace("K ", "")}
+                    label={zmw(cashUsd).replace("K ", "")}
                     caption={t(locale, "K in hand")}
                     slices={cashSlices}
                   />
@@ -2212,7 +2212,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                 }`}
               >
                 {netThisMonth < 0 ? "−" : "+"}
-                {tsh(Math.abs(netThisMonth))}
+                {zmw(Math.abs(netThisMonth))}
               </p>
             </div>
             <FlowBars
@@ -2221,7 +2221,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
               valuesIn={flow.moneyIn}
               valuesOut={flow.moneyOut}
               currentIndex={flow.currentIndex}
-              format={tsh}
+              format={zmw}
             />
           </section>
 
@@ -2252,7 +2252,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                 count: bucket.count,
                 value: bucket.usd,
               }))}
-              format={tsh}
+              format={zmw}
               unit={{ one: t(locale, "bill"), many: t(locale, "bills") }}
               empty={t(locale, "Nothing is owed. Every bill raised has been settled.")}
             />
@@ -2347,7 +2347,7 @@ async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
                           ) : (
                             <>
                               <span className="block text-sm font-semibold tabular">
-                                {tsh(outstanding)}
+                                {zmw(outstanding)}
                               </span>
                               <span
                                 className={`block text-xs ${

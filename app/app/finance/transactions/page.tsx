@@ -308,10 +308,10 @@ export default async function LedgerPage({
     runningById.set(entry.id, running);
   }
 
-  const tsh = (usd: number) =>
+  const zmw = (usd: number) =>
     rate ? `K ${Math.round(usd * rate).toLocaleString("en-US")}` : formatUsd(usd);
   const showBalance = (value: number) =>
-    single ? formatMoney(value, single.currency) : tsh(value);
+    single ? formatMoney(value, single.currency) : zmw(value);
 
   /**
    * What KIND of transaction a line is, in the words the business uses.
@@ -432,21 +432,21 @@ export default async function LedgerPage({
         {[
           {
             k: t(locale, "Money in"),
-            v: tsh(inUsd),
+            v: zmw(inUsd),
             tone: "text-success",
             wash: "from-success/10",
             hint: t(locale, "Freight collected and money moved in"),
           },
           {
             k: t(locale, "Money out"),
-            v: tsh(outUsd),
+            v: zmw(outUsd),
             tone: "text-destructive",
             wash: "from-destructive/10",
             hint: t(locale, "Costs paid and money moved out"),
           },
           {
             k: t(locale, "Net"),
-            v: tsh(inUsd - outUsd),
+            v: zmw(inUsd - outUsd),
             tone: inUsd - outUsd >= 0 ? "text-foreground" : "text-destructive",
             wash: inUsd - outUsd >= 0 ? "from-brand/10" : "from-destructive/10",
             hint: `${total} ${t(locale, total === 1 ? "movement" : "movements")}`,
@@ -485,7 +485,7 @@ export default async function LedgerPage({
             href="/app/finance/transactions?kind=EXPENSE"
             className="font-medium text-warning hover:underline"
           >
-            {tsh(toNumber(unpaid._sum.amountUsd))} {t(locale, "in costs still to pay")}
+            {zmw(toNumber(unpaid._sum.amountUsd))} {t(locale, "in costs still to pay")}
           </Link>
           {" — "}
           {(() => {
@@ -540,7 +540,7 @@ export default async function LedgerPage({
                 href="/app/finance/credit"
                 className="font-medium text-brand hover:underline"
               >
-                {tsh(credit.outstandingUsd)}{" "}
+                {zmw(credit.outstandingUsd)}{" "}
                 {t(locale, "billed on credit and still owed")}
               </Link>
               {" — "}
@@ -565,7 +565,7 @@ export default async function LedgerPage({
               would otherwise print nothing at all and read like a quiet one. */}
           {credit.waivedUsd > 0.005 ? (
             <span className="text-warning">
-              {tsh(credit.waivedUsd)}{" "}
+              {zmw(credit.waivedUsd)}{" "}
               {t(
                 locale,
                 "of credit has been written off, and that never appears here at all."

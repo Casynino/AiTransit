@@ -96,7 +96,7 @@ export default async function AccountsPage() {
     exactly as it stands, did not: a total that disagreed with its own parts.
 
     So kwacha are added as they are, and only the dollar account is
-    converted, once. Same method as `expensesTzs` in lib/batch-finance.ts.
+    converted, once. Same method as `expensesZmw` in lib/batch-finance.ts.
 
     With no rate published there is nothing honest to value the dollar account
     with, so the ledger's own frozen dollar figure stands in and the band

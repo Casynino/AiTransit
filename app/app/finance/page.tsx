@@ -355,7 +355,7 @@ export default async function FinanceOverviewPage() {
     return "text-sm 2xl:text-base";
   };
 
-  const tsh = (usd: number) =>
+  const zmw = (usd: number) =>
     rate ? `K ${Math.round(usd * rate).toLocaleString("en-US")}` : formatUsd(usd);
 
   return (
@@ -405,7 +405,7 @@ export default async function FinanceOverviewPage() {
               k: seesCompanyMoney
                 ? t(locale, "Cash available")
                 : t(locale, "Collected all time"),
-              v: tsh(seesCompanyMoney ? cashOnHand : stats.collected),
+              v: zmw(seesCompanyMoney ? cashOnHand : stats.collected),
               usd: formatUsd(seesCompanyMoney ? cashOnHand : stats.collected),
               tone: "text-foreground",
               wash: "from-brand/10",
@@ -415,7 +415,7 @@ export default async function FinanceOverviewPage() {
             },
             {
               k: t(locale, "In this month"),
-              v: tsh(collectedMonth),
+              v: zmw(collectedMonth),
               tone: "text-success",
               wash: "from-success/10",
               hint: t(locale, "Money that came in"),
@@ -424,14 +424,14 @@ export default async function FinanceOverviewPage() {
               ? [
                   {
                     k: t(locale, "Out this month"),
-                    v: tsh(spentUsd),
+                    v: zmw(spentUsd),
                     tone: "text-destructive",
                     wash: "from-destructive/10",
                     hint: t(locale, "Costs paid"),
                   },
                   {
                     k: t(locale, "Net this month"),
-                    v: tsh(netMonth),
+                    v: zmw(netMonth),
                     tone: netMonth >= 0 ? "text-foreground" : "text-destructive",
                     wash: netMonth >= 0 ? "from-success/10" : "from-destructive/10",
                     hint: netMonth >= 0 ? t(locale, "Ahead") : t(locale, "Behind"),
@@ -450,7 +450,7 @@ export default async function FinanceOverviewPage() {
             */
             {
               k: t(locale, "Expected to come in"),
-              v: tsh(stats.outstanding),
+              v: zmw(stats.outstanding),
               usd: formatUsd(stats.outstanding),
               tone: stats.outstanding > 0 ? "text-signal" : "text-foreground",
               wash: "from-signal/10",
@@ -584,7 +584,7 @@ export default async function FinanceOverviewPage() {
           },
           {
             label: t(locale, "Profit, confirmed"),
-            value: tsh(confirmedProfit),
+            value: zmw(confirmedProfit),
             tone: confirmedProfit < 0 ? "text-destructive" : "text-success",
             hint: `${confirmed.length} ${t(locale, "batches")}`,
             href: "/app/finance/income",
@@ -643,7 +643,7 @@ export default async function FinanceOverviewPage() {
                   </span>
                   <span className="text-right">
                     <span className="block font-display text-lg font-bold tabular-nums">
-                      {tsh(job.usd)}
+                      {zmw(job.usd)}
                     </span>
                     <span className="block font-mono text-xs text-muted-foreground">
                       {formatUsd(job.usd)}
@@ -936,7 +936,7 @@ export default async function FinanceOverviewPage() {
                               •
                             </span>
                           ) : null}
-                          {owing === null ? "—" : tsh(owing)}
+                          {owing === null ? "—" : zmw(owing)}
                         </span>
                         {owing !== null && rate ? (
                           <span className="block font-mono text-xs tabular-nums text-muted-foreground">

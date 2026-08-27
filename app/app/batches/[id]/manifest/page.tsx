@@ -224,17 +224,17 @@ export default async function ManifestPage({
               {[
                 {
                   label: "Expected revenue",
-                  tsh: finance.rate ? finance.billedUsd * finance.rate : null,
+                  zmw: finance.rate ? finance.billedUsd * finance.rate : null,
                   usd: finance.billedUsd,
                 },
                 {
                   label: "Collected",
-                  tsh: finance.rate ? finance.receivedUsd * finance.rate : null,
+                  zmw: finance.rate ? finance.receivedUsd * finance.rate : null,
                   usd: finance.receivedUsd,
                 },
                 {
                   label: "Outstanding",
-                  tsh: finance.rate ? finance.outstandingUsd * finance.rate : null,
+                  zmw: finance.rate ? finance.outstandingUsd * finance.rate : null,
                   usd: finance.outstandingUsd,
                 },
                 /* Costs, profit and margin follow expense.view — absent from
@@ -245,14 +245,14 @@ export default async function ManifestPage({
                   ? [
                       {
                         label: "Expenses",
-                        tsh: finance.expensesTzs,
+                        zmw: finance.expensesZmw,
                         usd: finance.expensesUsd,
                       },
                       {
                         label: finance.atALoss
                           ? "Expected loss"
                           : "Expected profit",
-                        tsh: finance.rate
+                        zmw: finance.rate
                           ? Math.abs(finance.netProfitUsd) * finance.rate
                           : null,
                         usd: Math.abs(finance.netProfitUsd),
@@ -273,9 +273,9 @@ export default async function ManifestPage({
                   </dt>
                   <dd className="mt-0.5 font-mono text-xs font-bold tabular">
                     {cell.text ??
-                      (cell.tsh === null || cell.tsh === undefined
+                      (cell.zmw === null || cell.zmw === undefined
                         ? formatUsd(cell.usd!)
-                        : formatLocal(cell.tsh))}
+                        : formatLocal(cell.zmw))}
                   </dd>
                   {cell.text === undefined ? (
                     <dd className="font-mono text-[11px] tabular text-black/55">

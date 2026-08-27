@@ -61,7 +61,7 @@ export type BatchFinance = {
    * onto its own invoice and is never re-converted; only the estimate is
    * converted, at today's published rate.
    */
-  expectedTzs: number | null;
+  expectedZmw: number | null;
   /** The rate used for the estimated part. Null when none is published. */
   rate: number | null;
 
@@ -131,7 +131,7 @@ export type BatchFinance = {
    * per row, so the panel listing the costs and the tile totalling them cannot
    * print two different numbers under the same word.
    */
-  expensesTzs: number | null;
+  expensesZmw: number | null;
   /**
    * Billed revenue less what the flight cost.
    *
@@ -192,7 +192,7 @@ export async function batchFinance(
   let invoicedUsd = 0;
   let receivedUsd = 0;
   let outstandingUsd = 0;
-  let invoicedTzs = 0;
+  let invoicedZmw = 0;
   let invoiced = 0;
   let writtenOffUsd = 0;
   let storageChargedUsd = 0;
@@ -267,7 +267,7 @@ export async function batchFinance(
     }
     // The rate frozen at issue, not today's. An invoice is a promise in
     // kwacha and does not move when the rate does.
-    invoicedTzs +=
+    invoicedZmw +=
       piece.invoice.totalLocal === null
         ? rate === null
           ? 0
@@ -319,8 +319,8 @@ export async function batchFinance(
     .map((e) => ({ trackingNumber: e.trackingNumber, reason: e.reason! }));
 
   const expectedUsd = invoicedUsd + estimatedUsd;
-  const expectedTzs =
-    rate === null ? null : invoicedTzs + toLocal(estimatedUsd, rate);
+  const expectedZmw =
+    rate === null ? null : invoicedZmw + toLocal(estimatedUsd, rate);
 
   /*
     Who cannot be rung, what the flight cost, and how much of it went out on
@@ -351,7 +351,7 @@ export async function batchFinance(
     batchCreditRevenue(batchId),
   ]);
   const expensesUsd = costs.reduce((sum, c) => sum + toNumber(c.amountUsd), 0);
-  const expensesTzs =
+  const expensesZmw =
     rate === null
       ? null
       : costs.reduce(
@@ -395,7 +395,7 @@ export async function batchFinance(
     billedUsd,
     estimatedUsd,
     expectedUsd,
-    expectedTzs,
+    expectedZmw,
     rate,
     receivedUsd,
     outstandingUsd,
@@ -412,7 +412,7 @@ export async function batchFinance(
     storageHolding,
     expensesUsd,
     expenseCount: costs.length,
-    expensesTzs,
+    expensesZmw,
     netProfitUsd,
     marginPct: billedUsd > 0 ? (netProfitUsd / billedUsd) * 100 : null,
     expectedProfitUsd: expectedUsd - expensesUsd,

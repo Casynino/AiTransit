@@ -95,7 +95,7 @@ export function IncomeSheetTable({
   const head =
     "px-2 py-1.5 text-right text-[11px] font-medium uppercase tracking-wide";
   /* Each statement keeps the rate it was closed at, so kwacha never move. */
-  const tsh = (n: number | null, rate: number | null) =>
+  const zmw = (n: number | null, rate: number | null) =>
     n === null || rate === null ? "—" : formatLocal(n * rate);
   /* The Total line is different: it is the figure Finance reads out TODAY, not
      a frozen statement, so it leads in kwacha at today's published rate with
@@ -150,7 +150,7 @@ export function IncomeSheetTable({
                 { k: t("Kg"), v: row.kg.toFixed(1), tone: "" },
                 { k: t("Rate"), v: perKg(row.sellRate), tone: "text-muted-foreground" },
                 { k: "$", v: usd(row.worthUsd), tone: "" },
-                { k: "ZMW", v: tsh(row.worthUsd, row.rate), tone: "" },
+                { k: "ZMW", v: zmw(row.worthUsd, row.rate), tone: "" },
                 { k: t("Costs"), v: usd(row.expensesUsd), tone: "text-destructive" },
                 {
                   k: t("Profit"),
@@ -170,7 +170,7 @@ export function IncomeSheetTable({
                 { k: "$", v: usd(row.soldUsd), tone: "" },
                 {
                   k: t("Actual received"),
-                  v: tsh(row.collectedUsd, row.rate),
+                  v: zmw(row.collectedUsd, row.rate),
                   tone: "text-success",
                 },
               ],
@@ -370,7 +370,7 @@ export function IncomeSheetTable({
                     {perKg(row.sellRate)}
                   </td>
                   <td className={cell}>{usd(row.worthUsd)}</td>
-                  <td className={cell}>{tsh(row.worthUsd, row.rate)}</td>
+                  <td className={cell}>{zmw(row.worthUsd, row.rate)}</td>
                   <td className={cn(cell, "text-destructive")}>
                     {usd(row.expensesUsd)}
                   </td>
@@ -388,7 +388,7 @@ export function IncomeSheetTable({
                   <td className={cn(cell, "border-l")}>{row.soldKg.toFixed(1)}</td>
                   <td className={cell}>{usd(row.soldUsd)}</td>
                   <td className={cn(cell, "text-success")}>
-                    {tsh(row.collectedUsd, row.rate)}
+                    {zmw(row.collectedUsd, row.rate)}
                   </td>
                   <td className={cn(cell, "border-l text-muted-foreground")}>
                     {row.carriedKg > 0 ? row.carriedKg.toFixed(1) : "—"}

@@ -41,7 +41,7 @@ export async function BatchFinanceBand({
   const locale = await viewerLocale();
   const {
     expectedUsd,
-    expectedTzs,
+    expectedZmw,
     estimatedUsd,
     invoicedUsd,
     billedUsd,
@@ -62,7 +62,7 @@ export async function BatchFinanceBand({
     storageWaivedUsd,
     storageHolding,
     expensesUsd,
-    expensesTzs,
+    expensesZmw,
     expenseCount,
     netProfitUsd,
     marginPct,
@@ -91,7 +91,7 @@ export async function BatchFinanceBand({
     k: string;
     usd?: number;
     /** An exact kwacha figure, already summed per row. Beats usd × rate. */
-    tsh?: number | null;
+    zmw?: number | null;
     percent?: string;
     tone?: string;
     note?: ReactNode;
@@ -205,7 +205,7 @@ export async function BatchFinanceBand({
                 {
                   k: t(locale, "Expenses"),
                   usd: expensesUsd,
-                  tsh: expensesTzs,
+                  zmw: expensesZmw,
                   tone: "text-destructive",
                 },
                 {
@@ -240,8 +240,8 @@ export async function BatchFinanceBand({
             */}
             <dd className={`mt-0.5 font-display text-base font-bold tabular-nums ${cell.tone}`}>
               {cell.percent ??
-                (cell.tsh !== undefined && cell.tsh !== null
-                  ? formatLocal(cell.tsh)
+                (cell.zmw !== undefined && cell.zmw !== null
+                  ? formatLocal(cell.zmw)
                   : money(cell.usd!))}
             </dd>
             {cell.percent === undefined && rate !== null ? (

@@ -120,9 +120,9 @@ export type AdminOverview = {
       values every kwacha balance through two different rates.
     */
     /** Every CASH-kind account in kwacha, the office tin included. */
-    cashTzs: number;
-    bankTzs: number;
-    mobileMoneyTzs: number;
+    cashZmw: number;
+    bankZmw: number;
+    mobileMoneyZmw: number;
     /** Revenue less costs, this month, on the accrual basis. */
     profitThisMonthUsd: number;
     marginPct: number | null;
@@ -636,9 +636,9 @@ export async function adminOverview(
       expensesThisMonthUsd: fin.pl.costs,
       outstandingUsd: fin.position.receivableUsd,
       creditOutstandingUsd: credit.outstandingUsd,
-      cashTzs: heldByKind("CASH"),
-      bankTzs: heldByKind("BANK"),
-      mobileMoneyTzs: heldByKind("MOBILE_MONEY"),
+      cashZmw: heldByKind("CASH"),
+      bankZmw: heldByKind("BANK"),
+      mobileMoneyZmw: heldByKind("MOBILE_MONEY"),
       profitThisMonthUsd: fin.pl.profit,
       marginPct: fin.pl.margin,
       collectionRatePct: fin.revenue.collectionRate,
