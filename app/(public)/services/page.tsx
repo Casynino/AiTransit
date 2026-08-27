@@ -1,201 +1,277 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Banknote,
+  Boxes,
+  ClipboardCheck,
+  HandCoins,
+  PackageCheck,
+  Plane,
+  Receipt,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 
-import { MediaBand, MediaCard } from "@/components/site/media-card";
-import { Reveal } from "@/components/site/reveal";
-import { SectionBackdrop } from "@/components/site/section-backdrop";
-import { COMPANY } from "@/lib/constants";
-import { IMAGES } from "@/lib/imagery";
+import {
+  Badge,
+  BtnLink,
+  Card,
+  Eyebrow,
+  PageHero,
+  Section,
+  SectionHead,
+  Wrap,
+} from "@/components/brand/ui";
+import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
+import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 
 export const metadata: Metadata = {
   title: "Cargo services",
   description:
-    "Air freight from Guangzhou and Hong Kong to Lusaka, supplier sourcing, pickup from your supplier, consolidation, inspection and QR-secured collection.",
+    "Air cargo from China to Lusaka with duty included, supplier payments in RMB, free inspection, packing and collection in Guangzhou.",
 };
 
 /**
- * What the company does.
+ * What AITRANSIT actually does, told as one continuous service rather than a
+ * grid of features.
  *
- * A bento grid rather than twelve identical tiles: the two things most people
- * arrive for get the space, and the rest fill in around them. Every card
- * carries a photograph, because a page of icons and paragraphs reads as a form
- * no matter how the grey is adjusted.
+ * The structure follows the customer's own sequence — before the goods exist,
+ * while they are in China, in the air, and after they land — because that is
+ * how somebody decides whether a forwarder covers the part they are worried
+ * about. A grid of six equal cards makes every service look optional; this
+ * makes clear that most of them happen whether you ask or not.
  */
-const HEADLINE = [
+
+const IN_CHINA = [
   {
-    href: "/book",
-    image: IMAGES.apron,
-    eyebrow: "The core",
-    title: "Air cargo, three times a week",
-    body: "Guangzhou and Hong Kong to Lusaka every Wednesday, Friday and Sunday. Your cargo travels in a numbered batch with a full manifest — never 'somewhere in transit'.",
-    cta: "Book your cargo",
-    size: "wide" as const,
-    priority: true,
+    icon: HandCoins,
+    title: "We pay your supplier",
+    body: "Send us the factory's details and the amount. Our China desk checks them, confirms the figure with you, pays in RMB and sends the proof the same day. If the goods are flying with us, the payment is filed against your cargo.",
+    tag: "Chargeable",
   },
   {
-    href: "/china",
-    image: IMAGES.warehouseAisle,
-    eyebrow: "China",
-    title: "Our own warehouse in Guangzhou",
-    body: "Your supplier delivers to our address in your name. We weigh it, photograph it and label it the day it lands.",
-    cta: "Get the address",
-    size: "tall" as const,
-    priority: true,
+    icon: ClipboardCheck,
+    title: "Inspection before packing",
+    body: "We open the cartons and check what is inside against your order — quantity, model, obvious damage — and photograph what we find. Cheaper to catch in Guangzhou than to argue about in Lusaka.",
+    tag: "Free",
+  },
+  {
+    icon: Truck,
+    title: "Collection from the supplier",
+    body: "Your supplier does not need to arrange anything. Give us the address and we collect from their door, anywhere in Guangzhou.",
+    tag: "Free",
+  },
+  {
+    icon: PackageCheck,
+    title: "Repacking for the hold",
+    body: "We reinforce and repack your goods for the flight at no cost. A carton built for a warehouse shelf is not built for an aircraft hold.",
+    tag: "Free",
   },
 ];
 
-const SERVICES = [
+const AFTER = [
   {
-    href: "/pickup",
-    image: IMAGES.loadingTruck,
-    eyebrow: "Collection",
-    title: "Pickup from your supplier",
-    body: "Any market or factory in Guangzhou. Your supplier hands the boxes to our driver — no forms, no Chinese needed from you.",
-    cta: "Request a pickup",
+    icon: Plane,
+    title: "Send in advance, no deposit",
+    body: "Established customers ship first and settle later. Nothing is required up front to get your goods moving.",
   },
   {
-    href: "/services/sourcing",
-    image: IMAGES.clothingRail,
-    eyebrow: "Sourcing",
-    title: "We find the supplier",
-    body: "Tell us the product. We find who makes it, what it costs, and whether they are worth buying from.",
-    cta: "Send a request",
+    icon: Receipt,
+    title: "Pay the freight when you collect",
+    body: "Settle at our Makeni counter when you pick the cargo up, rather than before it leaves China.",
   },
   {
-    href: "/learn/consolidation",
-    image: IMAGES.apron,
-    eyebrow: "Consolidation",
-    title: "Several orders, one cargo",
-    body: "Held free at our warehouse while the rest of your order comes together. One invoice, one collection.",
-    cta: "How it works",
+    icon: ShieldCheck,
+    title: "Released only against a scan",
+    body: "Cargo is handed over when the QR label put on it in China scans against a valid pickup note. That check is the reason nobody else can collect your goods.",
   },
   {
-    href: "/services/sourcing",
-    image: IMAGES.paperwork,
-    eyebrow: "Inspection",
-    title: "Checked before it flies",
-    body: "We open it, check it and photograph it in China. Rejecting goods there costs a fraction of discovering them in Lusaka.",
-    cta: "Ask us to inspect",
-  },
-  {
-    href: "/track",
-    image: IMAGES.cargoHold,
-    eyebrow: "Tracking",
-    title: "Every package, every step",
-    body: "From our China counter to the counter in Lusaka, with the photographs taken along the way.",
-    cta: "Track your cargo",
-  },
-  {
-    href: "/china/markets",
-    image: IMAGES.electronicsBench,
-    eyebrow: "Buying",
-    title: "Thirteen China market guides",
-    body: "Where to buy what, across Guangzhou, Shenzhen, Yiwu, Foshan and beyond — with real buying advice.",
-    cta: "Browse markets",
-  },
-  {
-    href: "/learn",
-    image: IMAGES.fabricRolls,
-    eyebrow: "Learn",
-    title: "Import consultation",
-    body: "Guides on weight, suppliers, packing, payment and customs — and a person to ask when they do not cover it.",
-    cta: "Read the guides",
-  },
-  {
-    href: "/warehouses",
-    image: IMAGES.airportNight,
-    eyebrow: "Handling",
-    title: "Verified collection",
-    body: "Released against a paid pickup note and a scanned code, with the handover photographed.",
-    cta: "How collection works",
+    icon: Boxes,
+    title: `${STORAGE_POLICY.freeDays} free days on our floor`,
+    body: `Storage is free for ${STORAGE_POLICY.freeDays} days from check-in at Lusaka, then USD ${STORAGE_POLICY.perDayUsd} a day. Your tracking page shows the count, so a fee is never a surprise.`,
   },
 ];
 
 export default function ServicesPage() {
   return (
     <>
-      <MediaBand
-        image={IMAGES.apron}
-        eyebrow="Our air cargo services"
-        title="Everything between your supplier and your shop"
-        body="Njia moja, namba moja ya kufuatilia. Everything between your supplier's shop and your shop in Lusaka — handled by people who work for us at both ends."
+      <PageHero
+        eyebrow="Cargo services"
+        title="One company from your supplier's gate to your shop floor"
+        lede="Most forwarders start when the cargo reaches their warehouse. We start earlier — paying the factory, checking the goods and collecting them — and we finish later, with duty already settled before your cargo lands."
       >
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/book"
-            className="inline-flex items-center gap-2 rounded-xl bg-signal px-5 py-3 text-sm font-semibold text-signal-foreground transition-transform hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
-          >
-            Book your cargo
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/calculator" tone="copper">
+            Price your cargo
             <ArrowRight className="h-4 w-4" />
-          </Link>
-          <a
-            href={`https://wa.me/${COMPANY.whatsapp}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-medium transition-colors hover:bg-white/10"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Ask us anything
-          </a>
+          </BtnLink>
+          <BtnLink href="/china" tone="outline-invert">
+            China warehouse address
+          </BtnLink>
         </div>
-      </MediaBand>
+      </PageHero>
 
-      {/* The bento used to sit on flat paper between two photographic bands,
-          which made the middle of the page read as a hole. Aurora rather than
-          photo: every card in here is `bg-card` with muted body copy, and that
-          is dark-on-light — flipping the section to ink would take the whole
-          grid down with it. */}
-      <section className="section relative isolate">
-        <SectionBackdrop variant="aurora" />
-        <div className="container">
-          {/* Bento: the two things people arrive for, given the room.
-              The grid is revealed as one block rather than card by card —
-              display:contents on a wrapper would kill the transform, and a
-              dozen individually animating cards reads as fidgety anyway. */}
-          <Reveal className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {HEADLINE.map((service) => (
-              <MediaCard key={service.title} {...service} />
+      {/* The headline service, given a band of its own. */}
+      <Section tone="stone">
+        <Wrap>
+          <div className="grid gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <div>
+              <Eyebrow>The core service</Eyebrow>
+              <h2 className="ai-display-lg mt-4">
+                Air cargo with the duty already in the price
+              </h2>
+              <p className="ai-lede mt-5">
+                {COMPANY.dutyNote} There is no clearing agent for you to appoint,
+                no customs bill afterwards, and no adjustment at the counter. The
+                figure you are quoted is the figure that lands.
+              </p>
+              <ul className="mt-8 space-y-4">
+                {[
+                  "Loaded out of Guangzhou for normal goods and wigs, Hong Kong for the special category.",
+                  "Five to twelve days, counter in China to our Lusaka floor.",
+                  `Billed on the weight our Lusaka warehouse confirms — anything under ${MIN_BILLABLE_KG} kg counts as ${MIN_BILLABLE_KG} kg.`,
+                  "Your own tracking number and QR label from the day we receive it.",
+                ].map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: "hsl(var(--ai-copper))" }}
+                    />
+                    <span
+                      className="text-[0.97rem] leading-relaxed"
+                      style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                    >
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Card className="lg:justify-self-end lg:max-w-md">
+              <Eyebrow copper>What that means on a bill</Eyebrow>
+              <dl className="mt-7 space-y-5">
+                {[
+                  ["Freight, China → Lusaka", "Included"],
+                  ["Import duty", "Included"],
+                  ["Clearing agent", "Not needed"],
+                  ["Handling at Makeni", "Included"],
+                  [`First ${STORAGE_POLICY.freeDays} days of storage`, "Included"],
+                  ["Inspection, packing, collection", "Free"],
+                ].map(([term, value]) => (
+                  <div
+                    key={term}
+                    className="flex items-baseline justify-between gap-4 border-t pt-5 first:border-0 first:pt-0"
+                    style={{ borderColor: "hsl(var(--ai-stone-3))" }}
+                  >
+                    <dt style={{ color: "hsl(var(--ai-charcoal-soft))" }}>
+                      {term}
+                    </dt>
+                    <dd className="font-semibold">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p
+                className="mt-7 text-sm"
+                style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+              >
+                Only supplier payments and money exchange are charged separately,
+                and both are quoted before you commit.
+              </p>
+            </Card>
+          </div>
+        </Wrap>
+      </Section>
+
+      {/* While the goods are still in China. */}
+      <Section tone="alt">
+        <Wrap>
+          <SectionHead
+            eyebrow="While your goods are in China"
+            title="The part most forwarders leave to you"
+            lede="Four things that happen before your cargo ever reaches an aircraft. Three of them cost nothing."
+          />
+          <div className="mt-14 grid gap-5 md:grid-cols-2">
+            {IN_CHINA.map(({ icon: Icon, title, body, tag }) => (
+              <Card key={title} lift>
+                <div className="flex items-start justify-between gap-4">
+                  <span
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
+                    style={{
+                      background: "hsl(var(--ai-emerald-soft))",
+                      color: "hsl(var(--ai-emerald))",
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <Badge tone={tag === "Free" ? "copper" : "ink"}>{tag}</Badge>
+                </div>
+                <h3 className="ai-display-sm mt-5">{title}</h3>
+                <p
+                  className="mt-2.5 text-[0.95rem] leading-relaxed"
+                  style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                >
+                  {body}
+                </p>
+              </Card>
             ))}
-          </Reveal>
+          </div>
 
-          <Reveal
-            delay={90}
-            className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            {SERVICES.map((service) => (
-              <MediaCard key={service.title} {...service} />
+          <div className="mt-10 flex flex-wrap gap-2.5">
+            <BtnLink href="/exchange#pay-supplier" tone="primary">
+              <Banknote className="h-4 w-4" />
+              Ask us to pay a supplier
+            </BtnLink>
+            <BtnLink href="/pickup" tone="outline">
+              Book a supplier collection
+            </BtnLink>
+          </div>
+        </Wrap>
+      </Section>
+
+      {/* After it lands. */}
+      <Section tone="ink">
+        <Wrap>
+          <SectionHead
+            eyebrow="Once it lands in Lusaka"
+            title="Terms that assume you have a business to run"
+          />
+          <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2">
+            {AFTER.map(({ icon: Icon, title, body }) => (
+              <div key={title}>
+                <Icon
+                  className="h-6 w-6"
+                  style={{ color: "hsl(var(--ai-copper))" }}
+                />
+                <h3 className="ai-display-sm mt-4">{title}</h3>
+                <p
+                  className="mt-2 text-[0.95rem] leading-relaxed"
+                  style={{ color: "hsl(var(--ai-stone)/0.66)" }}
+                >
+                  {body}
+                </p>
+              </div>
             ))}
-          </Reveal>
-        </div>
-      </section>
+          </div>
 
-      <MediaBand
-        image={IMAGES.warehouseAisle}
-        align="center"
-        eyebrow="Hakuna gharama za kujificha"
-        title="Not sure which of these you need?"
-        body="Send us a photo of what you are buying. We will tell you the category, the airport it flies from, and what it will cost — before you commit to anything."
-      >
-        <div className="flex flex-wrap justify-center gap-3">
-          <a
-            href={`https://wa.me/${COMPANY.whatsapp}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-signal px-5 py-3 text-sm font-semibold text-signal-foreground transition-transform hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
-          >
-            <MessageCircle className="h-4 w-4" />
-            WhatsApp {COMPANY.phone}
-          </a>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-medium transition-colors hover:bg-white/10"
-          >
-            How we price cargo
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </MediaBand>
+          <div className="ai-rule mt-16 flex flex-wrap items-center justify-between gap-6 pt-10">
+            <p className="ai-display-sm max-w-md">
+              Ready to send your first consignment?
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <BtnLink href="/book" tone="copper">
+                Book your cargo
+                <ArrowRight className="h-4 w-4" />
+              </BtnLink>
+              <Link href="/register" className="ai-btn ai-btn-outline-invert">
+                Create an account
+              </Link>
+            </div>
+          </div>
+        </Wrap>
+      </Section>
     </>
   );
 }

@@ -13,7 +13,7 @@ import {
 
 import { PageHeader } from "@/components/app/page-header";
 import { ShipmentStatusBadge } from "@/components/app/status-badge";
-import { CopyField } from "@/components/site/copy-field";
+import { CopyField } from "@/components/app/copy-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

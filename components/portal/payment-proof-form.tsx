@@ -30,7 +30,7 @@ export function PaymentProofForm({
 
   if (state?.ok) {
     return (
-      <p className="mt-4 flex items-start gap-2 rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success">
+      <p className="ai-notice ai-notice-ok mt-4 flex items-start gap-2">
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         Sent to our finance desk. They will check it against the account and
         update {invoiceNumber} once the money is confirmed.
@@ -43,7 +43,7 @@ export function PaymentProofForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        className="ai-btn ai-btn-outline ai-btn-sm mt-4"
       >
         <Upload className="h-4 w-4" />
         I have paid — send proof
@@ -52,72 +52,72 @@ export function PaymentProofForm({
   }
 
   return (
-    <form action={action} className="mt-4 space-y-3 rounded-lg border bg-muted/30 p-4">
+    <form action={action} className="ai-card ai-rows mt-4 space-y-3 !p-4">
       <input type="hidden" name="invoiceId" value={invoiceId} />
 
       {state && !state.ok ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        <p className="ai-notice ai-notice-error">
           {state.error}
         </p>
       ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Amount paid</span>
+          <span className="ai-label">Amount paid</span>
           <input
             name="amount"
             inputMode="decimal"
-            className="h-11 w-full rounded-lg border bg-background px-3"
+            className="ai-field"
             placeholder="Leave blank for the full amount"
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Reference</span>
+          <span className="ai-label">Reference</span>
           <input
             name="reference"
-            className="h-11 w-full rounded-lg border bg-background px-3"
+            className="ai-field"
             placeholder="Mobile money ID or bank slip number"
           />
         </label>
       </div>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Screenshot or receipt</span>
+        <span className="ai-label">Screenshot or receipt</span>
         <input
           name="proof"
           type="file"
           accept="image/*,application/pdf"
           required
-          className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1.5"
+          className="ai-field pt-3.5 text-sm"
         />
       </label>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Anything else</span>
+        <span className="ai-label">Anything else</span>
         <textarea
           name="note"
           rows={2}
-          className="w-full rounded-lg border bg-background px-3 py-2"
+          className="ai-field"
         />
       </label>
 
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"
-          className="inline-flex h-10 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground"
+          className="ai-btn ai-btn-primary ai-btn-sm"
         >
           Send proof
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex h-10 items-center rounded-lg border px-4 text-sm"
+          className="ai-btn ai-btn-outline ai-btn-sm"
         >
           Cancel
         </button>
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs ai-muted">
         This does not settle the invoice on its own. Our finance desk checks it
         against the account the money landed in, and the balance updates when
         they confirm it.

@@ -63,7 +63,7 @@ export function ChinaRequestForm() {
 
   if (state?.ok && state.data) {
     return (
-      <div className="rounded-xl border border-success/30 bg-success/5 p-6 text-sm text-success">
+      <div className="ai-notice ai-notice-ok">
         <CheckCircle2 className="h-6 w-6" />
         <p className="mt-3 font-medium">
           Request {state.data.reference} is with our China desk.
@@ -80,7 +80,7 @@ export function ChinaRequestForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground"
+        className="ai-btn ai-btn-primary"
       >
         <Plus className="h-4 w-4" />
         New China request
@@ -93,18 +93,18 @@ export function ChinaRequestForm() {
   return (
     <form action={action} className="space-y-4 rounded-xl border bg-card p-6">
       {state && !state.ok ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        <p className="ai-notice ai-notice-error">
           {state.error}
         </p>
       ) : null}
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">What do you need?</span>
+        <span className="ai-label">What do you need?</span>
         <select
           name="type"
           value={type}
           onChange={(event) => setType(event.target.value)}
-          className="h-11 w-full rounded-lg border bg-background px-3"
+          className="ai-field"
         >
           {TYPES.map((option) => (
             <option key={option.value} value={option.value}>
@@ -113,53 +113,53 @@ export function ChinaRequestForm() {
           ))}
         </select>
         {selected ? (
-          <span className="mt-1.5 block text-xs text-muted-foreground">
+          <span className="mt-1.5 block text-xs ai-muted">
             {selected.hint}
           </span>
         ) : null}
       </label>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">The goods</span>
+        <span className="ai-label">The goods</span>
         <input
           name="product"
           required
-          className="h-11 w-full rounded-lg border bg-background px-3"
+          className="ai-field"
           placeholder="Hair bundles, phone cases, kitchen scales…"
         />
       </label>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Details</span>
+        <span className="ai-label">Details</span>
         <textarea
           name="description"
           rows={4}
           required
-          className="w-full rounded-lg border bg-background px-3 py-2"
+          className="ai-field"
           placeholder="Supplier name and address, quantities, model numbers, anything we need to know."
         />
       </label>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Budget in USD (optional)</span>
+        <span className="ai-label">Budget in USD (optional)</span>
         <input
           name="budgetUsd"
           inputMode="decimal"
-          className="h-11 w-full rounded-lg border bg-background px-3"
+          className="ai-field"
         />
       </label>
 
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"
-          className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground"
+          className="ai-btn ai-btn-primary"
         >
           Send request
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex h-11 items-center rounded-xl border px-5 text-sm"
+          className="ai-btn ai-btn-outline"
         >
           Cancel
         </button>

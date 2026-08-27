@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { PaymentProofForm } from "@/components/portal/payment-proof-form";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/brand/ui";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { formatDate, toNumber } from "@/lib/format";
 import { formatUsd } from "@/lib/money";
@@ -57,19 +57,19 @@ export default async function PortalInvoicesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
+          <h1 className="ai-display-lg">
             Invoices
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 ai-muted">
             {invoices.length} invoice{invoices.length === 1 ? "" : "s"} on your
             account.
           </p>
         </div>
         <div className="rounded-xl border bg-card px-5 py-3 text-right">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
             Outstanding
           </p>
-          <p className="font-display text-2xl font-bold tabular">
+          <p className="ai-num text-2xl font-semibold">
             {formatUsd(outstanding)}
           </p>
         </div>
@@ -77,10 +77,10 @@ export default async function PortalInvoicesPage() {
 
       {creditLimit !== null ? (
         <section className="rounded-xl border border-brand/30 bg-brand/5 p-5 text-sm">
-          <h2 className="font-display text-base font-semibold">
+          <h2 className="ai-display-sm">
             Your credit facility
           </h2>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 ai-muted">
             Approved limit {formatUsd(creditLimit)}
             {customer?.creditTermDays
               ? `, ${customer.creditTermDays} day terms`
@@ -95,7 +95,7 @@ export default async function PortalInvoicesPage() {
       ) : null}
 
       {invoices.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        <p className="ai-card ai-muted">
           Nothing billed yet. An invoice is raised once your cargo has been
           checked in and weighed at our Lusaka warehouse.
         </p>
@@ -112,16 +112,16 @@ export default async function PortalInvoicesPage() {
             return (
               <article
                 key={invoice.id}
-                className="rounded-xl border bg-card p-5 shadow-soft"
+                className="ai-card"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-mono text-lg font-semibold">
+                    <p className="ai-num text-lg font-semibold">
                       {invoice.invoiceNumber}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm ai-muted">
                       Cargo{" "}
-                      <span className="font-mono">
+                      <span className="ai-num">
                         {invoice.shipment.trackingNumber}
                       </span>{" "}
                       · issued {formatDate(invoice.issuedAt)}
@@ -133,12 +133,12 @@ export default async function PortalInvoicesPage() {
                   <div className="flex flex-wrap gap-2">
                     {invoice.creditStatus !== "NONE" &&
                     CREDIT_LABEL[invoice.creditStatus] ? (
-                      <Badge variant="info">
+                      <Badge tone="info">
                         {CREDIT_LABEL[invoice.creditStatus]}
                       </Badge>
                     ) : null}
                     <Badge
-                      variant={
+                      tone={
                         STATUS_TONE[invoice.status as keyof typeof STATUS_TONE] ??
                         "muted"
                       }
@@ -150,7 +150,7 @@ export default async function PortalInvoicesPage() {
 
                 <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 text-sm sm:grid-cols-4">
                   <div>
-                    <dt className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
                       Total
                     </dt>
                     <dd className="mt-1 font-medium tabular">
@@ -158,13 +158,13 @@ export default async function PortalInvoicesPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
                       Paid
                     </dt>
                     <dd className="mt-1 font-medium tabular">{formatUsd(paid)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
                       Balance
                     </dt>
                     <dd
@@ -174,7 +174,7 @@ export default async function PortalInvoicesPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
                       Storage
                     </dt>
                     <dd className="mt-1 font-medium tabular">
@@ -194,17 +194,17 @@ export default async function PortalInvoicesPage() {
                       <ul className="mt-3 space-y-2">
                         {PAYMENT_METHODS.map((account) => (
                           <li key={account.label}>
-                            <span className="block text-xs uppercase tracking-widest text-muted-foreground">
+                            <span className="block text-xs uppercase tracking-widest ai-muted">
                               {account.label}
                             </span>
-                            <span className="font-mono">{account.number}</span>
-                            <span className="block text-xs text-muted-foreground">
+                            <span className="ai-num">{account.number}</span>
+                            <span className="block text-xs ai-muted">
                               {account.accountName}
                             </span>
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-3 text-xs text-muted-foreground">
+                      <p className="mt-3 text-xs ai-muted">
                         Always check these against the accounts printed on your
                         invoice, and ring us if they differ.
                       </p>

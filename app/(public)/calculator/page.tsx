@@ -1,111 +1,187 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { MessageCircle, Scale, ShieldCheck, Timer } from "lucide-react";
+import { MessageCircle, ScaleIcon, ShieldCheck, Timer } from "lucide-react";
 
-import { PageHero } from "@/components/site/page-hero";
-import { RateCalculator } from "@/components/site/rate-calculator";
-import { SectionBackdrop } from "@/components/site/section-backdrop";
+import { QuoteCalculator } from "@/components/brand/quote-calculator";
+import {
+  BtnLink,
+  Card,
+  PageHero,
+  Section,
+  SectionHead,
+  Wrap,
+} from "@/components/brand/ui";
 import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
-import { IMAGES } from "@/lib/imagery";
 import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 import { publicRateCard } from "@/lib/rate-card";
 
 export const metadata: Metadata = {
-  title: "Cargo rate calculator",
+  title: "Cargo rates & quote",
   description:
-    "Work out what your cargo will cost from China to Lusaka — billable weight, rate per kilogram and the estimated total, with freight and duty included.",
+    "AITRANSIT air cargo rates from China to Lusaka, duty included. Work out the billable weight, the rate per kilogram and your estimated total.",
 };
 
-/**
- * The public rate calculator.
- *
- * Target Express deleted this page on the reasoning that a calculator is the
- * rate book published one line at a time, and its rate book was private.
- * AITRANSIT's is not: the rates are on the company's own flyers, on the home
- * page and on /pricing, so there is nothing here for a calculator to leak — and
- * the specification asks for it by name.
- *
- * What it adds over the rate table is the two things a table cannot tell you
- * about YOUR parcel: which side of the 10 kg tier it falls on, and what the
- * minimum billable weight does to it. A customer with a 700 g parcel reads
- * "USD 13.50 per kg" and expects to pay USD 9.45; this tells them the truth
- * before they are surprised by it on an invoice.
- */
 export default async function CalculatorPage() {
   const categories = await publicRateCard();
 
   return (
     <>
       <PageHero
-        image={IMAGES.warehouseAisle}
-        eyebrow="Cargo rate calculator"
-        title="What will your cargo cost?"
-        body="Pick what you are sending and roughly what it weighs. We will show you the billable weight, the rate and the estimated total — freight and duty to our Lusaka warehouse included."
+        eyebrow="Rates & quote"
+        title="Know what it costs before you send it"
+        lede={`Every rate below covers freight and duty to our Lusaka warehouse. Cargo under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg, and from 10 kg the rate per kilo drops.`}
       />
 
-      <section className="relative isolate border-b py-14 md:py-20">
-        <SectionBackdrop variant="aurora" />
-        <div className="container">
-          <RateCalculator
+      <Section tone="stone">
+        <Wrap>
+          <QuoteCalculator
             categories={categories}
             freeDays={STORAGE_POLICY.freeDays}
             perDayUsd={STORAGE_POLICY.perDayUsd}
             minBillableKg={MIN_BILLABLE_KG}
           />
-        </div>
-      </section>
+        </Wrap>
+      </Section>
 
-      <section className="py-14 md:py-20">
-        <div className="container">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      {/* The full card, for somebody comparing rather than pricing. */}
+      <Section tone="alt">
+        <Wrap>
+          <SectionHead
+            eyebrow="The full card"
+            title="Published, and the same card your invoice is priced from"
+            lede="These figures come out of the rate book our finance desk edits. If a rate changes, this page changes with it — there is no second copy to fall out of step."
+          />
+
+          {categories.length > 0 ? (
+            <div className="mt-12 overflow-x-auto">
+              <table className="w-full min-w-[38rem] border-collapse text-left">
+                <thead>
+                  <tr>
+                    {["Category", "Weight", "Price per kg", "Route"].map(
+                      (head, i) => (
+                        <th
+                          key={head}
+                          scope="col"
+                          className="pb-4 text-xs font-bold uppercase tracking-[0.14em]"
+                          style={{
+                            color: "hsl(var(--ai-charcoal-soft))",
+                            textAlign: i === 2 ? "right" : "left",
+                          }}
+                        >
+                          {head}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.flatMap((category) =>
+                    category.tiers.map((tier, index) => (
+                      <tr
+                        key={`${category.category}-${tier.label}`}
+                        style={{ borderTop: "1px solid hsl(var(--ai-stone-3))" }}
+                      >
+                        {index === 0 ? (
+                          <th
+                            scope="row"
+                            rowSpan={category.tiers.length}
+                            className="py-5 pr-6 align-top"
+                          >
+                            <span className="ai-display-sm block">
+                              {category.label}
+                            </span>
+                            <span
+                              className="mt-1.5 block max-w-[16rem] text-[0.82rem] font-normal leading-snug"
+                              style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                            >
+                              {category.examples}
+                            </span>
+                          </th>
+                        ) : null}
+                        <td
+                          className="py-5 pr-6"
+                          style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                        >
+                          {tier.label}
+                        </td>
+                        <td className="ai-num py-5 pr-6 text-right font-semibold">
+                          {tier.price}
+                        </td>
+                        {index === 0 ? (
+                          <td
+                            rowSpan={category.tiers.length}
+                            className="py-5 align-top text-sm"
+                            style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                          >
+                            {category.route}
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </Wrap>
+      </Section>
+
+      {/* The three rules that decide the final figure. */}
+      <Section tone="ink">
+        <Wrap>
+          <SectionHead
+            eyebrow="How the final bill is decided"
+            title="Three rules, stated before you are billed by them"
+          />
+          <div className="mt-14 grid gap-5 md:grid-cols-3">
             {[
               {
-                icon: Scale,
-                title: "We weigh it ourselves",
-                body: `Your invoice is raised on the weight our Lusaka warehouse confirms on the scale at check-in — not on your supplier's figure, and not on the estimate above. Anything under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg.`,
+                icon: ScaleIcon,
+                title: "Our scale decides",
+                body: `Your invoice is raised on the weight our Lusaka warehouse confirms at check-in — not your supplier's figure, and not the estimate above. Anything under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg.`,
               },
               {
                 icon: ShieldCheck,
-                title: "Duty is already in the price",
+                title: "Duty is already in it",
                 body: COMPANY.dutyNote,
               },
               {
                 icon: Timer,
                 title: `${STORAGE_POLICY.freeDays} free storage days`,
-                body: `Storage is free for ${STORAGE_POLICY.freeDays} days from the day your cargo is checked in at Lusaka. After that a fee of USD ${STORAGE_POLICY.perDayUsd} per day applies until you collect. Your tracking page shows the count and the fee, so nobody is surprised by one.`,
+                body: `Free for ${STORAGE_POLICY.freeDays} days from check-in at Lusaka, then USD ${STORAGE_POLICY.perDayUsd} per day until you collect. Your tracking page shows the running count.`,
               },
             ].map(({ icon: Icon, title, body }) => (
-              <div key={title} className="rounded-xl border bg-card p-6 shadow-soft">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-signal/10 text-signal">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <h2 className="mt-4 font-display text-lg font-semibold">{title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <Card key={title}>
+                <Icon
+                  className="h-6 w-6"
+                  style={{ color: "hsl(var(--ai-copper))" }}
+                />
+                <h3 className="ai-display-sm mt-4">{title}</h3>
+                <p
+                  className="mt-2.5 text-[0.93rem] leading-relaxed"
+                  style={{ color: "hsl(var(--ai-stone)/0.66)" }}
+                >
                   {body}
                 </p>
-              </div>
+              </Card>
             ))}
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link
-              href="/pricing"
-              className="inline-flex h-11 items-center rounded-xl border px-5 text-sm font-medium hover:bg-muted"
-            >
-              Full rate card
-            </Link>
-            <a
+          <div className="ai-rule mt-14 flex flex-wrap items-center justify-between gap-6 pt-10">
+            <p className="ai-lede max-w-lg">
+              Awkward cargo, a large consignment, or something not on the card?
+              Send us the details and a person will price it.
+            </p>
+            <BtnLink
               href={`https://wa.me/${COMPANY.whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border px-5 text-sm font-medium hover:bg-muted"
+              tone="copper"
+              external
             >
               <MessageCircle className="h-4 w-4" />
               Ask for a firm quote
-            </a>
+            </BtnLink>
           </div>
-        </div>
-      </section>
+        </Wrap>
+      </Section>
     </>
   );
 }

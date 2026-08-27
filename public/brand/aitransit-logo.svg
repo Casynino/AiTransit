@@ -1,36 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-label="AITRANSIT Cargo">
-  <title>AITRANSIT Cargo</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-label="AITRANSIT Cargo & Exchange">
+  <title>AITRANSIT</title>
   <!--
-    The printed lockup: emblem, wordmark, and "cargo" beneath.
+    The printed lockup, for documents that leave the building.
 
-    Fixed inks, not tokens. This file is used by the invoice, the pickup note
-    and the manifest, all of which print on white in either theme — a colour
-    that brightened for a dark sidebar would put pale blue on a page somebody is
-    about to photocopy. The screen version lives in components/brand-mark.tsx
-    and is painted with tokens instead.
+    Fixed inks rather than tokens: an invoice, a pickup note and a manifest all
+    print on white in any theme, and a colour that brightened for a dark screen
+    would put pale green on a page somebody is about to photocopy.
   -->
-  <g transform="translate(8 16) scale(0.95)">
-    <path
-      d="M42.5 6 L57.5 6 L86 90 L68 90 L61.5 69 L33 69 L26.5 90 L8.5 90 Z M38 54 L57 54 L47.5 23 Z"
-      fill="#103B7C"
-      fill-rule="evenodd"
-    />
-    <path
-      d="M50 47 L104 47 L92 33 L112 33 L128 52 L112 71 L92 71 L104 57 L54 57 Z"
-      fill="#2BAEE6"
-    />
+  <g transform="translate(14 26) scale(1.02)">
+    <circle cx="6" cy="48" r="4.6" fill="#0A1B33"/>
+    <path d="M6.00 48.00 Q34.00 48.00 57.00 27.00" fill="none" stroke="#0C6E5B"
+          stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M61.87 22.55 L58.23 34.28 L49.87 25.12 Z" fill="#C77A2B"/>
   </g>
-  <text
-    x="156" y="72"
-    font-family="Helvetica, Arial, sans-serif"
-    font-size="54" font-weight="800" letter-spacing="-1"
-  >
-    <tspan fill="#103B7C">AI</tspan><tspan fill="#2BAEE6">TRANSIT</tspan>
+  <text x="104" y="66" font-size="46" fill="#0A1B33">
+    <tspan font-family="Georgia, 'Times New Roman', serif" font-weight="600">AI</tspan><tspan
+          font-family="Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="0.6">TRANSIT</tspan>
   </text>
-  <text
-    x="158" y="104"
-    font-family="Helvetica, Arial, sans-serif"
-    font-size="26" font-weight="700" letter-spacing="10"
-    fill="#17994B"
-  >CARGO</text>
+  <text x="106" y="92" font-family="Helvetica, Arial, sans-serif" font-size="13"
+        font-weight="700" letter-spacing="4.6" fill="#C77A2B">CARGO &amp; EXCHANGE</text>
 </svg>

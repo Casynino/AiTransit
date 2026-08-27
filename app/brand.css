@@ -1,0 +1,423 @@
+/* ===========================================================================
+   AITRANSIT — the public brand.
+
+   A SEPARATE LAYER FROM THE STAFF APP, and deliberately so. Everything in
+   globals.css dresses the operational system: dense, theme-switchable, tuned
+   for a warehouse phone at full brightness for eight hours. None of that is
+   what a customer deciding whether to trust a freight company with their money
+   should meet. So the public site and the customer portal get their own tokens,
+   their own type and their own primitives, scoped under `.ai-site`, and the
+   two never collide.
+
+   FIXED, NOT THEMED. These values do not respond to the light/dark toggle.
+   A brand is a printed thing — the flyer, the invoice, the sticker on the box
+   all look the same in any light, and a customer who sees navy on stone today
+   should see navy on stone tomorrow. The staff app keeps its toggle; this is a
+   brochure and behaves like one.
+   =========================================================================== */
+
+/*
+  The page behind the page.
+
+  The staff app defaults to a dark theme, which puts a near-black background on
+  <body>. `.ai-site` paints over it, but the browser's overscroll area does not
+  belong to any element — so rubber-banding on a phone flashed black above a
+  stone-coloured site. This hands the body the brand's own background whenever a
+  public page is what it contains.
+*/
+body:has(> .ai-site) {
+  background: hsl(40 33% 97%);
+}
+
+.ai-site {
+  /* --- Ink: deep midnight navy. Structure, headlines, dark bands. -------- */
+  --ai-ink: 213 62% 11%;        /* #0A1B33 */
+  --ai-ink-2: 213 48% 17%;      /* raised navy — cards on dark bands */
+  --ai-ink-3: 213 34% 27%;      /* borders and dividers on dark */
+
+  /* --- Emerald: the brand's living colour. Growth, movement, go. --------- */
+  --ai-emerald: 168 80% 24%;    /* #0C6E5B */
+  --ai-emerald-bright: 166 62% 38%;
+  --ai-emerald-soft: 168 44% 94%;
+
+  /* --- Copper: warmth and value. Rates, numerals, quiet emphasis. -------- */
+  --ai-copper: 28 66% 47%;      /* #C77A2B */
+  --ai-copper-soft: 32 68% 94%;
+
+  /* --- Stone: warm off-white. The page itself. -------------------------- */
+  --ai-stone: 40 33% 97%;       /* #FAF8F4 */
+  --ai-stone-2: 38 26% 94%;     /* alternating band */
+  --ai-stone-3: 36 20% 88%;     /* hairlines on light */
+
+  --ai-charcoal: 214 17% 16%;   /* #22282F — body text */
+  --ai-charcoal-soft: 214 10% 42%;  /* secondary text */
+
+  --ai-white: 0 0% 100%;
+  --ai-danger: 4 66% 45%;
+
+  /* --- Type ------------------------------------------------------------- */
+  /* An editorial serif over a warm grotesque. The staff app is Sora + Inter;
+     this pair exists so the two products cannot be mistaken for one another,
+     and so the public site reads as a trade publication rather than a
+     dashboard. */
+  --ai-display: var(--font-brand-display), "Iowan Old Style", Georgia, serif;
+  --ai-sans: var(--font-brand-sans), ui-sans-serif, system-ui, sans-serif;
+  --ai-mono: var(--font-brand-mono), ui-monospace, monospace;
+
+  /* --- Space. A 4px base, named for what it is used for. ---------------- */
+  --ai-gap-xs: 0.5rem;
+  --ai-gap-sm: 0.75rem;
+  --ai-gap: 1rem;
+  --ai-gap-lg: 1.5rem;
+  --ai-gap-xl: 2.5rem;
+  --ai-section: clamp(4rem, 9vw, 7.5rem);
+
+  --ai-radius-sm: 0.5rem;
+  --ai-radius: 0.875rem;
+  --ai-radius-lg: 1.5rem;
+
+  /* Shadows are warm rather than neutral grey — a cool shadow on a stone
+     background reads as dirt. */
+  --ai-shadow-sm: 0 1px 2px hsl(28 30% 20% / 0.06);
+  --ai-shadow: 0 2px 4px hsl(28 30% 20% / 0.05), 0 12px 28px -14px hsl(213 50% 18% / 0.22);
+  --ai-shadow-lg: 0 4px 10px hsl(28 30% 20% / 0.06), 0 30px 60px -28px hsl(213 50% 18% / 0.34);
+
+  background: hsl(var(--ai-stone));
+  color: hsl(var(--ai-charcoal));
+  font-family: var(--ai-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------------------
+   Type scale.
+
+   Display sizes clamp so a headline is a headline on a phone too — the
+   commonest way a site like this is read is one-handed, on data, in a market.
+   --------------------------------------------------------------------------- */
+.ai-site .ai-display-xl {
+  font-family: var(--ai-display);
+  font-size: clamp(2.5rem, 6.2vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+  font-weight: 600;
+}
+.ai-site .ai-display-lg {
+  font-family: var(--ai-display);
+  font-size: clamp(2rem, 4.4vw, 3.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.ai-site .ai-display {
+  font-family: var(--ai-display);
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  line-height: 1.14;
+  letter-spacing: -0.016em;
+  font-weight: 600;
+}
+.ai-site .ai-display-sm {
+  font-family: var(--ai-display);
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  font-weight: 600;
+}
+
+/* The small caps label that opens a section. Letterspaced wide enough to read
+   as a signpost rather than as shouting. */
+.ai-site .ai-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: hsl(var(--ai-emerald));
+}
+.ai-site .ai-eyebrow-copper { color: hsl(var(--ai-copper)); }
+.ai-site .ai-on-ink .ai-eyebrow { color: hsl(var(--ai-copper)); }
+
+.ai-site .ai-lede {
+  font-size: clamp(1.02rem, 1.5vw, 1.18rem);
+  line-height: 1.65;
+  color: hsl(var(--ai-charcoal-soft));
+}
+
+.ai-site .ai-num {
+  font-family: var(--ai-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Layout
+   -------------------------------------------------------------------------- */
+.ai-site .ai-wrap {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.1rem, 4vw, 2.5rem);
+}
+.ai-site .ai-wrap-narrow { max-width: 52rem; }
+.ai-site .ai-section { padding-block: var(--ai-section); }
+.ai-site .ai-band-stone { background: hsl(var(--ai-stone-2)); }
+
+/* A dark band. Sets its own foreground so anything dropped inside inherits
+   legible colour without each component knowing which band it sits on. */
+.ai-site .ai-on-ink {
+  background: hsl(var(--ai-ink));
+  color: hsl(var(--ai-stone));
+}
+.ai-site .ai-on-ink .ai-lede { color: hsl(var(--ai-stone) / 0.72); }
+.ai-site .ai-on-emerald {
+  background: hsl(var(--ai-emerald));
+  color: hsl(var(--ai-white));
+}
+.ai-site .ai-on-emerald .ai-lede { color: hsl(var(--ai-white) / 0.82); }
+
+/* The hairline rule that separates editorial blocks. */
+.ai-site .ai-rule { border-top: 1px solid hsl(var(--ai-stone-3)); }
+.ai-site .ai-on-ink .ai-rule { border-color: hsl(var(--ai-ink-3)); }
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.ai-site .ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding-inline: 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms, border-color 180ms, color 180ms, box-shadow 180ms;
+}
+.ai-site .ai-btn:hover { transform: translateY(-1px); }
+.ai-site .ai-btn:active { transform: translateY(0); }
+.ai-site .ai-btn:focus-visible {
+  outline: 2px solid hsl(var(--ai-copper));
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-site .ai-btn:hover { transform: none; }
+}
+
+.ai-site .ai-btn-primary {
+  background: hsl(var(--ai-emerald));
+  color: hsl(var(--ai-white));
+  box-shadow: var(--ai-shadow-sm);
+}
+.ai-site .ai-btn-primary:hover { background: hsl(var(--ai-emerald) / 0.9); }
+
+.ai-site .ai-btn-ink {
+  background: hsl(var(--ai-ink));
+  color: hsl(var(--ai-stone));
+}
+.ai-site .ai-btn-ink:hover { background: hsl(var(--ai-ink-2)); }
+
+.ai-site .ai-btn-copper {
+  background: hsl(var(--ai-copper));
+  color: hsl(var(--ai-ink));
+}
+.ai-site .ai-btn-copper:hover { background: hsl(var(--ai-copper) / 0.9); }
+
+.ai-site .ai-btn-outline {
+  border-color: hsl(var(--ai-stone-3));
+  background: hsl(var(--ai-white));
+  color: hsl(var(--ai-charcoal));
+}
+.ai-site .ai-btn-outline:hover { border-color: hsl(var(--ai-ink) / 0.35); }
+
+/* On a dark band the outline button has to draw its own edge — the stone
+   hairline disappears entirely against navy. */
+.ai-site .ai-on-ink .ai-btn-outline,
+.ai-site .ai-btn-outline-invert {
+  background: transparent;
+  border-color: hsl(var(--ai-stone) / 0.28);
+  color: hsl(var(--ai-stone));
+}
+.ai-site .ai-on-ink .ai-btn-outline:hover,
+.ai-site .ai-btn-outline-invert:hover {
+  background: hsl(var(--ai-stone) / 0.08);
+  border-color: hsl(var(--ai-stone) / 0.5);
+}
+
+.ai-site .ai-btn-sm { min-height: 2.5rem; padding-inline: 1.1rem; font-size: 0.875rem; }
+
+/* A text link that behaves like a button's quieter sibling. */
+.ai-site .ai-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: hsl(var(--ai-emerald));
+  text-underline-offset: 4px;
+}
+.ai-site .ai-link:hover { text-decoration: underline; }
+.ai-site .ai-on-ink .ai-link { color: hsl(var(--ai-copper)); }
+
+/* --------------------------------------------------------------------------
+   Cards
+   -------------------------------------------------------------------------- */
+.ai-site .ai-card {
+  background: hsl(var(--ai-white));
+  border: 1px solid hsl(var(--ai-stone-3));
+  border-radius: var(--ai-radius-lg);
+  padding: clamp(1.4rem, 2.6vw, 2rem);
+  box-shadow: var(--ai-shadow-sm);
+}
+.ai-site .ai-card-lift { transition: box-shadow 260ms, transform 260ms, border-color 260ms; }
+.ai-site .ai-card-lift:hover {
+  box-shadow: var(--ai-shadow);
+  transform: translateY(-3px);
+  border-color: hsl(var(--ai-emerald) / 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-site .ai-card-lift:hover { transform: none; }
+}
+.ai-site .ai-on-ink .ai-card {
+  background: hsl(var(--ai-ink-2));
+  border-color: hsl(var(--ai-ink-3));
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   Badges
+   -------------------------------------------------------------------------- */
+.ai-site .ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+.ai-site .ai-badge-emerald {
+  background: hsl(var(--ai-emerald-soft));
+  color: hsl(var(--ai-emerald));
+  border-color: hsl(var(--ai-emerald) / 0.2);
+}
+.ai-site .ai-badge-copper {
+  background: hsl(var(--ai-copper-soft));
+  color: hsl(28 72% 34%);
+  border-color: hsl(var(--ai-copper) / 0.28);
+}
+.ai-site .ai-badge-ink {
+  background: hsl(var(--ai-ink) / 0.06);
+  color: hsl(var(--ai-ink));
+  border-color: hsl(var(--ai-ink) / 0.14);
+}
+.ai-site .ai-on-ink .ai-badge-ink {
+  background: hsl(var(--ai-stone) / 0.1);
+  color: hsl(var(--ai-stone));
+  border-color: hsl(var(--ai-stone) / 0.2);
+}
+
+/* --------------------------------------------------------------------------
+   Form controls
+
+   Tall on purpose. Every one of these is filled in on a phone, often outdoors,
+   often by somebody entering a bank account number they cannot afford to get
+   wrong — so the target is generous and the focus state is unmistakable.
+   -------------------------------------------------------------------------- */
+.ai-site .ai-field {
+  display: block;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--ai-radius);
+  border: 1px solid hsl(var(--ai-stone-3));
+  background: hsl(var(--ai-white));
+  color: hsl(var(--ai-charcoal));
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 160ms, box-shadow 160ms;
+}
+.ai-site .ai-field::placeholder { color: hsl(var(--ai-charcoal-soft) / 0.6); }
+.ai-site .ai-field:focus {
+  outline: none;
+  border-color: hsl(var(--ai-emerald));
+  box-shadow: 0 0 0 4px hsl(var(--ai-emerald) / 0.13);
+}
+.ai-site textarea.ai-field { min-height: 7rem; resize: vertical; }
+
+.ai-site .ai-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: hsl(var(--ai-charcoal));
+}
+.ai-site .ai-hint {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: hsl(var(--ai-charcoal-soft));
+}
+
+.ai-site .ai-on-ink .ai-field {
+  background: hsl(var(--ai-stone) / 0.06);
+  border-color: hsl(var(--ai-stone) / 0.18);
+  color: hsl(var(--ai-stone));
+}
+.ai-site .ai-on-ink .ai-field::placeholder { color: hsl(var(--ai-stone) / 0.4); }
+.ai-site .ai-on-ink .ai-field:focus {
+  border-color: hsl(var(--ai-copper));
+  box-shadow: 0 0 0 4px hsl(var(--ai-copper) / 0.18);
+}
+.ai-site .ai-on-ink .ai-label { color: hsl(var(--ai-stone) / 0.86); }
+.ai-site .ai-on-ink .ai-hint { color: hsl(var(--ai-stone) / 0.5); }
+
+.ai-site .ai-notice {
+  border-radius: var(--ai-radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  border: 1px solid;
+}
+.ai-site .ai-notice-error {
+  background: hsl(var(--ai-danger) / 0.07);
+  border-color: hsl(var(--ai-danger) / 0.3);
+  color: hsl(var(--ai-danger));
+}
+.ai-site .ai-notice-ok {
+  background: hsl(var(--ai-emerald-soft));
+  border-color: hsl(var(--ai-emerald) / 0.28);
+  color: hsl(var(--ai-emerald));
+}
+
+/* --------------------------------------------------------------------------
+   Motion — subtle, and off entirely when the visitor asks for that.
+   -------------------------------------------------------------------------- */
+@keyframes ai-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.ai-site .ai-rise { animation: ai-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ai-site .ai-rise-1 { animation-delay: 60ms; }
+.ai-site .ai-rise-2 { animation-delay: 140ms; }
+.ai-site .ai-rise-3 { animation-delay: 220ms; }
+.ai-site .ai-rise-4 { animation-delay: 300ms; }
+@media (prefers-reduced-motion: reduce) {
+  .ai-site .ai-rise { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Two utilities the portal leans on.
+
+   Added because the portal is dense — lists of consignments, invoices and
+   requests — and repeating an inline style for "secondary text" on forty
+   elements is how a colour ends up slightly different in three places.
+   -------------------------------------------------------------------------- */
+.ai-site .ai-muted { color: hsl(var(--ai-charcoal-soft)); }
+.ai-site .ai-on-ink .ai-muted { color: hsl(var(--ai-stone) / 0.66); }
+
+/* A list of rows inside a card: hairlines between, none at the ends. */
+.ai-site .ai-rows > * + * {
+  border-top: 1px solid hsl(var(--ai-stone-3));
+}

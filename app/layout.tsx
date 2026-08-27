@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  Sora,
+  JetBrains_Mono,
+  Fraunces,
+  Plus_Jakarta_Sans,
+  IBM_Plex_Mono,
+} from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
@@ -25,6 +32,40 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+/*
+  THE PUBLIC BRAND'S OWN TYPE.
+
+  Loaded here because fonts have to be, but used only under `.ai-site` — the
+  staff app keeps Sora and Inter above. Two typefaces for two audiences: the
+  operational system is a tool and reads like one, and the public site is the
+  first thing a customer judges the company by.
+
+  Fraunces is an editorial serif with optical sizing, so a headline at 76px and
+  a subhead at 20px are drawn differently rather than scaled. It is the single
+  decision that stops this reading like every other freight template, all of
+  which set a geometric sans and stop there. Plus Jakarta Sans carries the body:
+  warm, slightly humanist, and legible small on a phone in daylight.
+*/
+const brandDisplay = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-brand-display",
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
+});
+
+const brandSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-brand-sans",
+  display: "swap",
+});
+
+const brandMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-brand-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   // Shares one source with the sitemap and robots file. Defaulting to
   // localhost here is how a production build ends up publishing canonical
@@ -35,19 +76,19 @@ export const metadata: Metadata = {
     template: `%s · ${COMPANY.shortName}`,
   },
   description:
-    "Air freight from Guangzhou and Hong Kong to Lusaka. Track every shipment from the China warehouse to collection in Zambia.",
+    "Air cargo from China to Lusaka with duty included, supplier payments in RMB, and money exchange — run by one Zambian team on both ends of the route.",
   openGraph: {
     title: COMPANY.name,
     description:
-      "Air freight from Guangzhou and Hong Kong to Lusaka, with live shipment tracking.",
+      "Air cargo from China to Lusaka with duty included, plus supplier payments and money exchange.",
     type: "website",
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1b33" },
   ],
 };
 
@@ -57,7 +98,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${sora.variable} ${mono.variable} font-sans`}
+        className={`${inter.variable} ${sora.variable} ${mono.variable} ${brandDisplay.variable} ${brandSans.variable} ${brandMono.variable} font-sans`}
       >
         {/* Dark by default, and the toggle is how somebody leaves it.
 

@@ -1,3 +1,7 @@
+/* The public brand layer. Scoped to `.ai-site`, so nothing here touches the
+   staff app — see the note at the top of brand.css. */
+@import "./brand.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

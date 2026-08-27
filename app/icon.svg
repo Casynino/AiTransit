@@ -1,18 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AITRANSIT">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AITRANSIT">
   <!--
-    The favicon: the emblem alone, knocked out of the brand navy.
+    The favicon: the route mark on a navy tile.
 
-    Just the mark, never the wordmark. At 16px "AITRANSIT" is a grey smear, and
-    a favicon is recognised by its shape rather than read. The letter is white
-    rather than navy so the tile works on a dark browser chrome as well as a
-    light one, and the arrow keeps its cyan so the icon is identifiably ours at
-    a glance in a row of tabs.
+    A tile rather than the bare mark, because the mark is wide and a browser tab
+    gives it a square — floating it in that square shrinks it to nothing. On the
+    tile it can run corner to corner and still read at 16px, which is the only
+    size that actually matters here.
+
+    The route goes stone-white rather than emerald: emerald on navy at 16px is
+    two dark colours touching. The copper head survives and is what makes the
+    icon identifiable in a row of tabs.
   -->
-  <rect width="128" height="128" rx="26" fill="#103B7C"/>
-  <g transform="translate(18 24) scale(0.72)">
-    <path fill="#ffffff" fill-rule="evenodd"
-      d="M42.5 6 L57.5 6 L86 90 L68 90 L61.5 69 L33 69 L26.5 90 L8.5 90 Z M38 54 L57 54 L47.5 23 Z"/>
-    <path fill="#2BAEE6"
-      d="M50 47 L104 47 L92 33 L112 33 L128 52 L112 71 L92 71 L104 57 L54 57 Z"/>
+  <rect width="64" height="64" rx="14" fill="#0A1B33"/>
+  <g transform="translate(4 5) scale(0.86)">
+    <circle cx="6" cy="48" r="4.6" fill="#FAF8F4"/>
+    <path d="M6.00 48.00 Q34.00 48.00 57.00 27.00" fill="none" stroke="#FAF8F4"
+          stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M61.87 22.55 L58.23 34.28 L49.87 25.12 Z" fill="#C77A2B"/>
   </g>
 </svg>

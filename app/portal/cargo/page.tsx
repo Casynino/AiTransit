@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { QrCode } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/brand/ui";
 import { cargoLabel } from "@/lib/cargo";
 import {
   SHIPMENT_STATUS_META,
@@ -31,16 +31,16 @@ export default async function PortalCargoPage() {
 
   if (shipments.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed p-10 text-center">
+      <div className="ai-card text-center">
         <h1 className="font-display text-2xl font-bold">No cargo yet</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+        <p className="mx-auto mt-2 max-w-md text-sm ai-muted">
           Send your supplier our Guangzhou address. As soon as your boxes reach
           our counter we register them, photograph them and they appear here with
           a tracking number.
         </p>
         <Link
           href="/china"
-          className="mt-6 inline-flex h-11 items-center rounded-xl border px-5 text-sm font-medium hover:bg-muted"
+          className="ai-btn ai-btn-outline mt-6"
         >
           Get the China address
         </Link>
@@ -51,8 +51,8 @@ export default async function PortalCargoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">My cargo</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="ai-display-lg">My cargo</h1>
+        <p className="mt-1 ai-muted">
           {shipments.length} consignment{shipments.length === 1 ? "" : "s"} on
           your account.
         </p>
@@ -73,18 +73,18 @@ export default async function PortalCargoPage() {
           return (
             <article
               key={shipment.id}
-              className="rounded-xl border bg-card p-5 shadow-soft"
+              className="ai-card"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-lg font-semibold">
+                  <p className="ai-num text-lg font-semibold">
                     {shipment.trackingNumber}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm ai-muted">
                     {cargoLabel(shipment.cargoType?.name, shipment.description)}
                   </p>
                 </div>
-                <Badge variant={meta.tone}>{meta.publicLabel}</Badge>
+                <Badge tone={meta.tone}>{meta.publicLabel}</Badge>
               </div>
 
               <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 text-sm sm:grid-cols-4">
@@ -124,7 +124,7 @@ export default async function PortalCargoPage() {
 
               {billed ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-sm">
-                  <span className="text-muted-foreground">
+                  <span className="ai-muted">
                     Invoice{" "}
                     <Link
                       href="/portal/invoices"
@@ -134,7 +134,7 @@ export default async function PortalCargoPage() {
                     </Link>
                   </span>
                   <span className="flex items-center gap-3">
-                    <span className="text-muted-foreground">
+                    <span className="ai-muted">
                       Total {formatUsd(toNumber(invoice.total))}
                     </span>
                     <span
@@ -153,7 +153,7 @@ export default async function PortalCargoPage() {
               ) : null}
 
               {shipment.pickupNote?.status === "ACTIVE" ? (
-                <p className="mt-4 flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success">
+                <p className="ai-notice ai-notice-ok mt-4 flex items-center gap-2">
                   <QrCode className="h-4 w-4 shrink-0" />
                   Pickup note {shipment.pickupNote.noteNumber} has been issued.
                   Bring it to our Makeni warehouse to collect.
@@ -178,7 +178,7 @@ function Fact({
 }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-widest text-muted-foreground">
+      <dt className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
         {label}
       </dt>
       <dd className={tone === "warning" ? "mt-1 font-medium text-warning" : "mt-1 font-medium"}>
