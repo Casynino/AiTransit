@@ -1,0 +1,303 @@
+"use client";
+
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BadgeCheck,
+  Flag,
+  MessageCircleQuestion,
+  Search,
+  Undo2,
+  type LucideIcon,
+} from "lucide-react";
+
+import { FormError, FormSuccess, SubmitButton } from "@/components/app/form-feedback";
+import { useT } from "@/components/app/locale-provider";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import { reviewRecord } from "@/lib/actions/control";
+import type { ActionResult } from "@/lib/actions/types";
+import { cn } from "@/lib/utils";
+
+type Verdict = "RECONCILED" | "SENT_BACK" | "FLAGGED" | "INFO_REQUESTED" | "UNDER_REVIEW";
+
+const FLAG_KINDS = [
+  "Incorrect amount",
+  "Missing document",
+  "Wrong account",
+  "Duplicate transaction",
+  "Unknown transaction",
+  "Other",
+];
+
+/**
+ * WHAT EACH VERDICT IS, IN THE WORDS OF THE JOB RATHER THAN THE ENUM.
+ *
+ * The button says what the admin is doing; the sentence under the open panel
+ * says what it will mean to the person on the other end. "Send back" and "flag"
+ * both mean something is wrong, and the difference — whether Finance is being
+ * asked to fix it or the business is being warned about it — is the whole
+ * reason both exist.
+ */
+const VERDICTS: Record<
+  Verdict,
+  {
+    label: string;
+    blurb: string;
+    prompt: string;
+    icon: LucideIcon;
+    tone: string;
+    solid: string;
+    /** A verdict with no words is refused by the action; say so up here. */
+    needsWords: boolean;
+  }
+> = {
+  RECONCILED: {
+    label: "Reconcile",
+    blurb: "The record agrees with the evidence. This closes it.",
+    prompt: "Note (optional)",
+    icon: BadgeCheck,
+    tone: "border-success/40 text-success hover:bg-success/10",
+    solid: "bg-success text-success-foreground hover:bg-success/90",
+    needsWords: false,
+  },
+  SENT_BACK: {
+    label: "Send back",
+    blurb:
+      "Finance sees this on their desk with your reason, corrects it, and it comes back to you. The record itself is untouched.",
+    prompt: "What has to be corrected",
+    icon: Undo2,
+    tone: "border-warning/40 text-warning hover:bg-warning/10",
+    solid: "bg-warning text-warning-foreground hover:bg-warning/90",
+    needsWords: true,
+  },
+  FLAGGED: {
+    label: "Flag issue",
+    blurb: "Raises it in the control room. Use when something is wrong beyond a figure.",
+    prompt: "What is wrong with it",
+    icon: Flag,
+    tone: "border-destructive/40 text-destructive hover:bg-destructive/10",
+    solid: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+    needsWords: true,
+  },
+  INFO_REQUESTED: {
+    label: "Request information",
+    blurb:
+      "Asks the desk that recorded it a question. Nothing is disputed — you are waiting on an answer.",
+    prompt: "What do you need from them",
+    icon: MessageCircleQuestion,
+    tone: "border-info/40 text-info hover:bg-info/10",
+    solid: "bg-info text-info-foreground hover:bg-info/90",
+    needsWords: true,
+  },
+  UNDER_REVIEW: {
+    label: "Investigate",
+    blurb: "Parks it as yours to look into, so it is not mistaken for unread.",
+    prompt: "What are you looking into (optional)",
+    icon: Search,
+    tone: "border-brand/40 text-brand hover:bg-brand/10",
+    solid: "bg-brand text-brand-foreground hover:bg-brand/90",
+    needsWords: false,
+  },
+};
+
+/**
+ * The admin's verdict on one record, recorded beside it and never inside it.
+ *
+ * ACTIONS ARE BUTTONS, NOT A MENU. This is the whole reason the page exists, so
+ * every verdict is on the surface with its own words on it — the owner's
+ * instruction was explicit that the work must not hide behind three dots.
+ *
+ * Opening one closes the others, because the panel below is the reason: a
+ * sentence for the person on the other end, and it belongs to exactly one
+ * verdict at a time.
+ */
+export function ReviewActions({
+  target,
+  targetId,
+  /** Only the verdicts that make sense for where this record stands now. */
+  offer,
+  /**
+   * Small, for a row in a table rather than the panel a record is opened in.
+   * Still buttons with their own words on them — the owner's rule is that the
+   * work is never hidden behind a menu, not that it is always large.
+   */
+  size = "default",
+  /**
+   * Where to go once this record has a verdict — the next one still waiting.
+   *
+   * "how do i confim that one by one": with twenty-seven pending, the answer
+   * has to be a rhythm rather than a route. Recording a verdict used to leave
+   * him on the record he had just finished with, so every one cost a trip back
+   * to the list to find where he was. Now the panel hands him the next one.
+   */
+  nextHref,
+  /** What that next record is, so pressing is not a leap in the dark. */
+  nextLabel,
+  /**
+   * The figures the verdict is about, restated inside the panel.
+   *
+   * A admin agreeing twenty-seven records in a row is not re-reading the page
+   * between each one, and "confirm" is worth nothing if what is being confirmed
+   * has scrolled off. So the panel repeats the few numbers the decision rests
+   * on, and they are passed in already written — this component formats no
+   * money and therefore cannot format it differently from the page.
+   */
+  facts,
+  className,
+}: {
+  target: "LEDGER_ENTRY" | "BATCH" | "PAYMENT" | "EXPENSE" | "INVOICE";
+  targetId: string;
+  offer: Verdict[];
+  size?: "default" | "sm";
+  nextHref?: string;
+  nextLabel?: string;
+  facts?: { label: string; value: string; tone?: "good" | "bad" }[];
+  className?: string;
+}) {
+  const t = useT();
+  const router = useRouter();
+  const [open, setOpen] = useState<Verdict | null>(null);
+  const [state, action] = useActionState<ActionResult<{ state: string }> | undefined, FormData>(
+    reviewRecord,
+    undefined
+  );
+
+  /* Once per verdict, not once per render: useActionState keeps the success
+     object around, and without the latch the panel would bounce forward again
+     every time this component re-rendered. */
+  const moved = useRef(false);
+  useEffect(() => {
+    if (!state?.ok || moved.current) return;
+    moved.current = true;
+    setOpen(null);
+    if (nextHref) router.replace(nextHref, { scroll: false });
+  }, [state, nextHref, router]);
+
+  const chosen = open ? VERDICTS[open] : null;
+
+  return (
+    <div className={cn("space-y-3", className)}>
+      {nextLabel && size !== "sm" ? (
+        <p className="text-[11px] text-muted-foreground">
+          {t("After this one:")} <span className="text-foreground">{nextLabel}</span>
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        {offer.map((verdict) => {
+          const meta = VERDICTS[verdict];
+          const Icon = meta.icon;
+          const active = open === verdict;
+          return (
+            <button
+              key={verdict}
+              type="button"
+              onClick={() => setOpen(active ? null : verdict)}
+              aria-expanded={active}
+              className={cn(
+                "focus-ring inline-flex items-center gap-1.5 rounded-lg border font-semibold transition-colors",
+                size === "sm"
+                  ? "min-h-11 md:min-h-8 px-2.5 text-xs"
+                  : "min-h-11 gap-2 px-3 text-sm",
+                active ? meta.solid : meta.tone
+              )}
+            >
+              <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+              {t(meta.label)}
+            </button>
+          );
+        })}
+      </div>
+
+      {chosen && open ? (
+        <form action={action} className="rounded-xl border bg-muted/20 p-3">
+          <input type="hidden" name="target" value={target} />
+          <input type="hidden" name="targetId" value={targetId} />
+          <input type="hidden" name="state" value={open} />
+
+          {facts && facts.length > 0 ? (
+            <dl className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {facts.map((fact) => (
+                <div key={fact.label} className="rounded-lg bg-background/60 px-2 py-1.5">
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {t(fact.label)}
+                  </dt>
+                  <dd
+                    className={cn(
+                      "font-mono text-xs font-semibold tabular-nums",
+                      fact.tone === "bad" && "text-destructive",
+                      fact.tone === "good" && "text-success"
+                    )}
+                  >
+                    {fact.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          <p className="text-xs leading-snug text-muted-foreground">{t(chosen.blurb)}</p>
+
+          {open === "FLAGGED" ? (
+            <div className="mt-3 space-y-1.5">
+              <Label htmlFor="issue">{t("What kind of problem")}</Label>
+              <NativeSelect id="issue" name="issue" defaultValue={FLAG_KINDS[0]}>
+                {FLAG_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {t(kind)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          ) : null}
+
+          <div className="mt-3 space-y-1.5">
+            <Label htmlFor={`reason-${open}`}>
+              {t(chosen.prompt)}
+              {chosen.needsWords ? <span className="ml-1 text-destructive">*</span> : null}
+            </Label>
+            <Textarea
+              id={`reason-${open}`}
+              name="reason"
+              rows={3}
+              required={chosen.needsWords}
+              placeholder={t(
+                open === "SENT_BACK"
+                  ? "e.g. The amount does not match the bank slip — 2,700,000 on the slip, 2,070,000 here."
+                  : open === "INFO_REQUESTED"
+                    ? "e.g. Please attach the bank statement line for this payment."
+                    : open === "FLAGGED"
+                      ? "e.g. This looks like the same payment recorded twice on the same day."
+                      : "e.g. Checked against the statement of the 18th."
+              )}
+            />
+          </div>
+
+          <FormError state={state} />
+          {state?.ok ? (
+            <FormSuccess
+              message={
+                nextLabel
+                  ? `${t("Recorded. Moving on to")} ${nextLabel}.`
+                  : t("Recorded. That was the last one waiting.")
+              }
+            />
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <SubmitButton pendingLabel="Recording…">{t(chosen.label)}</SubmitButton>
+            <button
+              type="button"
+              onClick={() => setOpen(null)}
+              className="focus-ring inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {t("Cancel")}
+            </button>
+          </div>
+        </form>
+      ) : null}
+    </div>
+  );
+}

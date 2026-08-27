@@ -1,0 +1,425 @@
+"use client";
+
+import { useActionState, useRef, useState } from "react";
+import { CloudUpload, FileText, Paperclip, X } from "lucide-react";
+
+import { FormError, FormSuccess, SubmitButton } from "@/components/app/form-feedback";
+import { useT } from "@/components/app/locale-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { submitPaymentForVerification } from "@/lib/actions/collections";
+import { recordPayment } from "@/lib/actions/finance";
+import type { ActionResult } from "@/lib/actions/types";
+
+const METHODS = [
+  { value: "MOBILE_MONEY", label: "Mobile money" },
+  { value: "BANK_TRANSFER", label: "Bank transfer" },
+  { value: "CASH", label: "Cash" },
+  { value: "CHEQUE", label: "Cheque" },
+];
+
+/**
+ * Handing a customer's payment up to Finance.
+ *
+ * Everything the system already knows is shown and not asked for: the customer,
+ * the cargo, the bill, what is outstanding. The desk types the reference off
+ * the customer's message and attaches what they sent. That is the whole form.
+ *
+ * The amount is pre-filled with the outstanding balance because that is what a
+ * customer settling a bill almost always sends, and left editable because
+ * part-payments happen. It is the one figure worth a second look, so it is the
+ * one field that is not read-only.
+ *
+ * This desk never says money arrived — only that a customer says it did.
+ */
+export function RecordCollectionForm({
+  invoiceId,
+  invoiceNumber,
+  customerName,
+  trackingNumber,
+  goods,
+  outstanding,
+  currency,
+  rate,
+  banks,
+}: {
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  trackingNumber: string;
+  goods: string;
+  /** In the invoice's currency. */
+  outstanding: number;
+  currency: string;
+  rate: number | null;
+  /**
+   * The accounts this desk may bank the money into — present only when the
+   * reader can record a payment outright rather than claim one.
+   *
+   * Finance was submitting claims to Finance: it filled this form, pressed
+   * "Submit to Finance", then walked to the verify queue to approve its own
+   * submission. The two-step exists so the desk that hears "I paid" is not the
+   * desk that says "the money arrived" — and it stops making sense the moment
+   * the person is the one who says that.
+   */
+  banks?: { id: string; name: string; currency: string; kind: string }[] | null;
+}) {
+  const t = useT();
+  /* The authority decides which action this form is. Support files a claim;
+     Finance records the money. Same fields either way — paymentSchema and the
+     submission schema ask for the same things — so nothing about the form moves
+     around under somebody who learned it. */
+  const direct = Boolean(banks);
+  /* The two actions return differently shaped payloads — a submission number or
+     a receipt number — so the state is the union of both and the success line
+     reads whichever arrived. Cast at the boundary rather than widening either
+     action's own contract, which other callers depend on. */
+  type Outcome = { submissionNumber?: string; receiptNumber?: string };
+  const [state, action] = useActionState<ActionResult<Outcome>, FormData>(
+    (direct ? recordPayment : submitPaymentForVerification) as unknown as (
+      state: ActionResult<Outcome>,
+      payload: FormData
+    ) => Promise<ActionResult<Outcome>>,
+    { ok: true }
+  );
+
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * A customer paying a dollar bill sends kwacha, so kwacha are the
+   * default and the figure is converted for them. Nobody at this desk should
+   * be doing arithmetic while a customer is on the phone.
+   */
+  const [currencyChoice, setCurrencyChoice] = useState(rate ? "ZMW" : currency);
+  const suggested =
+    currencyChoice === currency
+      ? outstanding
+      : currencyChoice === "ZMW" && rate
+        ? Math.round(outstanding * rate)
+        : outstanding;
+  const [amount, setAmount] = useState(String(suggested));
+
+  /*
+    Only accounts that could really have received THIS money.
+
+    An account holds one currency, so kwacha cannot land in the dollar
+    account. A picker that offers impossible answers is a picker people stop
+    reading — the same filter the cargo page's payment panel applies.
+  */
+  const eligible = (banks ?? []).filter((a) => a.currency === currencyChoice);
+  const [accountId, setAccountId] = useState("");
+  /*
+    Derived, not corrected in an effect.
+
+    Switching the currency can strand a selection on an account that no longer
+    accepts it, and the honest fix is to read through to the first account that
+    does — not to write state during a render, which loops.
+  */
+  const chosen = eligible.some((a) => a.id === accountId)
+    ? accountId
+    : (eligible[0]?.id ?? "");
+
+  /** The mechanism, read off the place. Never asked separately. */
+  const methodOf = (id: string) => {
+    const account = eligible.find((a) => a.id === id);
+    if (!account) return "BANK_TRANSFER";
+    if (account.kind === "CASH") return "CASH";
+    if (account.kind === "MOBILE_MONEY") return "MOBILE_MONEY";
+    return "BANK_TRANSFER";
+  };
+
+  const addFiles = (incoming: FileList | null) => {
+    if (!incoming) return;
+    setFiles((current) => [...current, ...Array.from(incoming)]);
+  };
+
+  // The file input is the source of truth on submit, so the drop zone writes
+  // into it rather than keeping a second list the form cannot see.
+  const syncInput = (next: File[]) => {
+    if (!inputRef.current) return;
+    const bag = new DataTransfer();
+    next.forEach((file) => bag.items.add(file));
+    inputRef.current.files = bag.files;
+  };
+
+  return (
+    <form
+      action={action}
+      className="space-y-5"
+      onSubmit={() => syncInput(files)}
+    >
+      <input type="hidden" name="invoiceId" value={invoiceId} />
+
+      {/* Already known. Shown so the desk can check they are on the right
+          record, never retyped. */}
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border bg-muted/30 p-4 sm:grid-cols-2">
+        {[
+          { label: "Customer", value: customerName },
+          { label: "Cargo", value: `${trackingNumber} · ${goods}` },
+          { label: "Bill", value: invoiceNumber },
+          {
+            label: "Outstanding",
+            value: `${currency} ${outstanding.toFixed(2)}${
+              rate ? ` · K ${Math.round(outstanding * rate).toLocaleString("en-US")}` : ""
+            }`,
+          },
+        ].map((fact) => (
+          <div key={fact.label}>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t(fact.label)}
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium">{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto_1fr]">
+        <div className="space-y-1.5">
+          <Label htmlFor="collectionAmount" className="text-xs">
+            {t("What the customer sent")}
+          </Label>
+          <MoneyInput
+            id="collectionAmount"
+            name="amount"
+            value={amount}
+            onValueChange={setAmount}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="collectionCurrency" className="text-xs">
+            {t("In")}
+          </Label>
+          <NativeSelect
+            id="collectionCurrency"
+            name="currency"
+            value={currencyChoice}
+            onChange={(event) => {
+              const next = event.target.value;
+              setCurrencyChoice(next);
+              setAmount(
+                String(
+                  next === currency
+                    ? outstanding
+                    : next === "ZMW" && rate
+                      ? Math.round(outstanding * rate)
+                      : outstanding
+                )
+              );
+            }}
+            className="h-11 w-[6.5rem]"
+          >
+            <option value="ZMW">{t("K")}</option>
+            <option value="USD">USD</option>
+          </NativeSelect>
+        </div>
+        {/*
+          WHERE the money went, not HOW it travelled.
+
+          This asked both, which is the same question twice: the accounts are
+          named — the bank account, the mobile-money till, the cash tin — and naming
+          one already says whether it was a bank transfer, mobile money or cash.
+          Two pickers meant somebody could also answer them inconsistently, and
+          then no report could say which half to believe.
+
+          So the account is the choice and the method is derived from it. A desk
+          that has just watched money land knows the place; it should not have to
+          classify the mechanism as well.
+        */}
+        <div className="space-y-1.5">
+          <Label htmlFor="collectionAccount" className="text-xs">
+            {direct ? t("Where it went") : t("How they sent it")}
+          </Label>
+          {direct && eligible.length > 0 ? (
+            <>
+              <NativeSelect
+                id="collectionAccount"
+                name="accountId"
+                value={chosen}
+                onChange={(event) => setAccountId(event.target.value)}
+                className="h-11"
+              >
+                {eligible.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+                <option value="">{t("Not sure yet")}</option>
+              </NativeSelect>
+              {/* Derived, never asked. Cash tin → CASH, a till → mobile money,
+                  anything else → a transfer into the bank. */}
+              <input type="hidden" name="method" value={methodOf(chosen)} />
+            </>
+          ) : (
+            <NativeSelect id="collectionMethod" name="method" className="h-11">
+              {METHODS.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {t(method.label)}
+                </option>
+              ))}
+            </NativeSelect>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="collectionReference" className="text-xs">
+          {t("Reference from the customer")}{" "}
+          <span className="ml-1 rounded bg-signal/10 px-1.5 py-0.5 text-[11px] font-semibold text-signal">
+            {t("expected")}
+          </span>
+        </Label>
+        {/*
+          Asked for firmly, not enforced.
+
+          It is the one thing that is not already in the system and it is what
+          Finance checks the money against — so the field says so and is marked
+          expected. It no longer blocks: a customer who paid cash across the
+          counter has no mobile money code, and refusing the record over a missing
+          one loses the payment rather than the reference.
+        */}
+        <Input
+          id="collectionReference"
+          name="reference"
+          placeholder={t("The mobile money reference, slip number or cheque number")}
+          className="h-11"
+        />
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "The one thing that is not already in the system. Finance checks the money against this — add it if the customer gave you one."
+          )}
+        </p>
+      </div>
+
+      {/* The evidence. A submission without it is refused by the action, so it
+          is given the room that importance deserves rather than being a row of
+          small print at the bottom. */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <Paperclip className="h-3.5 w-3.5" />
+          {t("What the customer sent you")}
+        </Label>
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            const dropped = Array.from(event.dataTransfer.files);
+            const next = [...files, ...dropped];
+            setFiles(next);
+            syncInput(next);
+          }}
+          className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
+            dragging ? "border-brand bg-brand/5" : "border-border bg-muted/20"
+          }`}
+        >
+          <CloudUpload className="mx-auto h-7 w-7 text-muted-foreground" />
+          <p className="mt-2 text-sm font-medium">
+            {t("Drop the screenshot or slip here")}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t("or")}{" "}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="focus-ring rounded font-medium text-brand hover:underline"
+            >
+              {t("choose a file")}
+            </button>
+          </p>
+          <input
+            ref={inputRef}
+            id="collectionProof"
+            name="proof"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            multiple
+            className="sr-only"
+            onChange={(event) => addFiles(event.target.files)}
+          />
+        </div>
+
+        {files.length > 0 ? (
+          <ul className="space-y-1.5 pt-1">
+            {files.map((file, index) => (
+              <li
+                key={`${file.name}-${index}`}
+                className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {file.name}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {Math.max(1, Math.round(file.size / 1024))} KB
+                </span>
+                <button
+                  type="button"
+                  aria-label={`${t("Remove")} ${file.name}`}
+                  onClick={() => {
+                    const next = files.filter((_, i) => i !== index);
+                    setFiles(next);
+                    syncInput(next);
+                  }}
+                  className="focus-ring rounded p-0.5 text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="collectionNote" className="text-xs">
+          {t("Anything Finance should know")}{" "}
+          <span className="text-muted-foreground">({t("optional")})</span>
+        </Label>
+        <Input
+          id="collectionNote"
+          name="note"
+          placeholder={t("e.g. paid in two transfers, second one tomorrow")}
+          className="h-11"
+        />
+      </div>
+
+      <FormError state={state} />
+      <FormSuccess
+        message={
+          state.ok && state.data
+            ? state.data.receiptNumber
+              ? `${t("Receipt")} ${state.data.receiptNumber} ${t("issued. The bill and the account are updated.")}`
+              : state.data.submissionNumber
+                ? `${state.data.submissionNumber} ${t("is with Finance. You will see it move once they check it.")}`
+                : null
+            : null
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+        <SubmitButton variant="brand" pendingLabel={direct ? "Recording…" : "Sending…"}>
+          {direct ? t("Record the payment") : t("Submit to Finance")}
+        </SubmitButton>
+        <p className="text-xs text-muted-foreground">
+          {direct
+            ? t(
+                "This banks the money against the bill and prints a receipt. No second approval — you are the one who says it arrived."
+              )
+            : t(
+                "Nothing is settled until Finance verifies it. No money moves on this screen."
+              )}
+        </p>
+      </div>
+    </form>
+  );
+}

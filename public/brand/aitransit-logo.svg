@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-label="AITRANSIT Cargo">
+  <title>AITRANSIT Cargo</title>
+  <!--
+    The printed lockup: emblem, wordmark, and "cargo" beneath.
+
+    Fixed inks, not tokens. This file is used by the invoice, the pickup note
+    and the manifest, all of which print on white in either theme — a colour
+    that brightened for a dark sidebar would put pale blue on a page somebody is
+    about to photocopy. The screen version lives in components/brand-mark.tsx
+    and is painted with tokens instead.
+  -->
+  <g transform="translate(8 16) scale(0.95)">
+    <path
+      d="M42.5 6 L57.5 6 L86 90 L68 90 L61.5 69 L33 69 L26.5 90 L8.5 90 Z M38 54 L57 54 L47.5 23 Z"
+      fill="#103B7C"
+      fill-rule="evenodd"
+    />
+    <path
+      d="M50 47 L104 47 L92 33 L112 33 L128 52 L112 71 L92 71 L104 57 L54 57 Z"
+      fill="#2BAEE6"
+    />
+  </g>
+  <text
+    x="156" y="72"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="54" font-weight="800" letter-spacing="-1"
+  >
+    <tspan fill="#103B7C">AI</tspan><tspan fill="#2BAEE6">TRANSIT</tspan>
+  </text>
+  <text
+    x="158" y="104"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="26" font-weight="700" letter-spacing="10"
+    fill="#17994B"
+  >CARGO</text>
+</svg>

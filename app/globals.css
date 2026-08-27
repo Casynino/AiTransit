@@ -1,0 +1,501 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 217 40% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 40% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 40% 12%;
+
+    --primary: 220 77% 24%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 214 32% 96%;
+    --secondary-foreground: 217 45% 20%;
+
+    --muted: 214 32% 96%;
+    --muted-foreground: 215 16% 45%;
+
+    --accent: 214 32% 95%;
+    --accent-foreground: 217 45% 20%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 25% 90%;
+    --input: 214 25% 90%;
+    --ring: 220 77% 34%;
+
+    /*
+      Brand — taken from the AITRANSIT flyer, which is a four-colour mark and
+      not a two-colour one.
+
+        navy  #103B7C  the letter A, the wordmark's first half, every surface
+                       that has to read as structure.
+        cyan  #2BAEE6  the arrow and "TRANSIT". The brand's own accent, and the
+                       colour a reader identifies the company by.
+        green #17994B  "CARGO", and the flag. Carries success everywhere in the
+                       app, so the status colour and the brand colour agree.
+        gold  #F7941D  the Zambian accent off the flag, for eyebrows and rules.
+
+      --signal stays a red. It is used across the app for urgency — overdue
+      bills, blocked cargo, destructive confirmations — and repainting it cyan
+      to match the logo would have made "this needs attention" and "this is our
+      brand" the same colour. It is now the flag's red rather than the old
+      artwork's, so it still belongs to the palette.
+    */
+    /* The deep field the public site's hero sections sit on. Darker than
+       --brand and independent of the light/dark theme: these panels are the
+       same colour in both, the way a printed cover is. */
+    --ink: 220 55% 9%;
+
+    /* Aviation gold. The accent that separates a freight company from a
+       software product — used for eyebrows, rules, numerals and the quiet
+       marks of quality, never for a primary button. Red stays the call to
+       action; gold is the finish on it. */
+    --gold: 33 93% 48%;
+    --gold-foreground: 220 45% 8%;
+
+    /* Elevation, as tokens rather than one-off greys. Every raised surface in
+       the app picks from these three, so a card is the same card everywhere. */
+    --surface-1: 210 40% 99%;
+    --surface-2: 214 32% 97%;
+    --surface-3: 214 30% 94%;
+    --glass: 0 0% 100% / 0.7;
+    --glass-border: 214 25% 88% / 0.9;
+
+    --brand: 220 77% 27%;
+    --brand-foreground: 0 0% 100%;
+    --brand-muted: 220 70% 96%;
+    --signal: 7 74% 47%;
+    --signal-foreground: 0 0% 100%;
+
+    /* Status */
+    --success: 144 74% 30%;
+    --success-foreground: 0 0% 100%;
+    --warning: 33 93% 45%;
+    --warning-foreground: 0 0% 100%;
+    /* The logo's cyan. `text-info` is what the brand mark's arrow is painted
+       with, so the emblem and the app's informational colour are one ink. */
+    --info: 198 79% 44%;
+    --info-foreground: 0 0% 100%;
+
+    --radius: 0.75rem;
+
+    /* Data visualisation. Ordered by first-use so a 2-series chart is always
+       navy vs cyan, never two colours that read as the same thing. */
+    --chart-1: 220 72% 34%;
+    --chart-2: 198 79% 48%;
+    --chart-3: 7 78% 55%;
+    --chart-4: 33 93% 52%;
+    --chart-5: 144 62% 36%;
+    --chart-6: 262 60% 58%;
+
+    /* Motion. Kept as tokens so "fast" means the same thing everywhere. */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-fast: 140ms;
+    --dur-base: 240ms;
+    --dur-slow: 420ms;
+  }
+
+  /* Near-black operational surfaces. Warehouse screens run at full brightness
+     for hours; deep neutrals with quiet elevation are easier to sit in front of
+     than a mid-navy, and status colour reads louder against them. */
+  .dark {
+    --background: 220 24% 5%;
+    --foreground: 210 24% 96%;
+
+    /* Three points of lightness between page and card is not separation, it
+       is a rumour. Surfaces need to read as surfaces in a dark theme or every
+       screen flattens into one grey field. */
+    --card: 220 19% 11%;
+    --card-foreground: 210 24% 96%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 210 24% 96%;
+
+    --primary: 210 24% 96%;
+    --primary-foreground: 220 24% 6%;
+
+    --secondary: 220 16% 13%;
+    --secondary-foreground: 210 24% 96%;
+
+    --muted: 220 16% 13%;
+    --muted-foreground: 216 14% 62%;
+
+    --accent: 220 16% 15%;
+    --accent-foreground: 210 24% 96%;
+
+    --destructive: 0 68% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 22%;
+    --input: 220 14% 22%;
+
+    /* Gold has to lift off navy without turning mustard, so it goes brighter
+       and slightly warmer in the dark theme. */
+    --gold: 36 92% 62%;
+    --gold-foreground: 220 24% 6%;
+
+    --surface-1: 220 19% 11%;
+    --surface-2: 220 18% 14%;
+    --surface-3: 220 17% 18%;
+    --glass: 220 24% 12% / 0.62;
+    --glass-border: 210 40% 98% / 0.12;
+    --ring: 198 79% 60%;
+
+    --chart-1: 213 84% 62%;
+    --chart-2: 198 82% 56%;
+    --chart-3: 7 82% 62%;
+    --chart-4: 33 92% 60%;
+    --chart-5: 144 56% 50%;
+    --chart-6: 262 72% 68%;
+
+    /* Navy is unreadable on a near-black surface, so --brand lifts to the
+       logo's cyan side of the palette in the dark theme. That is what lets the
+       one brand mark in components/brand-mark.tsx work in both. */
+    --brand: 205 82% 62%;
+    --brand-foreground: 220 40% 9%;
+    --brand-muted: 220 34% 16%;
+    --signal: 7 78% 58%;
+    --signal-foreground: 0 0% 100%;
+
+    --success: 144 58% 46%;
+    --success-foreground: 0 0% 100%;
+    --warning: 33 90% 56%;
+    --warning-foreground: 220 40% 9%;
+    --info: 198 79% 58%;
+    --info-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Tracking numbers, waybills and batch codes must never be ambiguous. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /**
+   * A box somebody types money into.
+   *
+   * Bigger, monospaced and tabular, because a figure being typed is checked by
+   * eye before it is committed — and at 14px in the body face, 1000 and 10000
+   * are one glance apart.
+   *
+   * Tabular specifically: in a proportional face a 1 is narrower than an 8, so
+   * two figures of the same magnitude are different lengths and cannot be
+   * compared by shape. These line up.
+   *
+   * Applied by MoneyInput, which is a text box rather than a number one — the
+   * grouping commas it shows are characters a number input refuses to hold.
+   */
+  .money-input {
+    @apply font-mono font-semibold tabular tracking-tight;
+  }
+
+  .code-chip {
+    @apply inline-flex items-center rounded-md border bg-muted/60 px-2 py-0.5 font-mono text-xs tracking-tight tabular;
+  }
+
+  .section {
+    @apply py-16 md:py-24;
+  }
+
+  /* Surface ladder. Three levels, used consistently: `panel` is the workhorse,
+     `panel-raised` lifts something the user is acting on, `panel-inset` recedes
+     for secondary detail inside a panel. */
+  .panel {
+    @apply rounded-xl border bg-card shadow-soft;
+  }
+
+  .panel-raised {
+    @apply rounded-xl border bg-card shadow-lift;
+  }
+
+  .panel-inset {
+    @apply rounded-lg border bg-muted/40;
+  }
+
+  /* Hairline grid used behind hero/dashboard headers for a technical feel. */
+  .grid-backdrop {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  /* Focus ring applied by hand on custom interactive elements. */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+@layer utilities {
+  /* Anyone who has asked their OS to calm things down gets a still interface.
+     Motion is decoration here; nothing depends on it to be usable. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Everything printable (manifests, pickup notes, receipts) shares this. */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    /*
+      Never split a label across a page boundary — that is a wasted sticker and
+      a reprint, which is what bulk printing exists to avoid.
+
+      What is deliberately NOT here any more is `break-after: page`. With no
+      @page rule declared anywhere, that meant every sticker took a full sheet
+      of adhesive stock and left most of it blank; eight now fit an A4. The page
+      size is declared per print route instead — see lib/print.ts — because it
+      depends on whether the run is going to a label printer or a sheet.
+    */
+    .sticker {
+      break-inside: avoid;
+    }
+
+    /*
+      A cut line has to be visible.
+
+      `.print-plain` fades every border to #d4d4d8 so an invoice does not print
+      a hard box round itself. On a sheet of labels that same border is the
+      line somebody puts a guillotine along, and pale grey is not a line. Ordered
+      after .print-plain so it wins.
+    */
+    .sticker.print-plain {
+      border-color: #4b5563 !important;
+    }
+
+    .print-plain {
+      box-shadow: none !important;
+      border-color: #d4d4d8 !important;
+      /* Print the fills.
+
+         Browsers drop background colours by default, which is right for a web
+         page and wrong for a document whose brand rule, table header and total
+         panel ARE fills. Without this the invoice prints as an outline of
+         itself and the customer receives a worse version of what Finance
+         approved on screen. */
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .print-plain * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+  }
+}
+
+
+/**
+ * Entrance for above-the-fold content.
+ *
+ * CSS rather than a JavaScript animation library, for one reason: a hero
+ * headline must never depend on script to be legible. A motion component
+ * server-renders at its `initial` state — opacity 0 — and only becomes visible
+ * once React hydrates. On a slow connection, or if the bundle fails, the page
+ * is blank type on a photograph.
+ *
+ * This starts hidden and arrives on its own, with no JS at all, and honours a
+ * request for stillness by simply being visible from the start.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rise-1 { animation-delay: 0.08s; }
+.rise-2 { animation-delay: 0.16s; }
+.rise-3 { animation-delay: 0.24s; }
+.rise-4 { animation-delay: 0.32s; }
+.rise-5 { animation-delay: 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+}
+
+
+@layer components {
+  /**
+   * Glass, defined once.
+   *
+   * Every panel that floats over photography or the globe uses this rather
+   * than inventing its own white/10. One definition means one look, and it
+   * means changing the blur is a single edit instead of a search.
+   */
+  .glass {
+    background-color: hsl(var(--glass));
+    border: 1px solid hsl(var(--glass-border));
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /**
+   * Glass for sections that are dark in BOTH themes — the page heroes and
+   * photographic bands.
+   *
+   * `.glass` follows the theme, which is right for a card sitting on the page
+   * background and wrong inside a hero: in light mode it resolved to white at
+   * 70%, so white heading text landed on a near-white panel and became
+   * unreadable. These sections are always navy, so their glass must be too.
+   */
+  .glass-dark {
+    background-color: hsl(220 30% 8% / 0.5);
+    border: 1px solid hsl(0 0% 100% / 0.14);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /** The three raised surfaces. Cards pick one; nothing invents a fourth. */
+  .surface-1 { background-color: hsl(var(--surface-1)); }
+  .surface-2 { background-color: hsl(var(--surface-2)); }
+  .surface-3 { background-color: hsl(var(--surface-3)); }
+
+  /**
+   * A hairline of gold above a section heading. The cheapest possible signal
+   * that somebody designed the page.
+   */
+  .rule-gold::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 2px;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, hsl(var(--gold)), transparent);
+  }
+
+  /** Numerals and eyebrows that should read as premium rather than loud. */
+  .eyebrow-gold {
+    color: hsl(var(--gold));
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+}
+
+@layer utilities {
+  /**
+   * Ambient motion for section backdrops.
+   *
+   * Three different durations and directions so the blobs never sync up — the
+   * moment they do, the eye reads a loop and the effect dies. Transform and
+   * opacity only: both run on the compositor, so a page with eight of these
+   * still scrolls at frame rate on a phone.
+   */
+  @keyframes driftA {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(6%, 8%, 0) scale(1.12); }
+  }
+  @keyframes driftB {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.08); }
+    50%      { transform: translate3d(-8%, 6%, 0) scale(1); }
+  }
+  @keyframes driftC {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(5%, -7%, 0) scale(1.15); }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.12; }
+    50%      { opacity: 0.75; }
+  }
+
+  .drift-a { animation: driftA 26s ease-in-out infinite; }
+  .drift-b { animation: driftB 34s ease-in-out infinite; }
+  .drift-c { animation: driftC 30s ease-in-out infinite; }
+  .twinkle { animation: twinkle 4s ease-in-out infinite; }
+
+  /**
+   * Sign-in backdrop.
+   *
+   * The globe's meridians sweep rather than the whole sphere rotating: turning
+   * the clipped plate would drag the dot pattern with it and read as a spinning
+   * texture, not a turning world.
+   */
+  @keyframes skyDraw {
+    from { stroke-dashoffset: 420; opacity: 0; }
+    25%  { opacity: 1; }
+    to   { stroke-dashoffset: 0; opacity: 1; }
+  }
+  @keyframes skyPing {
+    0%   { transform: scale(0.7); opacity: 0.9; }
+    70%  { transform: scale(2.4); opacity: 0; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  .sky-draw { animation: skyDraw 9s ease-in-out infinite; }
+  /* transform-box keeps the ping centred on the circle rather than the
+     viewBox origin, which is where an SVG transform lands by default. */
+  .sky-ping {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: skyPing 3.2s ease-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drift-a, .drift-b, .drift-c, .twinkle,
+    .sky-draw, .sky-ping { animation: none; }
+    /* Without the draw animation the dashes would sit at their start offset
+       and the routes would be invisible. */
+    .sky-draw { stroke-dashoffset: 0; opacity: 1; }
+  }
+}
+
+@layer base {
+  /**
+   * Anchor clearance for the fixed header.
+   *
+   * The header used to be sticky, which occupies a row in the flow, so jumping
+   * to #services landed correctly. Fixed takes it out of flow, and without this
+   * every in-page anchor lands with its heading hidden behind the bar.
+   */
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}

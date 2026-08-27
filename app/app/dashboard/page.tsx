@@ -1,0 +1,2380 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  Boxes,
+  ChartNoAxesCombined,
+  ClipboardCheck,
+  Clock,
+  Hourglass,
+  Landmark,
+  Package,
+  PackageCheck,
+  PackagePlus,
+  Plane,
+  Printer,
+  QrCode,
+  Scale,
+  ShieldCheck,
+  Timer,
+  TrendingDown,
+  Trash2,
+  Truck,
+  UserCog,
+  Users,
+  TrendingUp,
+  Wallet,
+  Warehouse,
+} from "lucide-react";
+
+import { ActivityFeed } from "@/components/app/activity-feed";
+import { ActionPills, type ActionPill } from "@/components/app/action-pills";
+import { DeskHero } from "@/components/app/desk-hero";
+import { DeskPulsePanel } from "@/components/app/desk-pulse";
+import { AlertQueue } from "@/components/app/alert-queue";
+import { AttentionCenter, type AttnItem } from "@/components/app/attention-center";
+import { KpiCard } from "@/components/app/kpi-card";
+import { PageHeader } from "@/components/app/page-header";
+import { SectionLabel } from "@/components/app/section-label";
+import { StatStrip } from "@/components/app/stat-strip";
+import { AreaChart } from "@/components/charts/area-chart";
+import { AgeingBar } from "@/components/charts/ageing-bar";
+import { Donut, DonutLegend, SWATCHES } from "@/components/charts/donut";
+import { BarChart } from "@/components/charts/bar-chart";
+import { FlowBars } from "@/components/charts/flow-bars";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  EXCEPTION_OPEN_STATUSES,
+  STORAGE_POLICY,
+} from "@/lib/constants";
+import {
+  chinaAgeing,
+  chinaComposition,
+  chinaFlowByDay,
+  chinaProblems,
+  floorAgeing,
+  floorComposition,
+  floorFlowByDay,
+  floorSnapshot,
+  type FloorSnapshot,
+} from "@/lib/floor";
+import { monthWindow, profitAndLoss, profitByDispatch } from "@/lib/profit";
+import {
+  creditAlerts,
+  creditCollectionOutlook,
+  creditOverview,
+} from "@/lib/credit-queries";
+import { creditAttention } from "@/lib/support";
+import { FlightProfitTable } from "@/components/app/flight-profit-table";
+import { MoneyTile } from "@/components/app/money-tile";
+import { auditSentence } from "@/lib/audit-humanise";
+import { formatMoney, formatRelative, formatWeight, toNumber } from "@/lib/format";
+import { t } from "@/lib/i18n";
+import { currentRate, formatUsd } from "@/lib/fx";
+import { activeAccounts } from "@/lib/accounts";
+import { accountBalances } from "@/lib/ledger";
+import {
+  agingInWarehouse,
+  attentionItems,
+  batchUtilisation,
+  cargoMix,
+  chinaStats,
+  corridorPerformance,
+  corridorPosition,
+  deskPulse,
+  executiveStats,
+  financeStats,
+  monthlyRevenue,
+  receivablesAgeing,
+  cashFlowByMonth,
+  monthlyVolume,
+  ownerAttention,
+  recentActivity,
+} from "@/lib/queries";
+import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/rbac";
+import { CargoMix } from "@/components/app/cargo-mix";
+import {
+  FloorChips,
+  WarehouseHero,
+  type HeroChip,
+} from "@/components/app/warehouse-hero";
+import { todaySummary } from "@/lib/warehouse-home";
+import { requireUser } from "@/lib/session";
+import { viewerLocale } from "@/lib/viewer";
+import { percentDelta as delta } from "@/lib/format";
+import { ExecutiveDashboard } from "./executive";
+
+/** Midnight where the cargo is, in the server's local zone. */
+function startOfToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/** Percentage change, guarding the divide-by-zero that makes dashboards lie. */
+/** The hour where the warehouse is standing, not where the server is. */
+function localHour(side: "CN" | "TZ") {
+  const hour = Number(
+    new Date().toLocaleString("en-GB", {
+      timeZone: side === "CN" ? "Asia/Shanghai" : "Africa/Lusaka",
+      hour: "2-digit",
+      hour12: false,
+    })
+  );
+  return Number.isNaN(hour) ? 9 : hour;
+}
+
+/** China's banner numbers: what the registration desk booked in today. */
+async function chinaHeroChips(): Promise<HeroChip[]> {
+  const summary = await todaySummary();
+  const locale = await viewerLocale();
+  return [
+    {
+      icon: Package,
+      label: t(locale, "Cargo today"),
+      value: String(summary.shipments),
+    },
+    {
+      icon: Scale,
+      label: t(locale, "Weight today"),
+      value: `${summary.weightKg.toFixed(1)} kg`,
+    },
+    {
+      icon: Printer,
+      label: t(locale, "Labels printed"),
+      value: String(summary.labelsPrinted),
+    },
+  ];
+}
+
+/**
+ * Lusaka's banner numbers: what came off a manifest today.
+ *
+ * `arrivedAt` is stamped in exactly one place — verifyShipment — so this is the
+ * receiving desk's own work. The banner used to show a Lusaka user China's
+ * registrations and printed labels under "here is what is happening today",
+ * which is somebody else's day in a nice box.
+ */
+async function zambiaHeroChips(floor: FloorSnapshot): Promise<HeroChip[]> {
+  const checkedIn = await prisma.shipment.aggregate({
+    where: { arrivedAt: { gte: startOfToday() } },
+    _count: true,
+    _sum: { weightKg: true, packages: true },
+  });
+
+  // The standing total on top, today's movement against it underneath.
+  //
+  // These three read "what is in my building" before they read "what happened
+  // today", because the first question is the one a floor supervisor is asked
+  // and the second is only ever zero at eight in the morning. A banner whose
+  // every number is 0 until the first batch lands teaches people to skip it.
+  const shortBoxes = floor.declaredPackages - floor.packages;
+  const locale = await viewerLocale();
+
+  return [
+    {
+      icon: Boxes,
+      label: t(locale, "Cargo in the warehouse"),
+      value: String(floor.shipments),
+      href: "/app/inventory",
+      sub: checkedIn._count
+        ? `${checkedIn._count} ${t(locale, "checked in today")}`
+        : t(locale, "Nothing checked in yet today"),
+    },
+    {
+      icon: PackageCheck,
+      label: t(locale, "Boxes on the floor"),
+      value: floor.packages.toLocaleString(),
+      href: "/app/inventory",
+      sub: shortBoxes
+        ? `${shortBoxes} ${t(locale, "short of the manifest")}`
+        : `${t(locale, "All")} ${floor.declaredPackages.toLocaleString()} ${t(
+            locale,
+            "accounted for"
+          )}`,
+    },
+    {
+      icon: Scale,
+      label: t(locale, "Weight on the floor"),
+      value: formatWeight(floor.weightKg),
+      href: "/app/inventory",
+      sub: `${formatWeight(toNumber(checkedIn._sum.weightKg ?? 0))} ${t(
+        locale,
+        "checked in today"
+      )}`,
+    },
+  ];
+}
+
+export default async function DashboardPage() {
+  const user = await requireUser();
+  const locale = await viewerLocale();
+
+  /**
+   * Customer Care's home is the support desk, not this page.
+   *
+   * This route renders one dashboard per role and never had a branch for
+   * CUSTOMER_CARE, so that desk landed on a greeting banner and a blank screen
+   * below it. The answer is not a sixth dashboard: /app/support already IS
+   * their dashboard — the search box, the call list, the ticket and sourcing
+   * queues — and building a second one here would be two screens answering one
+   * question.
+   *
+   * The sidebar drops its "Dashboard" row for this role to match, so there is
+   * one door rather than two. This redirect stays for anyone who bookmarked
+   * the old one.
+   */
+  if (user.role === "CUSTOMER_CARE") redirect("/app/support");
+  /* A customer signing in has no business anywhere under /app. Their own cargo,
+     invoices and requests live in the portal, which filters everything by the
+     Customer record linked to their account. */
+  if (user.role === "CUSTOMER") redirect("/portal");
+
+  /* ADMIN deliberately does NOT redirect.
+     Target Express had two management chairs and two screens: the owner's
+     executive dashboard here, and the manager's command centre at its own address.
+     AITRANSIT has one chair holding both jobs, so it keeps both screens — this
+     one is the business at a glance, and "Control centre" in the sidebar is the
+     working queue. Redirecting would have quietly retired a screen the spec
+     never asked to lose. */
+
+  // Read the name from the record, not the session. The session token carries
+  // whatever the name was at sign-in, so someone who renames themselves would
+  // be greeted by their old name until they signed out and back in.
+  const me = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { name: true },
+  });
+  const firstName = (me?.name ?? user.name).split(" ")[0];
+
+
+  const today = new Date().toLocaleDateString(locale === "zh" ? "zh-CN" : "en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  const warehouse =
+    user.role === "CHINA_WAREHOUSE" || user.role === "ZAMBIA_WAREHOUSE";
+  const inChina = user.role === "CHINA_WAREHOUSE";
+
+  // Read once and handed down. The banner and the floor panel below it both
+  // describe the same stock, and two calls a second apart is how they end up
+  // disagreeing by one box on screen.
+  const floor = user.role === "ZAMBIA_WAREHOUSE" ? await floorSnapshot() : null;
+
+  // The floor's standing numbers. Computed here because the banner used to
+  // carry them and the data is fetched at this level; rendered below the quick
+  // actions, where a figure nobody acts on belongs.
+  const floorChips: HeroChip[] = warehouse
+    ? inChina
+      ? await chinaHeroChips()
+      : await zambiaHeroChips(floor!)
+    : [];
+
+  return (
+    <>
+      {/* The warehouses get the banner with both clocks and today's numbers;
+          everyone else keeps the plain greeting. Finance does not care what
+          time it is in Guangzhou. */}
+      {warehouse ? (
+        <WarehouseHero
+          firstName={firstName}
+          warehouseName={
+            inChina
+              ? t(locale, "China Warehouse")
+              : t(locale, "Lusaka Warehouse")
+          }
+          emphasis={inChina ? "CN" : "TZ"}
+          // Where this desk's day starts.
+          //
+          // China registers cargo, so their day begins at the registration
+          // form. Lusaka's begins at the scanner: checking a batch in, finding a
+          // box, handing it over — every one of those starts by reading a
+          // label China already printed. "Receive cargo" was borrowed from the
+          // China desk and named the wrong action for Lusaka.
+          action={
+            can(user.role, "shipment.create")
+              ? { href: "/app/cargo/new", label: t(locale, "Receive cargo") }
+              : { href: "/app/release", label: t(locale, "Scan & release") }
+          }
+          // The same box the money and support desks open on. The floor is
+          // asked "where is my cargo" all day too.
+          search={{ action: "/app/search" }}
+          hourOfDay={localHour(inChina ? "CN" : "TZ")}
+        />
+      ) : (
+      <DeskHero
+        firstName={firstName}
+        role={user.role}
+        today={today}
+        subtitle={
+          user.role === "FINANCE"
+            ? t(locale, "Here is the money, and what is waiting on you.")
+            : t(locale, "Here is what is happening at AITRANSIT today.")
+        }
+        // The same box the support desk opens on. Every desk that is not
+        // holding the box finds one this way — a customer reads out a number
+        // and it has to go somewhere without hunting for a page first. Posts
+        // to /app/search rather than the support desk's own search, which is
+        // gated on ticket.manage.
+        search={{ action: "/app/search" }}
+      />
+      )}
+
+      {user.role === "CHINA_WAREHOUSE" ? (
+        <ChinaDashboard role={user.role} userId={user.id} chips={floorChips} />
+      ) : null}
+      {user.role === "ZAMBIA_WAREHOUSE" ? (
+        <ZambiaDashboard role={user.role} userId={user.id} floor={floor!} chips={floorChips} />
+      ) : null}
+      {user.role === "FINANCE" ? (
+        <FinanceDashboard role={user.role} />
+      ) : null}
+      {user.role === "ADMIN" ? <ExecutiveDashboard role={user.role} /> : null}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// China warehouse — the desk that creates everything
+// ---------------------------------------------------------------------------
+
+async function ChinaDashboard({
+  role,
+  userId,
+  chips,
+}: {
+  chips: HeroChip[];
+  role: "CHINA_WAREHOUSE" | "ADMIN";
+  userId: string;
+}) {
+  // Read before the Promise.all below, whose callbacks pass it on. TypeScript
+  // cannot see that ordering, so getting it wrong fails at runtime rather than
+  // at build — which is how the CEO dashboard went down earlier.
+  const locale = await viewerLocale();
+
+  const [
+    stats,
+    volume,
+    utilisation,
+    mix,
+    activity,
+    openBatches,
+    composition,
+    ageing,
+    throughput,
+    problems,
+  ] = await Promise.all([
+    chinaStats(),
+    monthlyVolume(new Date(), locale),
+    batchUtilisation(),
+    cargoMix(30, locale),
+    recentActivity(8, userId),
+    prisma.batch.findMany({
+      where: { status: { in: ["OPEN", "READY_TO_DEPART"] } },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        batchNumber: true,
+        status: true,
+        createdAt: true,
+        shipments: { where: { deletedAt: null }, select: { weightKg: true, packages: true } },
+      },
+    }),
+    chinaComposition(),
+    chinaAgeing(),
+    chinaFlowByDay(14),
+    chinaProblems(),
+  ]);
+
+  /**
+   * What is wrong on this floor, in the words of the desk that registers cargo.
+   *
+   * The same panel Lusaka and the money desk use, with China's own failures in it:
+   * registering is this desk's whole job, so every row is a way that job is
+   * incomplete.
+   */
+  const attention: AttnItem[] = [
+    {
+      when: problems.noPhotos > 0,
+      id: "no-photos",
+      group: t(locale, "Registration"),
+      severity: "critical" as const,
+      label: `${problems.noPhotos} ${t(
+        locale,
+        problems.noPhotos === 1
+          ? "consignment with no photograph"
+          : "consignments with no photograph"
+      )}`,
+      detail: t(
+        locale,
+        "Nothing to show the customer if it arrives damaged, and nothing to argue with when they say it did."
+      ),
+      href: "/app/shipments",
+    },
+    {
+      when: problems.unassigned > 0,
+      id: "unassigned",
+      group: t(locale, "Loading"),
+      severity: "critical" as const,
+      label: `${problems.unassigned} ${t(locale, "on no batch")}`,
+      detail: t(
+        locale,
+        "Registered and sitting loose. Cargo on no batch does not get on an aircraft."
+      ),
+      href: "/app/batches",
+    },
+    {
+      when: problems.staleBatches > 0,
+      id: "stale-batches",
+      group: t(locale, "Loading"),
+      severity: "warning" as const,
+      label: `${problems.staleBatches} ${t(
+        locale,
+        problems.staleBatches === 1
+          ? "batch open more than"
+          : "batches open more than"
+      )} ${problems.staleDays} ${t(locale, "days")}`,
+      detail: t(
+        locale,
+        "A batch left open stops being a batch and becomes a shelf. Seal it or fly it."
+      ),
+      href: "/app/batches",
+    },
+    {
+      when: problems.waiting > 0,
+      id: "waiting",
+      group: t(locale, "Waiting"),
+      severity: "info" as const,
+      label: `${problems.waiting} ${t(locale, "waiting more than")} ${
+        problems.staleDays
+      } ${t(locale, "days")}`,
+      detail: t(
+        locale,
+        "Booked in and still in Guangzhou. Every day here is a day the customer is counting."
+      ),
+      href: "/app/shipments",
+      value: `${stats.stagedWeightKg.toFixed(0)} kg`,
+    },
+  ].filter((job) => job.when) as AttnItem[];
+
+  const chinaFormat = (n: number) =>
+    `${n.toLocaleString("en-US")} ${t(
+      locale,
+      n === 1 ? "consignment" : "consignments"
+    )}`;
+
+  // One array for the ring and its key, so the two cannot be relabelled apart.
+  const chinaSlices = [
+    {
+      label: t(locale, "On no batch"),
+      value: composition.unassigned,
+      tone: 3 as const,
+    },
+    { label: t(locale, "Loading"), value: composition.loading, tone: 4 as const },
+    {
+      label: t(locale, "Sealed, ready to fly"),
+      value: composition.sealed,
+      tone: 5 as const,
+    },
+  ];
+
+  return (
+    <div className="space-y-7">
+      <ActionPills
+        items={[
+          { href: "/app/cargo/new", label: t(locale, "Receive Cargo"), icon: PackagePlus, weight: "primary", tone: "brand" },
+          { href: "/app/batches", label: t(locale, "Load a batch"), icon: Plane, weight: "secondary", tone: "signal" },
+          { href: "/app/shipments", label: t(locale, "Batches"), icon: Package, tone: "violet" },
+          // Amber wherever it appears — on this desk, the Lusaka floor, the money
+          // desk and the support desk. Colour is only a landmark while it means
+          // the same thing twice.
+          { href: "/app/exceptions", label: t(locale, "Issues & Claims"), icon: AlertTriangle, tone: "warning" },
+          // Customers is a sidebar row on this desk and is reached from any
+          // consignment; it is not something Guangzhou starts a job from.
+          // Reports goes last, read rather than started — same as the Lusaka floor.
+          { href: "/app/reports", label: t(locale, "Reports"), icon: ChartNoAxesCombined, tone: "info" },
+        ]}
+      />
+
+      <FloorChips chips={chips} />
+
+      {/* No StatStrip here. FloorChips above already carries this desk's
+          standing numbers, and the same figures twice a centimetre apart is the
+          duplication every other dashboard in this app has had removed. */}
+      <AttentionCenter
+        items={attention}
+        reviewAll={{ href: "/app/shipments", label: t(locale, "All cargo") }}
+        empty={t(
+          locale,
+          "Nothing is waiting on this desk. Every consignment is photographed, on a batch, and moving."
+        )}
+      />
+
+      <div>
+        <SectionLabel
+          action={{ href: "/app/shipments", label: t(locale, "All batches") }}
+        >
+          {t(locale, "The desk · right now")}
+        </SectionLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <KpiCard
+          delay={0}
+          label={t(locale, "In China warehouse")}
+          numeric={stats.readyToDepart}
+          hint={`${formatWeight(stats.stagedWeightKg)} ${t(
+            locale,
+            "waiting for a flight"
+          )}`}
+          icon={Package}
+          tone="warning"
+          href="/app/cargo?status=READY_TO_DEPART"
+        />
+        <KpiCard
+          delay={1}
+          label={t(locale, "Registered this month")}
+          numeric={volume.thisMonth}
+          delta={delta(volume.thisMonth, volume.lastMonth)}
+          hint={t(locale, "vs last month")}
+          icon={PackagePlus}
+          tone="brand"
+          trend={volume.current}
+        />
+        <KpiCard
+          delay={2}
+          label={t(locale, "Cargo in transit")}
+          numeric={stats.inTransitShipments}
+          hint={t(locale, "In the air to Lusaka")}
+          icon={Plane}
+          tone="success"
+          /*
+            The consignments this card counted, not the flights carrying them.
+
+            It pointed at /app/batches?status=IN_TRANSIT. That page declares no
+            searchParams, so the filter was discarded and it showed the two
+            permanent China loading tables — cargo that has NOT flown. Pressing
+            "what is in the air" landed on the opposite answer with a number
+            that matched nothing on screen. /app/cargo narrows on ?status=
+            server-side, and counts the same IN_TRANSIT shipments chinaStats
+            does, so the figure on the card is the length of the list.
+          */
+          href="/app/cargo?status=IN_TRANSIT"
+        />
+        </div>
+      </div>
+
+      {/* The same three questions the Lusaka floor asks, in Guangzhou's terms. */}
+      <div>
+        <SectionLabel
+          action={{ href: "/app/shipments", label: t(locale, "All cargo") }}
+        >
+          {t(locale, "The desk, in shape")}
+        </SectionLabel>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <section className="panel p-4">
+            <h3 className="text-sm font-semibold">
+              {t(locale, "What is in Guangzhou")}
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {t(locale, "By what is holding each consignment")}
+            </p>
+            <div className="mt-3 flex justify-center">
+              <Donut
+                size={118}
+                stroke={18}
+                label={String(composition.total)}
+                caption={t(locale, "consignments")}
+                slices={chinaSlices}
+              />
+            </div>
+            <DonutLegend className="mt-3" slices={chinaSlices} />
+          </section>
+
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "In and out")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "Registered against flown, a fortnight")}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-xs text-muted-foreground">
+                <span className="font-mono font-semibold text-success">
+                  {throughput.inCounts.reduce((x, y) => x + y, 0)}
+                </span>
+                {" / "}
+                <span className="font-mono font-semibold text-signal">
+                  {throughput.outCounts.reduce((x, y) => x + y, 0)}
+                </span>
+              </p>
+            </div>
+            <FlowBars
+              className="mt-3"
+              labels={throughput.labels}
+              valuesIn={throughput.inCounts}
+              valuesOut={throughput.outCounts}
+              currentIndex={throughput.currentIndex}
+              format={chinaFormat}
+              legendIn={t(locale, "Registered")}
+              legendOut={t(locale, "Flown")}
+            />
+          </section>
+
+          <section className="panel p-4">
+            <h3 className="text-sm font-semibold">
+              {t(locale, "How long it has waited")}
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {t(locale, "From the day it was registered in Guangzhou")}
+            </p>
+            <AgeingBar
+              className="mt-3"
+              segments={ageing.map((bucket) => ({
+                key: bucket.key,
+                label: t(locale, bucket.label),
+                count: bucket.count,
+                value: bucket.packages,
+              }))}
+              format={(n) => `${n} ${t(locale, n === 1 ? "box" : "boxes")}`}
+              unit={{ one: t(locale, "consignment"), many: t(locale, "consignments") }}
+              empty={t(locale, "Nothing is waiting in Guangzhou.")}
+            />
+          </section>
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel>{t(locale, "Volume & mix")}</SectionLabel>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_1fr]">
+        <section className="panel p-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display font-semibold">
+                {t(locale, "Registration volume")}
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t(locale, "Cargo registered at the China desk,")}{" "}
+                {volume.year} {t(locale, "against")} {volume.year - 1}
+              </p>
+            </div>
+            <p className="font-display text-2xl font-bold tabular">
+              {volume.total.toLocaleString()}
+            </p>
+          </div>
+          <AreaChart
+            labels={volume.labels}
+            series={[
+              { name: String(volume.year), values: volume.current, tone: 1 },
+              { name: String(volume.year - 1), values: volume.previous, tone: 2 },
+            ]}
+          />
+        </section>
+
+        {/* This used to be the alert queue, which for the China desk only ever
+            said "the loading table is open" — the same sentence as the panel
+            below it. What is missing from the page is not another count but
+            what the cargo *is*. */}
+        <CargoMix
+          slices={mix.slices}
+          totalShipments={mix.totalShipments}
+          totalWeightKg={mix.totalWeightKg}
+          periodLabel={`${t(locale, "Received in the last")} ${mix.days} ${t(
+            locale,
+            "days"
+          )}`}
+        />
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel
+          action={{ href: "/app/batches", label: t(locale, "All batches") }}
+        >
+          {t(locale, "Batches on the floor")}
+        </SectionLabel>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="panel p-5">
+          <h2 className="font-display font-semibold">
+            {t(locale, "Batches on the floor")}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t(locale, "Load these, then seal and record the flight.")}
+          </p>
+          <ul className="mt-4 space-y-3">
+            {openBatches.length === 0 ? (
+              <li className="panel-inset p-4 text-sm text-muted-foreground">
+                {t(locale, "No open batches.")}{" "}
+                <Link href="/app/batches/new" className="text-brand hover:underline">
+                  {t(locale, "Open one")}
+                </Link>
+                .
+              </li>
+            ) : (
+              openBatches.map((batch) => {
+                const weight = batch.shipments.reduce(
+                  (sum, s) => sum + toNumber(s.weightKg),
+                  0
+                );
+                const packages = batch.shipments.reduce((sum, s) => sum + s.packages, 0);
+                return (
+                  <li key={batch.id}>
+                    <Link
+                      href={`/app/batches/${batch.id}`}
+                      className="focus-ring block rounded-lg border p-4 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-semibold tabular">
+                          {batch.batchNumber}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {batch.status === "OPEN"
+                            ? t(locale, "Loading")
+                            : t(locale, "Sealed")}{" "}
+                          ·{" "}
+                          {formatRelative(batch.createdAt, locale)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground tabular">
+                        {batch.shipments.length} {t(locale, "consignment(s)")} ·{" "}
+                        {packages} {t(locale, "package(s)")} ·{" "}
+                        {formatWeight(weight)}
+                      </p>
+                      <Progress
+                        value={batch.shipments.length}
+                        max={Math.max(10, batch.shipments.length)}
+                        tone={batch.status === "OPEN" ? "brand" : "warning"}
+                        striped={batch.status === "OPEN"}
+                        className="mt-3"
+                        label={`${batch.batchNumber} ${t(locale, "load")}`}
+                      />
+                    </Link>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </section>
+
+        <section className="panel p-5">
+          <h2 className="font-display font-semibold">
+            {t(locale, "Weight flown per batch")}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t(locale, "Recent departures, kilograms per batch")}
+          </p>
+          <div className="mt-5">
+            <BarChart
+              data={utilisation}
+              tone={2}
+              highlightIndex={utilisation.length - 1}
+              formatValue={(n) => `${Math.round(n).toLocaleString()} kg`}
+            />
+          </div>
+        </section>
+        </div>
+      </div>
+
+      <ActivityFeed
+        entries={activity.map((entry) => ({
+          id: entry.id,
+          action: entry.action,
+          summary: auditSentence(locale, entry),
+          createdAt: entry.createdAt,
+          actorName: entry.actor?.name ?? entry.actorEmail ?? null,
+        }))}
+        title={t(locale, "Your activity")}
+        description={t(locale, "What you have done, newest first")}
+        showActor={false}
+        emptyMessage={t(locale, "Nothing recorded against your account yet.")}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Lusaka warehouse — receiving and releasing
+// ---------------------------------------------------------------------------
+
+/**
+ * The five numbers the Lusaka floor is measured by, in one round trip.
+ *
+ * Each one is a state the cargo is actually in, and the states do not overlap:
+ * a shipment in the air is counted as incoming, and the moment its batch is
+ * marked arrived the same shipment moves to awaiting-verification instead of
+ * appearing under both. A card that double-counts is a card nobody trusts.
+ */
+async function zambiaFloorStats() {
+  const since = startOfToday();
+
+  const [
+    inAir,
+    batchesInAir,
+    awaitingVerification,
+    batchesOnFloor,
+    ready,
+    released,
+    exceptions,
+  ] = await Promise.all([
+    // Still flying. Cargo whose batch has landed is on the floor, not incoming.
+    prisma.shipment.aggregate({
+      where: { status: "IN_TRANSIT", batch: { status: "IN_TRANSIT" } },
+      _count: true,
+      _sum: { weightKg: true },
+    }),
+    prisma.batch.count({ where: { status: "IN_TRANSIT" } }),
+    // Landed, but not yet ticked off the manifest. verifyShipment writes a
+    // BatchVerification row for both outcomes, so "no row" is the true backlog.
+    prisma.shipment.count({
+      where: {
+        status: "IN_TRANSIT",
+        batch: { status: "ARRIVED" },
+        verifications: { none: {} },
+      },
+    }),
+    prisma.batch.count({ where: { status: "ARRIVED" } }),
+    // Finance issues the pickup note and flips the status in the same
+    // transaction, so this is exactly the paid, collectable cargo.
+    prisma.shipment.aggregate({
+      where: { status: "READY_FOR_PICKUP" },
+      _count: true,
+      _sum: { packages: true },
+    }),
+    prisma.shipment.aggregate({
+      where: { status: "DELIVERED", deliveredAt: { gte: since } },
+      _count: true,
+      _sum: { packages: true },
+    }),
+    prisma.shipmentException.groupBy({
+      by: ["type"],
+      where: { status: { in: [...EXCEPTION_OPEN_STATUSES] }, shipment: { deletedAt: null } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const tally = (rows: typeof exceptions) =>
+    rows.reduce((sum, row) => sum + row._count._all, 0);
+
+  const missing = tally(
+    exceptions.filter(
+      (row) =>
+        row.type === "MISSING_SHIPMENT" || row.type === "PACKAGE_COUNT_MISMATCH"
+    )
+  );
+  const damaged = tally(exceptions.filter((row) => row.type === "DAMAGED_CARGO"));
+  const openExceptions = tally(exceptions);
+
+  return {
+    incoming: inAir._count,
+    incomingWeightKg: toNumber(inAir._sum.weightKg ?? 0),
+    batchesInAir,
+    awaitingVerification,
+    batchesOnFloor,
+    readyForPickup: ready._count,
+    readyPackages: ready._sum.packages ?? 0,
+    releasedToday: released._count,
+    releasedPackages: released._sum.packages ?? 0,
+    openExceptions,
+    missing,
+    damaged,
+  };
+}
+
+/**
+ * The five things this floor starts a job from.
+ *
+ * Every one of them is pressed many times a shift. Available Cargo,
+ * Collected Cargo and Reports are deliberately absent — they are read, not
+ * started, and they are one click away in the sidebar. A shortcut row that
+ * lists everything is a second sidebar, which helps nobody.
+ *
+ * Each destination keeps the colour it has everywhere else in the app — the
+ * Issues & Claims is amber on this floor, on the finance desk and on the
+ * support desk. Colour is only a landmark while it means the same thing twice.
+ */
+const DAR_QUICK_ACTIONS: ActionPill[] = [
+  { href: "/app/receive", label: "Receiving Dock", icon: PackagePlus, weight: "primary", tone: "brand" },
+  { href: "/app/pickup-queue", label: "Pickup Queue", icon: Truck, weight: "secondary", tone: "signal" },
+  // No Find cargo. The banner's own search box sits directly above this row,
+  // and a pill pointing at the same page is a second control for one action.
+  { href: "/app/inventory", label: "Available Cargo", icon: Boxes, tone: "violet" },
+  { href: "/app/exceptions", label: "Issues & Claims", icon: AlertTriangle, tone: "warning" },
+  // Last, because it is read rather than started — the row runs from the job
+  // pressed most to the one opened least.
+  { href: "/app/reports", label: "Reports", icon: ChartNoAxesCombined, tone: "info" },
+];
+// Scanning is deliberately not in this row: it is already the big button in the
+// banner directly above, and the same action twice on one screen is the clutter
+// the owner asked us to avoid.
+
+async function ZambiaDashboard({
+  role,
+  userId,
+  floor,
+  chips,
+}: {
+  chips: HeroChip[];
+  role: "ZAMBIA_WAREHOUSE" | "ADMIN";
+  userId: string;
+  floor: FloorSnapshot;
+}) {
+  // Before the Promise.all, for the same reason as the other dashboards.
+  const locale = await viewerLocale();
+
+  const [stats, alerts, activity, perf, incoming, composition, ageing, throughput] =
+    await Promise.all([
+    zambiaFloorStats(),
+    attentionItems(role, locale),
+    recentActivity(8, userId),
+    corridorPerformance(),
+    prisma.batch.findMany({
+      where: { status: { in: ["IN_TRANSIT", "ARRIVED"] } },
+      orderBy: [{ status: "desc" }, { departureDate: "asc" }],
+      take: 5,
+      select: {
+        id: true,
+        batchNumber: true,
+        status: true,
+        airline: true,
+        flightNumber: true,
+        departureDate: true,
+        arrivedAt: true,
+        _count: { select: { shipments: { where: { deletedAt: null } }, verifications: true } },
+      },
+    }),
+    floorComposition(),
+    floorAgeing(),
+    floorFlowByDay(14),
+  ]);
+
+  const exceptionParts = [
+    stats.missing ? `${stats.missing} ${t(locale, "missing")}` : null,
+    stats.damaged ? `${stats.damaged} ${t(locale, "damaged")}` : null,
+    stats.openExceptions - stats.missing - stats.damaged
+      ? `${stats.openExceptions - stats.missing - stats.damaged} ${t(
+          locale,
+          "other"
+        )}`
+      : null,
+  ].filter(Boolean);
+
+  /**
+   * What is waiting on this floor, in the order it costs something.
+   *
+   * The same band the money desk opens on, in the warehouse's own terms. Every
+   * row is a real count with the page that fixes it attached — a warning with
+   * nowhere to go is why people stop reading a dashboard.
+   */
+  const shortBoxes = floor.declaredPackages - floor.packages;
+
+  /**
+   * Everything waiting on this floor, as one list.
+   *
+   * Aggregates and specifics in the same panel, and never both for one thing:
+   * the open cases arrive as named consignments from attentionItems, so there
+   * is deliberately no "3 open cases" row counting them again. The rest are
+   * floor-wide conditions with no single tracking number to point at.
+   */
+  const GROUP_BY_PREFIX: Record<string, string> = {
+    exc: "Cases",
+    batch: "Receiving",
+    open: "Receiving",
+    noinv: "Billing",
+    unpaid: "Billing",
+    note: "Pickup",
+  };
+
+  const attention: AttnItem[] = [
+    ...alerts.map((alert) => ({
+      id: alert.id,
+      group: t(locale, GROUP_BY_PREFIX[alert.id.split("-")[0]] ?? "Other"),
+      severity: alert.severity,
+      label: alert.title,
+      detail: alert.detail,
+      href: alert.href ?? "/app/exceptions",
+      value: alert.meta,
+    })),
+    ...([
+      {
+        when: shortBoxes > 0,
+        id: "short-boxes",
+        group: t(locale, "Receiving"),
+        severity: "critical" as const,
+        label: `${shortBoxes} ${t(
+          locale,
+          shortBoxes === 1
+            ? "box short of the manifest"
+            : "boxes short of the manifest"
+        )}`,
+        detail: t(
+          locale,
+          "Checked in with fewer cartons than the Guangzhou paperwork claims — mis-scanned, or genuinely missing."
+        ),
+        href: "/app/receive",
+      },
+      {
+        when: floor.aging > 0,
+        id: "aging",
+        group: t(locale, "Storage"),
+        severity: "warning" as const,
+        label: `${floor.aging} ${t(locale, "past the free storage window")}`,
+        detail: `${t(locale, "Standing more than")} ${
+          STORAGE_POLICY.freeDays
+        } ${t(
+          locale,
+          "days. Storage is being charged and the customer usually does not know."
+        )}`,
+        href: "/app/inventory",
+        value: `${t(locale, "longest")} ${floor.longestHeldDays}d`,
+      },
+      {
+        when: stats.readyForPickup > 0,
+        id: "ready",
+        group: t(locale, "Pickup"),
+        severity: "info" as const,
+        label: `${stats.readyForPickup} ${t(locale, "paid, not collected")}`,
+        detail: t(
+          locale,
+          "Cleared by Finance and still on our shelves. The customer can take these away today."
+        ),
+        href: "/app/pickup-queue",
+        value: `${stats.readyPackages} ${t(locale, "box(es)")}`,
+      },
+    ].filter((job) => job.when) as AttnItem[]),
+  ];
+
+  // One array for the ring and its legend — two lists would be two chances to
+  // relabel one and not the other.
+  const floorSlices = [
+    {
+      label: t(locale, "Under investigation"),
+      value: composition.flagged,
+      tone: 3 as const,
+    },
+    {
+      label: t(locale, "Waiting on payment"),
+      value: composition.held,
+      tone: 4 as const,
+    },
+    {
+      label: t(locale, "Cleared, ready to go"),
+      value: composition.cleared,
+      tone: 5 as const,
+    },
+  ];
+
+  const floorFormat = (n: number) =>
+    `${n.toLocaleString("en-US")} ${t(
+      locale,
+      n === 1 ? "consignment" : "consignments"
+    )}`;
+
+  return (
+    <div className="space-y-7">
+      <ActionPills
+        items={DAR_QUICK_ACTIONS.map((pill) => ({
+          ...pill,
+          label: t(locale, pill.label),
+        }))}
+      />
+
+      <FloorChips chips={chips} />
+
+      <AttentionCenter
+        items={attention}
+        reviewAll={{ href: "/app/exceptions" }}
+        empty={t(
+          locale,
+          "Nothing is waiting on this floor. Every batch is checked in, nothing is short, and no case is open."
+        )}
+      />
+
+      {/* The floor, in the five states cargo can be in between the plane and
+          the customer.
+          "Released today" used to hold the fourth slot and is now a line on
+          the pickup card: it is the same shelf, and the number the floor is
+          judged on is what is still standing there, not what has gone. The
+          slot it freed went to aging stock, which nobody else shows this desk
+          and which is the only figure here that costs the customer money. */}
+      <div>
+        <SectionLabel
+          action={{ href: "/app/inventory", label: t(locale, "The floor") }}
+        >
+          {t(locale, "The floor · right now")}
+        </SectionLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <KpiCard
+          delay={0}
+          label={t(locale, "Incoming cargo")}
+          numeric={stats.incoming}
+          hint={
+            stats.batchesInAir
+              ? `${stats.batchesInAir} ${t(locale, "batch(es)")} · ${formatWeight(
+                  stats.incomingWeightKg
+                )} ${t(locale, "in the air")}`
+              : t(locale, "Nothing in the air from China")
+          }
+          icon={Plane}
+          tone="info"
+          href="/app/receive"
+        />
+        <KpiCard
+          delay={1}
+          label={t(locale, "Awaiting verification")}
+          numeric={stats.awaitingVerification}
+          hint={
+            stats.batchesOnFloor
+              ? `${stats.batchesOnFloor} ${t(
+                  locale,
+                  "batch(es) landed, not checked in"
+                )}`
+              : t(locale, "Every landed batch is checked in")
+          }
+          icon={ClipboardCheck}
+          tone={stats.awaitingVerification ? "warning" : "success"}
+          href="/app/receive"
+        />
+        <KpiCard
+          delay={2}
+          label={t(locale, "Ready for pickup")}
+          numeric={stats.readyForPickup}
+          hint={
+            stats.readyForPickup
+              ? `${stats.readyPackages} ${t(locale, "box(es) paid for")} · ${
+                  stats.releasedToday
+                } ${t(locale, "handed over today")}`
+              : `${t(locale, "Nothing to collect")} · ${stats.releasedToday} ${t(
+                  locale,
+                  "handed over today"
+                )}`
+          }
+          icon={Truck}
+          tone="success"
+          href="/app/pickup-queue"
+          ringPct={
+            floor.shipments ? (floor.cleared / floor.shipments) * 100 : 0
+          }
+          ringLabel={t(locale, "Share of held cargo cleared for collection")}
+        />
+        <KpiCard
+          delay={3}
+          label={`${t(locale, "Held over")} ${STORAGE_POLICY.freeDays} ${t(
+            locale,
+            "days"
+          )}`}
+          numeric={floor.aging}
+          hint={
+            floor.longestHeldDays > 0
+              ? `${t(locale, "Longest standing")} ${floor.longestHeldDays} ${t(
+                  locale,
+                  "day(s) · storage is charged after"
+                )} ${STORAGE_POLICY.freeDays}`
+              : t(locale, "Nothing has aged yet")
+          }
+          icon={Hourglass}
+          tone={floor.aging ? "danger" : "success"}
+          href="/app/inventory"
+        />
+        <KpiCard
+          delay={4}
+          label={t(locale, "Missing or damaged")}
+          numeric={stats.openExceptions}
+          hint={
+            exceptionParts.length
+              ? exceptionParts.join(" · ")
+              : t(locale, "Nothing flagged on the floor")
+          }
+          icon={AlertTriangle}
+          tone={stats.openExceptions ? "danger" : "success"}
+          href="/app/exceptions"
+        />
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel
+          action={{ href: "/app/inventory", label: t(locale, "The floor") }}
+        >
+          {t(locale, "The floor, in shape")}
+        </SectionLabel>
+
+        {/* Three across, not a tall two-column split. The donut card was
+            stretched to the height of two stacked cards beside it and stood
+            almost empty — the chart band was taller than the work it was
+            meant to sit under. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <section className="panel p-4">
+            <h3 className="text-sm font-semibold">
+              {t(locale, "What is on the floor")}
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {t(locale, "By what is holding each consignment")}
+            </p>
+            <div className="mt-3 flex justify-center">
+              <Donut
+                size={118}
+                stroke={18}
+                label={String(composition.total)}
+                caption={t(locale, "consignments")}
+                slices={floorSlices}
+              />
+            </div>
+            {/* The ring was drawn without a key: three colours and no way to
+                learn what any of them meant. */}
+            <DonutLegend className="mt-3" slices={floorSlices} />
+          </section>
+
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "In and out")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "Checked in against handed over, a fortnight")}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-xs text-muted-foreground">
+                <span className="font-mono font-semibold text-success">
+                  {throughput.inCounts.reduce((a, b) => a + b, 0)}
+                </span>
+                {" / "}
+                <span className="font-mono font-semibold text-signal">
+                  {throughput.outCounts.reduce((a, b) => a + b, 0)}
+                </span>
+              </p>
+            </div>
+            <FlowBars
+              className="mt-3"
+              labels={throughput.labels}
+              valuesIn={throughput.inCounts}
+              valuesOut={throughput.outCounts}
+              currentIndex={throughput.currentIndex}
+              format={floorFormat}
+              legendIn={t(locale, "Checked in")}
+              legendOut={t(locale, "Handed over")}
+            />
+          </section>
+
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "How long it has stood")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "From the day it was checked in")}
+                </p>
+              </div>
+              {floor.longestHeldDays > 0 ? (
+                <p className="shrink-0 text-right text-xs text-muted-foreground">
+                  {t(locale, "longest")}{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {floor.longestHeldDays}d
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <AgeingBar
+              className="mt-3"
+              // Proportioned by boxes, counted in consignments: the bar is the
+              // shelf space each age band eats, the count beside it is how many
+              // customers that represents.
+              segments={ageing.map((b) => ({
+                key: b.key,
+                label: t(locale, b.label),
+                count: b.count,
+                value: b.packages,
+              }))}
+              format={(n) => `${n} ${t(locale, n === 1 ? "box" : "boxes")}`}
+              unit={{ one: t(locale, "consignment"), many: t(locale, "consignments") }}
+              empty={t(locale, "Nothing is standing on the floor.")}
+            />
+          </section>
+        </div>
+      </div>
+
+      {/* No second attention panel. Every case it listed is now an AttnItem in
+          the band above — which is the point of that band: one place, one
+          heading, one count that can be trusted. */}
+      <div>
+        <SectionLabel>{t(locale, "Inbound")}</SectionLabel>
+        <div className="grid gap-6">
+        <section className="panel p-5">
+          <h2 className="font-display font-semibold">
+            {t(locale, "Inbound & on the floor")}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t(
+              locale,
+              "Batches in the air, and batches landed but not fully checked in"
+            )}
+          </p>
+
+          <ul className="mt-4 space-y-3">
+            {incoming.length === 0 ? (
+              <li className="panel-inset p-4 text-sm text-muted-foreground">
+                {t(locale, "Nothing inbound.")}
+              </li>
+            ) : (
+              incoming.map((batch) => {
+                const checked = batch._count.verifications;
+                const total = batch._count.shipments;
+                const arrived = batch.status === "ARRIVED";
+                return (
+                  <li key={batch.id}>
+                    <Link
+                      href={arrived ? `/app/receive/${batch.id}` : `/app/batches/${batch.id}`}
+                      className="focus-ring block rounded-lg border p-4 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-semibold tabular">
+                          {batch.batchNumber}
+                        </span>
+                        <span
+                          className={
+                            arrived
+                              ? "rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning"
+                              : "rounded-full bg-info/10 px-2 py-0.5 text-xs font-semibold text-info"
+                          }
+                        >
+                          {arrived
+                            ? t(locale, "On the floor")
+                            : t(locale, "In the air")}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {batch.airline ?? "—"} {batch.flightNumber ?? ""} ·{" "}
+                        {arrived
+                          ? `${t(locale, "landed")} ${formatRelative(
+                              batch.arrivedAt
+                            , locale)}`
+                          : `${t(locale, "departed")} ${formatRelative(
+                              batch.departureDate
+                            , locale)}`}
+                      </p>
+                      {arrived ? (
+                        <>
+                          <div className="mt-3 flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {t(locale, "Checked in")}
+                            </span>
+                            <span className="font-medium tabular">
+                              {checked} / {total}
+                            </span>
+                          </div>
+                          <Progress
+                            value={checked}
+                            max={total}
+                            tone={checked === total ? "success" : "warning"}
+                            className="mt-1.5"
+                            label={`${batch.batchNumber} ${t(
+                              locale,
+                              "check-in"
+                            )}`}
+                          />
+                        </>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </section>
+        </div>
+      </div>
+
+      {/* Corridor performance is an average, and an average of nothing is not
+          a number — it is three em-dashes taking up a third of the screen.
+          The panel earns its place once cargo has actually been delivered and
+          stays away until then, leaving the activity feed the full width. */}
+      <div
+        className={
+          /* `1.minmax(0,4fr)` was what a find-and-replace made of `1.4fr`
+             while adding the minmax guard. Tailwind cannot parse it, so the
+             lg: rule never generated and the feed never got its two columns. */
+          perf.sample > 0
+            ? "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]"
+            : "grid gap-6"
+        }
+      >
+        {perf.sample > 0 ? (
+        <section className="panel p-5">
+          <h2 className="font-display font-semibold">
+            {t(locale, "Corridor performance")}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t(locale, "Measured over the last")} {perf.sample}{" "}
+            {t(locale, "delivered consignment(s)")}
+          </p>
+          <dl className="mt-5 space-y-4">
+            {[
+              {
+                label: t(locale, "Flight to warehouse"),
+                value:
+                  perf.avgFlightDays === null
+                    ? "—"
+                    : `${perf.avgFlightDays.toFixed(1)} ${t(locale, "days")}`,
+                note: t(locale, "Departure → checked in at Lusaka. Ours to control."),
+                icon: Plane,
+              },
+              {
+                label: t(locale, "Waiting for collection"),
+                value:
+                  perf.avgDwellDays === null
+                    ? "—"
+                    : `${perf.avgDwellDays.toFixed(1)} ${t(locale, "days")}`,
+                note: t(
+                  locale,
+                  "Arrival → collected. Depends on payment and the customer."
+                ),
+                icon: Clock,
+              },
+              {
+                label: t(locale, "Within the 3-day promise"),
+                value:
+                  perf.promiseRate === null
+                    ? "—"
+                    : `${perf.promiseRate.toFixed(0)}%`,
+                note: t(
+                  locale,
+                  "Share of cargo checked in within 3 days of departure."
+                ),
+                icon: Timer,
+              },
+            ].map(({ label, value, note, icon: Icon }) => (
+              <div key={label} className="flex gap-3">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div>
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="font-display text-lg font-bold tabular">{value}</dd>
+                  <p className="mt-0.5 text-xs text-muted-foreground/80">{note}</p>
+                </div>
+              </div>
+            ))}
+          </dl>
+        </section>
+        ) : null}
+
+        <ActivityFeed
+          entries={activity.map((entry) => ({
+            id: entry.id,
+            action: entry.action,
+            summary: auditSentence(locale, entry),
+            createdAt: entry.createdAt,
+            actorName: entry.actor?.name ?? entry.actorEmail ?? null,
+          }))}
+          title={t(locale, "Your activity")}
+          description={t(locale, "What you have done, newest first")}
+          showActor={false}
+          emptyMessage={t(locale, "Nothing recorded against your account yet.")}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Finance — money in, money owed
+// ---------------------------------------------------------------------------
+
+/**
+ * Finance — what to do today, and what the money is doing.
+ *
+ * Rebuilt around one fact the old version hid. Every figure on it was a
+ * dollar figure, and the two headline tiles read "Outstanding USD 0.00" and
+ * "Collection rate 100%" — a business with nothing to chase and a perfect
+ * record. Both were true and both were useless: they only ever counted bills
+ * that had been RAISED, and 84 consignments worth K 25m were sitting in the
+ * warehouse priced but unconfirmed, so they had never become bills at all. The
+ * one number that mattered was the one number missing.
+ *
+ * So the page now opens with the work rather than the score. Everything on it
+ * is either something to act on — with the money at stake and the link that
+ * fixes it — or the position that decision is made against. Nothing is here
+ * merely because it could be counted.
+ *
+ * Kwacha lead throughout. Freight is priced in dollars and paid in
+ * kwacha, and this desk counts kwacha.
+ */
+async function FinanceDashboard({ role }: { role: "FINANCE" | "ADMIN" }) {
+  // Before the Promise.all, for the same reason as the other dashboards.
+  const locale = await viewerLocale();
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    stats,
+    aging,
+    flights,
+    ageing,
+    flow,
+    alerts,
+    revenue,
+    rateRow,
+    accounts,
+    balances,
+    drafts,
+    unattributed,
+    owedOut,
+    spent,
+    creditBook,
+    outlook,
+    month,
+    creditWarnings,
+  ] = await Promise.all([
+    financeStats(),
+    agingInWarehouse(6),
+    // The row the business is actually run on: the company earns per dispatch,
+    // and a month-level profit figure cannot say which flight paid for itself.
+    profitByDispatch(6),
+    // The two questions a single "collections by month" bar could never
+    // answer: how old is what we are owed, and are we keeping any of it.
+    receivablesAgeing(),
+    cashFlowByMonth(new Date(), locale),
+    attentionItems(role, locale),
+    monthlyRevenue(new Date(), locale),
+    currentRate(),
+    activeAccounts(),
+    accountBalances(prisma),
+    // The queue the old dashboard had no tile for.
+    prisma.invoice.aggregate({
+      where: { status: "DRAFT" },
+      _count: true,
+      _sum: { total: true },
+    }),
+    // Money we hold that nobody has said where it landed. It is in no account
+    // and therefore in no balance, so it can only be seen by asking.
+    prisma.payment.aggregate({
+      where: { accountId: null },
+      _count: true,
+      _sum: { creditedAmount: true },
+    }),
+    prisma.expense.aggregate({
+      where: { status: { in: ["PENDING", "APPROVED"] } },
+      _count: true,
+      _sum: { amountUsd: true },
+    }),
+    prisma.ledgerEntry.aggregate({
+      where: { direction: "OUT", occurredAt: { gte: monthStart } },
+      _count: true,
+      _sum: { amountUsd: true },
+    }),
+    /* The credit book, from the one place that computes it — the same figures
+       the settlements page prints, so the desk cannot read one number here and a
+       different one there. */
+    creditOverview(),
+    creditCollectionOutlook(),
+    /* This month's billing, only for the cash-against-credit split. Both halves
+       have to come out of one revenue figure or the comparison is two totals
+       from two queries that need not add up to anything. */
+    profitAndLoss(monthWindow(0, locale)),
+    /* §19's warnings. The credit strip further down this page is the position;
+       these are the five things about it that are somebody's job today, and they
+       belong in the panel this desk already reads first rather than in a band it
+       has to notice. */
+    creditAlerts(),
+  ]);
+
+  const rate = rateRow ? toNumber(rateRow.rate) : null;
+  const tsh = (usd: number) =>
+    rate ? `K ${Math.round(usd * rate).toLocaleString("en-US")}` : formatUsd(usd);
+
+  const draftValue = toNumber(drafts._sum.total);
+  const unattributedUsd = toNumber(unattributed._sum.creditedAmount);
+  const owedOutUsd = toNumber(owedOut._sum.amountUsd);
+  const spentUsd = toNumber(spent._sum.amountUsd);
+  const unsettled = stats.unpaid + stats.partiallyPaid;
+  const collectedThisMonth = revenue.values[revenue.values.length - 1] ?? 0;
+  const collectedThisYear = revenue.values.reduce((a, b) => a + b, 0);
+  const netThisMonth = flow.net[flow.net.length - 1] ?? 0;
+
+  /*
+    The month's billing split into the half that is money and the half that is a
+    promise. Both amounts and this percentage come off one revenue figure, so the
+    bar cannot disagree with the words printed under it — and a month that has
+    billed nothing has no share at all rather than a flattering zero.
+  */
+  const creditShare =
+    month.revenue > 0 ? (month.creditRevenue / month.revenue) * 100 : null;
+
+
+  // Cash available: every account's own balance, added up through the dollar
+  // so kwacha and dollars can share a total. Derived from the ledger, never
+  // stored — the same figure the Accounts page shows.
+  const byAccount = new Map(balances.map((b) => [b.accountId, b]));
+  const accountRows = accounts
+    .map((account) => {
+      const row = byAccount.get(account.id);
+      return {
+        ...account,
+        native: row ? toNumber(row.inflow) - toNumber(row.outflow) : 0,
+        usd: row ? toNumber(row.inflowUsd) - toNumber(row.outflowUsd) : 0,
+      };
+    })
+    .sort((a, b) => b.usd - a.usd);
+  const cashUsd = accountRows.reduce((sum, a) => sum + a.usd, 0);
+  const holding = accountRows.filter((a) => a.native !== 0).length;
+
+  /**
+   * The cash ring and its key, from one array.
+   *
+   * Proportioned by the dollar figure because six accounts in two currencies
+   * cannot share a ring otherwise; the key shows each balance in the currency
+   * the account is actually held in, which is what the old list did and the
+   * only reason it was worth its own panel.
+   */
+  const cashLegend = accountRows.slice(0, 6);
+  const cashSlices = cashLegend.map((account, i) => ({
+    label: account.name,
+    value: Math.max(0, account.usd),
+    tone: ((i % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6,
+  }));
+
+  /**
+   * The work, richest first.
+   *
+   * Each row carries the money at stake and the page that clears it. A queue
+   * with no amount beside it cannot be prioritised, and a warning with no link
+   * teaches people to scroll past warnings.
+   */
+  const jobs = [
+    {
+      group: t(locale, "Pricing"),
+      when: drafts._count > 0,
+      label: `${drafts._count} ${t(
+        locale,
+        drafts._count === 1 ? "price to confirm" : "prices to confirm"
+      )}`,
+      detail: t(
+        locale,
+        "Priced automatically at check-in. Nothing can be invoiced, and no cargo released, until you sign them off."
+      ),
+      usd: draftValue,
+      href: "/app/shipments",
+      cta: t(locale, "Review by batch"),
+      urgent: true,
+    },
+    {
+      group: t(locale, "Payments"),
+      when: unattributed._count > 0,
+      label: `${unattributed._count} ${t(
+        locale,
+        unattributed._count === 1
+          ? "payment with no account"
+          : "payments with no account"
+      )}`,
+      detail: t(
+        locale,
+        "Taken from the customer, but nobody said where it landed — so it sits in no account and no balance."
+      ),
+      usd: unattributedUsd,
+      href: "/app/finance/payments",
+      cta: t(locale, "Say where it landed"),
+      urgent: true,
+    },
+    {
+      group: t(locale, "Collections"),
+      when: unsettled > 0,
+      label: `${unsettled} ${t(
+        locale,
+        unsettled === 1 ? "bill unpaid" : "bills unpaid"
+      )}`,
+      detail: t(
+        locale,
+        "Confirmed and sent to the customer. The money has not arrived."
+      ),
+      usd: stats.outstanding,
+      href: "/app/collections/follow-up",
+      cta: t(locale, "Chase"),
+      urgent: false,
+    },
+    {
+      group: t(locale, "Costs"),
+      when: owedOut._count > 0,
+      label: `${owedOut._count} ${t(
+        locale,
+        owedOut._count === 1 ? "cost to pay out" : "costs to pay out"
+      )}`,
+      detail: t(
+        locale,
+        "Recorded against the business, not yet disbursed from an account."
+      ),
+      usd: owedOutUsd,
+      href: "/app/finance/transactions?kind=EXPENSE",
+      cta: t(locale, "Settle"),
+      urgent: false,
+    },
+    {
+      group: t(locale, "Pickup"),
+      when: stats.activeNotes > 0,
+      label: `${stats.activeNotes} ${t(locale, "cleared, not collected")}`,
+      detail: t(
+        locale,
+        "Paid for and released. The cargo is still on our floor waiting for the customer to turn up."
+      ),
+      aside: t(locale, "already paid for"),
+      href: "/app/finance/pickup-notes",
+      cta: t(locale, "See notes"),
+      urgent: false,
+    },
+  ].filter((job) => job.when);
+
+  /**
+   * The money jobs and the cargo problems, in one panel.
+   *
+   * They were two — a work band and a separate "cargo that needs a call today"
+   * list — under two headings that both meant "look here". A mismatch or a
+   * missing box IS a money problem to this desk; it becomes a billing argument
+   * a fortnight later, which is the reason that second list was put on the page
+   * in the first place. So it is a pill, not a panel.
+   */
+  const financeAttention: AttnItem[] = [
+    ...jobs.map((job) => ({
+      id: job.href + job.label,
+      group: job.group,
+      severity: (job.urgent ? "critical" : "info") as AttnItem["severity"],
+      label: job.label,
+      detail: job.detail,
+      href: job.href,
+      value: job.usd !== undefined ? tsh(job.usd) : job.aside,
+      valueSub: job.usd !== undefined ? formatUsd(job.usd) : undefined,
+    })),
+    ...alerts.map((alert) => ({
+      id: alert.id,
+      group: t(locale, "Cargo"),
+      severity: alert.severity,
+      label: alert.title,
+      detail: alert.detail,
+      href: alert.href ?? "/app/exceptions",
+      value: alert.meta,
+    })),
+    /* Credit as rows under a Credit pill, from the same composer the support desk
+       and the owner read — one set of sentences, so two desks cannot end up
+       describing one customer's limit differently and making the same decision
+       twice. This desk decides requests, and its rows say so. */
+    ...creditAttention(creditWarnings, {
+      locale,
+      rate,
+      canApprove: can(role, "credit.approve"),
+    }),
+  ];
+
+  /**
+   * The handful of things this desk starts many times a day.
+   *
+   * Pills rather than cards: a toolbar under the numbers, not a second
+   * sidebar competing with them. The first two are the jobs — signing off
+   * prices and writing down a cost — and the rest are places to look. That
+   * split is why the first two are solid and the other four are tinted: six
+   * filled colours side by side and nothing leads.
+   *
+   * Colours are per destination, not per position, and they match the other
+   * desks: pickup notes green wherever it appears, anything that means "chase
+   * this" amber. A pill that changes colour between screens is not a landmark.
+   */
+  const shortcuts: ActionPill[] = [
+    { href: "/app/shipments", label: t(locale, "Confirm prices"), icon: ClipboardCheck, weight: "primary", tone: "brand" },
+    /* Money in beside money out. They are the two halves of the same job and
+       were a tab apart, so the commoner of the two — customers paying — was
+       the one that took more clicks. It opens the ledger with the panel
+       already up rather than carrying a second copy of the form. */
+    { href: "/app/finance/transactions?income=1", label: t(locale, "Record an income"), icon: Banknote, weight: "secondary", tone: "success" },
+    { href: "/app/finance/transactions", label: t(locale, "Record a cost"), icon: Banknote, weight: "secondary", tone: "signal" },
+    // Verify payments, not Payments. What Finance starts here is the queue
+    // Customer Support hands up — proofs collected at the counter that are
+    // worth nothing until this desk agrees with them. The payments list is a
+    // record to read, and it is not even in the Finance tab row; this is a
+    // job with people waiting on it.
+    { href: "/app/finance/verify", label: t(locale, "Verify payments"), icon: ShieldCheck, tone: "info" },
+    { href: "/app/finance/pickup-notes", label: t(locale, "Pickup notes"), icon: QrCode, tone: "success" },
+    { href: "/app/collections/follow-up", label: t(locale, "Payment follow-up"), icon: Clock, tone: "warning" },
+  ];
+
+  return (
+    <div className="space-y-7">
+      <ActionPills items={shortcuts} />
+
+      {/* ---- The work, before the score ---- */}
+      <div>
+        {/* The rule above IS this panel's heading. It carried its own <h2>
+            reading "What needs you" directly under an eyebrow reading "NEEDS
+            YOUR ATTENTION" — one heading printed twice, which reads as two
+            things until you work out it is one. */}
+      <AttentionCenter
+          items={financeAttention}
+          reviewAll={{
+            href: "/app/collections/follow-up",
+            label: t(locale, "The call list"),
+          }}
+          empty={t(
+            locale,
+            "Nothing is waiting on you. Every price is confirmed, every payment sits in an account, and every bill has been settled."
+          )}
+        />
+      </div>
+
+      {/* ---- Per flight, because that is how the company earns ---- */}
+      <div>
+        <SectionLabel
+          action={{ href: "/app/shipments", label: t(locale, "All batches") }}
+        >
+          {t(locale, "Batches · what each one made")}
+        </SectionLabel>
+        <FlightProfitTable flights={flights} />
+      </div>
+
+      {/* ---- The position those decisions are made against ---- */}
+      <div>
+        <SectionLabel
+          action={{ href: "/app/finance", label: t(locale, "Full position") }}
+        >
+          {t(locale, "The money · right now")}
+        </SectionLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <MoneyTile
+          label={t(locale, "Cash available")}
+          usd={cashUsd}
+          rate={rate}
+          icon={Wallet}
+          tone="good"
+          // One sentence carrying two figures, not three translated scraps
+          // glued in English order. Chinese states the total first — "of 6
+          // accounts, 2 are holding" — so a dictionary lookup on the bare word
+          // "of" produces something a mainland reader has to decode.
+          count={t(locale, "{n} of {total} accounts holding")
+            .replace("{n}", String(holding))
+            .replace("{total}", String(accountRows.length))}
+          hint={t(
+            locale,
+            "Every till and bank account, added up. Comes from the ledger, so it moves the moment money does."
+          )}
+          href="/app/finance/accounts"
+        />
+        <MoneyTile
+          label={t(locale, "Waiting to be billed")}
+          usd={draftValue}
+          rate={rate}
+          icon={Hourglass}
+          tone="warn"
+          emphasis={drafts._count > 0}
+          count={`${drafts._count} ${t(
+            locale,
+            drafts._count === 1 ? "consignment" : "consignments"
+          )}`}
+          hint={t(
+            locale,
+            "Sitting in the warehouse with a price nobody has confirmed. This is the biggest number on the page for a reason."
+          )}
+          href="/app/shipments"
+        />
+        <MoneyTile
+          label={t(locale, "Owed by customers")}
+          usd={stats.outstanding}
+          rate={rate}
+          icon={Clock}
+          tone={stats.outstanding > 0 ? "warn" : "default"}
+          count={
+            unsettled === 0
+              ? t(locale, "nothing outstanding")
+              : `${unsettled} ${t(locale, unsettled === 1 ? "bill" : "bills")}`
+          }
+          hint={
+            unsettled === 0
+              ? t(
+                  locale,
+                  "Every bill that has actually been raised is settled. Not the same as everything being billed."
+                )
+              : t(locale, "Confirmed, sent, and still unpaid.")
+          }
+          href="/app/collections/follow-up"
+        />
+        {/*
+          What was billed against what actually arrived.
+
+          The owner's point, and it is the one figure a dashboard usually
+          hides: a bill raised is not money in the bank. Expected revenue and
+          collected sit in different cards on different rows, so a good-looking
+          billed figure reads as a good month until somebody checks the bank.
+          This card puts the two next to each other and states the share, which
+          is the number that says whether the chasing is working.
+        */}
+        <MoneyTile
+          label={t(locale, "Collected of billed")}
+          usd={stats.collected}
+          rate={rate}
+          icon={TrendingUp}
+          tone={
+            stats.collected + stats.outstanding === 0
+              ? "default"
+              : stats.collected / (stats.collected + stats.outstanding) >= 0.5
+                ? "good"
+                : "warn"
+          }
+          count={
+            stats.collected + stats.outstanding === 0
+              ? t(locale, "nothing billed yet")
+              : `${Math.round(
+                  (stats.collected / (stats.collected + stats.outstanding)) * 100
+                )}% ${t(locale, "of what was billed")}`
+          }
+          hint={t(
+            locale,
+            "Money actually in, against everything ever billed. A bill raised is not a bill paid — the gap is what Collections is for."
+          )}
+          href="/app/collections"
+        />
+        <MoneyTile
+          label={t(locale, "Spent this month")}
+          usd={spentUsd}
+          rate={rate}
+          icon={TrendingDown}
+          tone={spentUsd > 0 ? "bad" : "default"}
+          count={
+            spent._count === 0
+              ? t(locale, "no costs recorded yet")
+              : `${spent._count} ${t(
+                  locale,
+                  spent._count === 1 ? "payment out" : "payments out"
+                )}`
+          }
+          hint={t(
+            locale,
+            "Fuel, customs, the clearing agent, rent — what has actually left an account since the 1st."
+          )}
+          href="/app/finance/transactions?direction=OUT&period=month"
+        />
+        </div>
+      </div>
+
+      {/* ---- Cargo released before payment ---- */}
+      {/*
+        The credit book, deliberately its own strip and deliberately below the
+        cash.
+
+        Not one kwacha of this is in "Cash available" above, and the desk
+        reading the two rows together has to be able to tell which figure is
+        money and which is a promise. So: one strip for the position, one row for
+        the two comparisons — is this month's revenue cash or credit, and did the
+        money that was promised by today actually turn up. The invoice-by-invoice
+        list is the credit page's job, not a dashboard's.
+
+        Absent entirely until credit exists, because a strip of five zeros
+        teaches people to skip the band it stands in.
+      */}
+      {creditBook.creditCount > 0 ? (
+        <div>
+          <SectionLabel
+            action={{
+              href: "/app/finance/credit",
+              label: t(locale, "The credit book"),
+            }}
+          >
+            {t(locale, "Credit · released before payment")}
+          </SectionLabel>
+
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3 lg:grid-cols-5">
+            {[
+              { k: "Sold on credit", v: tsh(creditBook.soldUsd), tone: "" },
+              {
+                k: "Collected",
+                v: tsh(creditBook.collectedUsd),
+                tone: "text-success",
+              },
+              {
+                k: "Still owed",
+                v: tsh(creditBook.outstandingUsd),
+                tone: "text-brand",
+              },
+              {
+                k: "Overdue",
+                v: tsh(creditBook.overdueUsd),
+                tone: "text-destructive",
+              },
+              {
+                k: "Credit collection rate",
+                v:
+                  creditBook.collectionRate === null
+                    ? "—"
+                    : `${creditBook.collectionRate.toFixed(0)}%`,
+                tone: "",
+              },
+            ].map((cell) => (
+              <div key={cell.k} className="bg-card px-3 py-2.5">
+                <dt className="text-[11px] text-muted-foreground">
+                  {t(locale, cell.k)}
+                </dt>
+                <dd
+                  className={`font-display text-sm font-bold leading-tight tabular ${cell.tone}`}
+                >
+                  {cell.v}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          {/* The two comparisons, as two cells of the same strip. Bars are divs
+              against a track — the shape the aging bands already use — so there
+              is no chart library and no script for the CSP to refuse. */}
+          <div className="mt-2 grid grid-cols-1 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2">
+            <div className="bg-card px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">
+                {t(locale, "Billed this month · cash against credit")}
+              </p>
+              <p className="font-display text-sm font-bold leading-tight tabular">
+                {creditShare === null
+                  ? t(locale, "Nothing billed yet this month")
+                  : `${creditShare.toFixed(0)}% ${t(locale, "on credit")}`}
+              </p>
+              {creditShare === null ? null : (
+                <>
+                  <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-success"
+                      style={{ width: `${100 - creditShare}%` }}
+                    />
+                    <div
+                      className="h-full bg-brand"
+                      style={{ width: `${creditShare}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {tsh(month.cashRevenue)} {t(locale, "cash")} ·{" "}
+                    {tsh(month.creditRevenue)} {t(locale, "credit")}
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/*
+              Expected against actual, and only on credit that has already come
+              round. Measuring it over the whole book would score a shelf full of
+              fresh 30-day terms as a collection failure.
+            */}
+            <div className="bg-card px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">
+                {t(locale, "Promised by today · what arrived")}
+              </p>
+              <p
+                className={`font-display text-sm font-bold leading-tight tabular ${
+                  outlook.metRate === null
+                    ? ""
+                    : outlook.metRate >= 80
+                      ? "text-success"
+                      : outlook.metRate >= 50
+                        ? "text-warning"
+                        : "text-destructive"
+                }`}
+              >
+                {outlook.metRate === null
+                  ? t(locale, "No credit has come due yet")
+                  : `${outlook.metRate.toFixed(0)}% ${t(locale, "arrived")}`}
+              </p>
+              {outlook.metRate === null ? null : (
+                <>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-success"
+                      style={{ width: `${Math.min(100, outlook.metRate)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {tsh(outlook.actualUsd)} {t(locale, "of")}{" "}
+                    {tsh(outlook.expectedUsd)}
+                    {outlook.shortfallUsd > 0.005
+                      ? ` · ${tsh(outlook.shortfallUsd)} ${t(locale, "still short")}`
+                      : ""}
+                    {/* Forgiven debt is out of the expectation above but never
+                        off the screen: a desk that wrote off everything it was
+                        owed must not read as a desk that collected it. */}
+                    {outlook.waivedUsd > 0.005
+                      ? ` · ${tsh(outlook.waivedUsd)} ${t(locale, "written off")}`
+                      : ""}
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ---- What it has been doing, and where it is sitting ---- */}
+      {/*
+        Three questions about the money, three cards, one row.
+
+        It used to be a 1.6fr/1fr split with two charts stacked in the wide
+        column and the account list running down the narrow one — so the band
+        was as tall as two cards and the list dictated the height of everything
+        beside it.
+      */}
+      <div>
+        <SectionLabel
+          action={{
+            href: "/app/finance/transactions",
+            label: t(locale, "The Ledger"),
+          }}
+        >
+          {t(locale, "The money, in shape")}
+        </SectionLabel>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* The account list becomes the key to a ring rather than a panel of
+              its own. Proportioned by each account's dollar figure — the same
+              basis "Cash available" is computed on, so no new conversion is
+              invented here — while the legend keeps every balance in the
+              currency the account is actually held in. */}
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "Where the cash sits")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "{n} of {total} accounts holding")
+                    .replace("{n}", String(holding))
+                    .replace("{total}", String(accountRows.length))}
+                </p>
+              </div>
+              <Link
+                href="/app/finance/accounts"
+                className="focus-ring shrink-0 rounded text-xs font-semibold text-brand hover:underline"
+              >
+                {t(locale, "All")}
+              </Link>
+            </div>
+
+            {cashUsd > 0 ? (
+              <>
+                <div className="mt-3 flex justify-center">
+                  <Donut
+                    size={118}
+                    stroke={18}
+                    label={tsh(cashUsd).replace("K ", "")}
+                    caption={t(locale, "K in hand")}
+                    slices={cashSlices}
+                  />
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {cashSlices.map((slice, i) => (
+                    <li key={slice.label} className="flex items-center gap-2 text-xs">
+                      <span
+                        aria-hidden
+                        className={`h-2 w-2 shrink-0 rounded-sm ${SWATCHES[slice.tone]}`}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                        {slice.label}
+                      </span>
+                      <span className="shrink-0 font-mono font-semibold tabular-nums">
+                        {formatMoney(cashLegend[i].native, cashLegend[i].currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                {t(locale, "Every account is empty.")}
+              </p>
+            )}
+          </section>
+
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "Money in and out")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "What arrived against what it cost, this year")}
+                </p>
+              </div>
+              <p
+                className={`shrink-0 text-right font-mono text-xs font-semibold ${
+                  netThisMonth < 0 ? "text-signal" : "text-success"
+                }`}
+              >
+                {netThisMonth < 0 ? "−" : "+"}
+                {tsh(Math.abs(netThisMonth))}
+              </p>
+            </div>
+            <FlowBars
+              className="mt-3"
+              labels={flow.labels}
+              valuesIn={flow.moneyIn}
+              valuesOut={flow.moneyOut}
+              currentIndex={flow.currentIndex}
+              format={tsh}
+            />
+          </section>
+
+          <section className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">
+                  {t(locale, "What we are owed, by age")}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(locale, "From the day the bill became real")}
+                </p>
+              </div>
+              {ageing.oldestDays > 0 ? (
+                <p className="shrink-0 text-right text-xs text-muted-foreground">
+                  {t(locale, "oldest")}{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {ageing.oldestDays}d
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <AgeingBar
+              className="mt-3"
+              segments={ageing.buckets.map((bucket) => ({
+                key: bucket.key,
+                label: t(locale, bucket.label),
+                count: bucket.count,
+                value: bucket.usd,
+              }))}
+              format={tsh}
+              unit={{ one: t(locale, "bill"), many: t(locale, "bills") }}
+              empty={t(locale, "Nothing is owed. Every bill raised has been settled.")}
+            />
+          </section>
+        </div>
+      </div>
+
+      {/* ---- The cargo those figures are made of ---- */}
+      <div>
+        <SectionLabel>{t(locale, "Cargo behind the money")}</SectionLabel>
+        {/* One child, so no grid. It was in a 1.6fr/1fr split with nothing in
+            the second column — the table was squeezed into two thirds of the
+            row and the rest was blank. */}
+        <div>
+        <section className="panel overflow-hidden">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+            <div>
+              <h2 className="font-display font-semibold">
+                {t(locale, "Longest in the warehouse")}
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t(
+                  locale,
+                  "Oldest arrivals still unpaid — storage is accruing on every one"
+                )}
+              </p>
+            </div>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/app/collections/follow-up">
+                {t(locale, "Payment follow-up")}
+              </Link>
+            </Button>
+          </header>
+
+          {aging.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+              {t(locale, "Nothing to chase.")}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t(locale, "Cargo")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">
+                      {t(locale, "Customer")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t(locale, "Value")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t(locale, "Waiting")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {aging.map((shipment) => {
+                    const invoice = shipment.invoice;
+                    const outstanding = invoice
+                      ? toNumber(invoice.total) - toNumber(invoice.amountPaid)
+                      : null;
+                    // A draft is the system's price, not a bill. Presenting
+                    // the two identically has somebody ringing a customer for
+                    // a figure this desk has not signed off.
+                    const draft = invoice?.status === "DRAFT";
+                    return (
+                      <TableRow key={shipment.id} className="group">
+                        <TableCell className="py-2.5">
+                          <Link
+                            href={`/app/cargo/${shipment.trackingNumber}`}
+                            className="font-mono text-sm font-medium tabular group-hover:text-brand"
+                          >
+                            {shipment.trackingNumber}
+                          </Link>
+                          <span className="block truncate text-xs text-muted-foreground sm:hidden">
+                            {shipment.customer.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden py-2.5 sm:table-cell">
+                          <span className="block truncate text-sm">
+                            {shipment.customer.name}
+                          </span>
+                          <span className="block font-mono text-xs text-muted-foreground">
+                            {shipment.customer.phone}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-right">
+                          {outstanding === null ? (
+                            <span className="text-xs text-muted-foreground">
+                              {t(locale, "not priced")}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="block text-sm font-semibold tabular">
+                                {tsh(outstanding)}
+                              </span>
+                              <span
+                                className={`block text-xs ${
+                                  draft ? "text-warning" : "text-muted-foreground"
+                                }`}
+                              >
+                                {draft
+                                  ? t(locale, "price not confirmed")
+                                  : formatMoney(outstanding, invoice?.currency)}
+                              </span>
+                            </>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap py-2.5 text-right text-xs text-muted-foreground">
+                          {formatRelative(shipment.arrivedAt, locale)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </section>
+
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,36 @@
+node_modules
+.next
+out
+build
+.DS_Store
+*.pem
+
+# env
+.env
+.env*.local
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# vercel
+.vercel
+
+# Locally-stored uploads. The local disk driver is a laptop convenience —
+# production uses Vercel Blob — so customer receipts and cargo photos must
+# never ride into the repository.
+/public/uploads/
+
+# local editor / tooling config
+.claude/
+.env*
+!.env.example
+
+# Manual screenshots are rebuilt from the running app by scripts/manuals/capture.mjs
+docs/manuals/shots/
+backups/

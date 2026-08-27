@@ -1,0 +1,189 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import { Lock, UserRound } from "lucide-react";
+
+import { FormError, SubmitButton } from "@/components/app/form-feedback";
+import { useT } from "@/components/app/locale-provider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { changeMyPassword, updateMyProfile } from "@/lib/actions/profile";
+
+export type EditableProfile = {
+  name: string;
+  phone: string | null;
+  emergencyContact: string | null;
+  preferredLanguage: string;
+  photoUrl: string | null;
+};
+
+/**
+ * The part of a profile an employee owns.
+ *
+ * There is one name, and it is theirs. An admin types something when the
+ * account is made, but the person who shows up to the shift decides how their
+ * name reads on a manifest — and changing it changes it everywhere, because
+ * everywhere reads the same field.
+ *
+ * Everything the company owns — employee number, department, rank, company
+ * address, joining date — is shown next to this form as plain text, not as
+ * disabled inputs. A greyed-out field invites people to try; a line of text
+ * does not.
+ */
+export function PersonalDetailsForm({ profile }: { profile: EditableProfile }) {
+  const t = useT();
+  const [state, action] = useActionState(updateMyProfile, undefined);
+  const [preview, setPreview] = useState<string | null>(profile.photoUrl);
+
+  return (
+    <form action={action} className="space-y-5 p-5">
+      <FormError state={state} />
+      {state?.ok ? (
+        <p className="rounded-lg border border-success/40 bg-success/5 p-3 text-sm text-success">
+          {t("Saved.")}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-4">
+        {preview ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={preview}
+            alt={t("Your profile photo")}
+            className="h-16 w-16 rounded-xl border object-cover"
+          />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-muted text-muted-foreground">
+            <UserRound className="h-6 w-6" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Label htmlFor="photo">{t("Profile photo")}</Label>
+          <Input
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/*"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              // A local preview only — nothing is uploaded until Save.
+              setPreview(file ? URL.createObjectURL(file) : profile.photoUrl);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("Leave empty to keep the photo you have.")}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="name">{t("Your name")}</Label>
+          <Input
+            id="name"
+            name="name"
+            defaultValue={profile.name}
+            placeholder={t("How you want to be known")}
+            maxLength={60}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "Shown against every piece of cargo you receive, including the printed manifest."
+            )}
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="phone">{t("Phone number")}</Label>
+          <Input
+            id="phone"
+            name="phone"
+            defaultValue={profile.phone ?? ""}
+            placeholder="+260 9…"
+            inputMode="tel"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="emergencyContact">{t("Emergency contact")}</Label>
+          <Input
+            id="emergencyContact"
+            name="emergencyContact"
+            defaultValue={profile.emergencyContact ?? ""}
+            placeholder={t("Name and number")}
+            maxLength={120}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("Optional. Only management can see this.")}
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="preferredLanguage">{t("Preferred language")}</Label>
+          <NativeSelect
+            id="preferredLanguage"
+            name="preferredLanguage"
+            defaultValue={profile.preferredLanguage}
+          >
+            {/* Two, matching LOCALES in lib/locale.ts. A Kiswahili option sat
+                here and did nothing — localeOf() maps anything that is not "zh"
+                to English — so choosing it silently gave you English. It was
+                harmless for Target Express and is meaningless for AITRANSIT,
+                whose two desks read English and Chinese. */}
+            <option value="en">{t("English")}</option>
+            <option value="zh">中文</option>
+          </NativeSelect>
+        </div>
+      </div>
+
+      <SubmitButton variant="brand" pendingLabel={t("Saving…")}>
+        {t("Save changes")}
+      </SubmitButton>
+    </form>
+  );
+}
+
+/** Changing your own password, which needs the old one. */
+export function PasswordForm() {
+  const t = useT();
+  const [state, action] = useActionState(changeMyPassword, undefined);
+
+  return (
+    <form action={action} className="space-y-4 p-5">
+      <FormError state={state} />
+      {state?.ok ? (
+        <p className="rounded-lg border border-success/40 bg-success/5 p-3 text-sm text-success">
+          {t("Password changed. It applies the next time you sign in.")}
+        </p>
+      ) : null}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="current">{t("Current password")}</Label>
+        <Input id="current" name="current" type="password" required />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="next">{t("New password")}</Label>
+          <Input
+            id="next"
+            name="next"
+            type="password"
+            minLength={10}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm">{t("Repeat new password")}</Label>
+          <Input id="confirm" name="confirm" type="password" required />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t("At least 10 characters. This account can move other people's cargo.")}
+      </p>
+
+      <SubmitButton variant="outline" pendingLabel={t("Changing…")}>
+        <Lock className="mr-2 h-4 w-4" />
+        {t("Change password")}
+      </SubmitButton>
+    </form>
+  );
+}

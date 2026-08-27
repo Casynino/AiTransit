@@ -1,0 +1,686 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
+import {
+  ChevronRight,
+  Download,
+  Paperclip,
+  Printer,
+  Search,
+  X,
+} from "lucide-react";
+
+
+import { useT } from "@/components/app/locale-provider";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+
+import { cn } from "@/lib/utils";
+
+export type CargoCell = {
+  id: string;
+  trackingNumber: string;
+  /** The carton number from the packing list, e.g. GZ/26-22-7. Imported cargo
+   *  only — anything registered through the form has none. Kept on the record
+   *  and shown on the cargo page, but not in lists. */
+  cartonRef: string | null;
+  /** When the China desk took it in, already formatted. */
+  receivedLabel: string;
+  /** Sortable form of the same thing. */
+  receivedAt: string;
+  customerName: string;
+  /**
+   * Already in the reader's language: the batch page resolves it with
+   * `cargoText(locale, shipment, "description")` before handing it down, so a
+   * Lusaka clerk never gets the Chinese original a Guangzhou packer typed.
+   */
+  description: string;
+  weightKg: number;
+  /**
+   * What this consignment is priced at, and whether Finance has signed that
+   * price off. Absent for desks that may not see money — the warehouse opens
+   * this same table.
+   */
+  price?: {
+    amount: number;
+    currency: string;
+    confirmed: boolean;
+    /**
+     * Settled in full.
+     *
+     * The one fact every desk was opening a consignment to find out. It lives
+     * on the price rather than beside it because it IS a fact about the bill,
+     * and it is absent for the warehouse for the same reason the amount is.
+     */
+    paid?: boolean;
+  } | null;
+  packages: number;
+  /** Pre-formatted with its unit — a count is never shown bare. */
+  packagesLabel: string;
+  status: string;
+  category: string;
+  /** Null until the batch has been checked in at Lusaka. */
+  verification: "VERIFIED" | "EXCEPTION" | null;
+  /** What the cargo actually is right now, in the words staff read. */
+  statusLabel: string;
+  /** Who took this cargo in at the China desk. */
+  receivedBy: string | null;
+  /**
+   * Proof photos, taken when the cargo was received. They belong to the cargo,
+   * so they travel with it into the batch, onto the flight and all the way to
+   * the counter — nothing has to copy them along.
+   */
+  photos: { id: string; url: string; kind: string; caption: string | null }[];
+};
+
+/** Short forms, because this column is read at a glance a hundred times a day. */
+const CATEGORY_SHORT: Record<string, string> = {
+  NORMAL_GOODS: "Normal",
+  WIGS: "Electronics",
+  SPECIAL_CATEGORY: "Special",
+};
+
+const CATEGORY_CHIP: Record<string, string> = {
+  NORMAL_GOODS: "bg-brand/10 text-brand",
+  WIGS: "bg-info/10 text-info",
+  SPECIAL_CATEGORY: "bg-warning/10 text-warning",
+};
+
+/**
+ * Shorter status wording for a dense table.
+ *
+ * The full phrase is right on a shipment's own page, where it is read once.
+ * In a column headed "Status", repeated down eighty-five rows, the extra words
+ * only push the actions off the edge of the screen.
+ */
+const SHORT_STATUS: Record<string, string> = {
+  "Waiting for next flight": "Awaiting flight",
+  "Received at Lusaka warehouse": "At Lusaka warehouse",
+};
+
+const CATEGORY_LABEL: Record<string, string> = {
+  NORMAL_GOODS: "Normal goods",
+  WIGS: "Electronics",
+  SPECIAL_CATEGORY: "Special goods",
+};
+
+/**
+ * The photos taken when this cargo was received.
+ *
+ * A paperclip and the word "View", the same as every other proof in the system,
+ * so an attachment reads the same wherever it appears. Tapping opens the photos
+ * full size with a download beside each: someone settling an argument about
+ * damage wants to look now, and someone answering a claim wants the file to
+ * attach to an email.
+ *
+ * Thumbnails were the earlier attempt. In a row eighty-five deep they compete
+ * with the tracking number for attention and win, which is the wrong way round.
+ */
+function PhotoProof({
+  photos,
+  tracking,
+}: {
+  photos: CargoCell["photos"];
+  tracking: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const t = useT();
+
+  if (photos.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title={`${t("View")} ${photos.length} ${t(
+          photos.length === 1 ? "photo" : "photos"
+        )} ${t("of")} ${tracking}`}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-opacity hover:opacity-80"
+      >
+        <Paperclip className="h-3.5 w-3.5" />
+        {t("View")}
+        {photos.length > 1 ? ` ${photos.length}` : ""}
+      </button>
+
+      {open ? (
+        <PhotoViewer
+          photos={photos}
+          tracking={tracking}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** The proof itself, full size, with a download on every image. */
+function PhotoViewer({
+  photos,
+  tracking,
+  onClose,
+}: {
+  photos: CargoCell["photos"];
+  tracking: string;
+  onClose: () => void;
+}) {
+  const t = useT();
+
+  // Escape closes it. A viewer opened by accident in a busy warehouse should
+  // take one key to get out of, not a hunt for the X.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    // The list behind this scrolls in its own box. Left alone, a wheel over the
+    // photo scrolls the table instead, and the row you were looking at is gone
+    // by the time you close.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  // Portalled to the body: the trigger lives inside a table that scrolls in its
+  // own box, and a viewer rendered there would be clipped by it.
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${t("Photos for")} ${tracking}`}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border bg-card shadow-lg"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="sticky top-0 flex items-center justify-between gap-3 border-b bg-card px-5 py-4">
+          <div className="min-w-0">
+            <p className="font-display font-semibold">
+              {t("Proof of receipt")}
+            </p>
+            <p className="font-mono text-xs text-muted-foreground tabular">
+              {tracking} · {photos.length}{" "}
+              {t(photos.length === 1 ? "photo" : "photos")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("Close")}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          {photos.map((photo, index) => (
+            <figure key={photo.id} className="overflow-hidden rounded-lg border">
+              {/* Deliberately a plain img: these are user uploads on a storage
+                  host that may not be in the Next image allow-list, and a broken
+                  optimiser would hide the proof entirely. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.url}
+                alt={photo.caption ?? `${t("Cargo photo for")} ${tracking}`}
+                className="max-h-[55vh] w-full bg-muted object-contain"
+              />
+              <figcaption className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3">
+                <span className="min-w-0 text-xs text-muted-foreground">
+                  {photo.caption ?? `${t("Photo")} ${index + 1}`}
+                </span>
+                <a
+                  href={photo.url}
+                  download={`${tracking}-${index + 1}.jpg`}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {t("Download")}
+                </a>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/**
+ * A batch as cargo, not as rows.
+ *
+ * A packing list is physical: 24 cartons on a pallet, each with a number
+ * painted on it. A table of 86 rows tells you nothing about that; a grid of 86
+ * tiles does — you can see at a glance how much of a batch is electronics, how
+ * much has been checked in, and which carton number is missing.
+ *
+ * Newest first, so whatever the desk just recorded is the first thing it sees.
+ */
+export function CargoGrid({
+  cells,
+  batchId,
+  canPrintLabel = false,
+  showPrice = false,
+}: {
+  cells: CargoCell[];
+  /** Set to allow selecting cargo and printing their stickers together. */
+  batchId?: string;
+  /**
+   * The sticker is made once, in Guangzhou, and travels on the box. Desks that
+   * only read it — Lusaka, Finance, Support — get no print column and no sheet.
+   * See lib/rbac.ts, "label.print".
+   */
+  canPrintLabel?: boolean;
+  /** Finance and the CEO only. See lib/rbac, finance.view. */
+  showPrice?: boolean;
+}) {
+  const [filter, setFilter] = useState<string>("ALL");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("received");
+  const t = useT();
+
+  const sorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    const matches = (cell: CargoCell) =>
+      !q ||
+      [cell.trackingNumber, cell.customerName, cell.description]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+
+    return [...cells]
+      .filter((cell) => filter === "ALL" || cell.category === filter)
+      .filter(matches)
+      .sort((a, b) => {
+        if (sort === "customer") return a.customerName.localeCompare(b.customerName);
+        if (sort === "weight") return b.weightKg - a.weightKg;
+        if (sort === "tracking")
+          return a.trackingNumber.localeCompare(b.trackingNumber);
+        // Newest first. What a desk needs to see the moment it opens a list is
+        // what it just recorded, not what has been sitting there since June.
+        return b.receivedAt.localeCompare(a.receivedAt);
+      });
+  }, [cells, filter, query, sort]);
+
+  const counts = useMemo(() => {
+    const total = cells.length;
+    const verified = cells.filter((c) => c.verification === "VERIFIED").length;
+    const flagged = cells.filter((c) => c.verification === "EXCEPTION").length;
+    const weight = cells.reduce((sum, c) => sum + c.weightKg, 0);
+    const packages = cells.reduce((sum, c) => sum + c.packages, 0);
+    return { total, verified, flagged, weight, packages };
+  }, [cells]);
+
+  const categories = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const cell of cells) {
+      seen.set(cell.category, (seen.get(cell.category) ?? 0) + 1);
+    }
+    return [...seen.entries()];
+  }, [cells]);
+
+  return (
+    <div>
+      {/* Finding one customer in a busy batch is the common task, so search
+          leads and the filters sit under it. */}
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("Customer, tracking number or goods…")}
+            className="pl-9 pr-9"
+            aria-label={t("Search cargo")}
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label={t("Clear search")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        <NativeSelect
+          aria-label={t("Sort cargo")}
+          value={sort}
+          onChange={(event) => setSort(event.target.value)}
+          className="sm:w-48"
+        >
+          <option value="received">{t("Sort: newest first")}</option>
+          <option value="customer">{t("Sort: customer A–Z")}</option>
+          <option value="tracking">{t("Sort: tracking number")}</option>
+          <option value="weight">{t("Sort: heaviest first")}</option>
+        </NativeSelect>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {categories.length > 1 ? (
+          <button
+            type="button"
+            onClick={() => setFilter("ALL")}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+              filter === "ALL"
+                ? "border-foreground bg-foreground text-background"
+                : "hover:bg-accent"
+            )}
+          >
+            {t("All")} {counts.total}
+          </button>
+        ) : null}
+        {categories.length > 1
+          ? categories.map(([category, count]) => (
+          <button
+            key={category}
+            type="button"
+            onClick={() => setFilter(category)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+              filter === category
+                ? "border-foreground bg-foreground text-background"
+                : "hover:bg-accent"
+            )}
+          >
+                {t(CATEGORY_LABEL[category] ?? category)} {count}
+              </button>
+            ))
+          : null}
+
+        {batchId && canPrintLabel ? (
+          <Link
+            href={`/app/batches/${batchId}/stickers`}
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            {t("Print all stickers")}
+          </Link>
+        ) : null}
+
+      </div>
+
+      {query.trim() || filter !== "ALL" ? (
+        <p className="mb-3 text-sm text-muted-foreground">
+          {t("Showing")}{" "}
+          <span className="font-medium text-foreground">{sorted.length}</span>{" "}
+          {t("of")} {counts.total} {t("pieces")}
+        </p>
+      ) : counts.verified > 0 || counts.flagged > 0 ? (
+        <p className="mb-3 text-sm text-muted-foreground">
+          {counts.verified} {t("of")} {counts.total} {t("checked in")}
+          {counts.flagged > 0 ? ` · ${counts.flagged} ${t("flagged")}` : ""} ·{" "}
+          {counts.packages} {t("packages")} · {counts.weight.toFixed(1)} kg
+        </p>
+      ) : (
+        <p className="mb-3 text-sm text-muted-foreground">
+          {counts.packages} {t("packages")} · {counts.weight.toFixed(1)} kg
+        </p>
+      )}
+
+      {/*
+        Eleven columns, two of them pinned to the right edge. That is a good
+        desk table and an impossible phone one — and this list is read on the
+        floor, next to the cargo it describes.
+
+        Below md: one card per consignment. Flagged cargo keeps its red tint,
+        because "which of these has a problem" is the question somebody walking
+        the floor is actually asking.
+      */}
+      <ul className="space-y-2 md:hidden">
+        {sorted.map((cell) => (
+          <li
+            key={cell.id}
+            className={cn(
+              "rounded-xl border bg-card p-3 shadow-soft",
+              /* Settled, at a glance. A green rail down the edge and a faint
+                 wash — enough to pick out of fifty rows without reading a
+                 single figure, which is the whole point. An exception still
+                 wins: a problem outranks a paid bill. */
+              cell.price?.paid &&
+                "border-success/30 bg-success/[0.06] shadow-[inset_3px_0_0_0_hsl(var(--success))]",
+              cell.verification === "EXCEPTION" && "border-destructive/40 bg-destructive/5"
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <Link
+                href={`/app/cargo/${cell.trackingNumber}`}
+                className="font-mono text-sm font-semibold hover:text-brand"
+              >
+                {cell.trackingNumber}
+              </Link>
+              <span className="shrink-0 text-xs">
+                {cell.verification === "EXCEPTION" ? (
+                  <span className="font-medium text-destructive">{t("Flagged")}</span>
+                ) : cell.verification === "VERIFIED" ? (
+                  <span className="text-success">{t("Checked in")}</span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {t(SHORT_STATUS[cell.statusLabel] ?? cell.statusLabel)}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <p className="mt-1 truncate text-sm">{cell.customerName}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">
+              {cell.description}
+            </p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="font-mono tabular-nums">
+                {cell.weightKg.toFixed(1)} kg
+              </span>
+              <span className="font-mono tabular-nums">{cell.packagesLabel}</span>
+              <span>{cell.receivedLabel}</span>
+              {showPrice && cell.price ? (
+                <span className="font-mono tabular-nums text-foreground">
+                  {cell.price.currency} {cell.price.amount.toFixed(2)}
+                  {!cell.price.confirmed ? (
+                    <span className="ml-1 rounded bg-signal/10 px-1 py-0.5 text-xs font-medium text-signal">
+                      {t("draft")}
+                    </span>
+                  ) : null}
+                  {/* Settled, said on the row. Green, because on this screen
+                      green has only ever meant money the business is holding. */}
+                  {cell.price.paid ? (
+                    <span className="ml-1 rounded bg-success/15 px-1.5 py-0.5 text-xs font-semibold text-success">
+                      {t("Paid")}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
+              <PhotoProof photos={cell.photos} tracking={cell.trackingNumber} />
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-hidden rounded-xl border bg-card shadow-soft md:block">
+          <div className="max-h-[70vh] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-muted text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">{t("Received")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Tracking")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Customer")}</th>
+                  {/* The same words as the registration form, so the desk recognises
+                      what it typed. */}
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">
+                    {t("Which item?")}
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium">
+                    {t("Weight")}
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
+                    {t("Counted as")}
+                  </th>
+                  <th className="hidden px-3 py-2 font-medium md:table-cell">
+                    {t("Proof")}
+                  </th>
+                  {showPrice ? (
+                    <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
+                      {t("Price")}
+                    </th>
+                  ) : null}
+                  <th className="hidden px-3 py-2 font-medium 2xl:table-cell">
+                    {t("Received by")}
+                  </th>
+                  <th className="px-3 py-2 font-medium">{t("Status")}</th>
+                  {/* Both actions get a heading of their own. A blank column
+                      header over two buttons reads as an accident. Widths are
+                      fixed so the pinned offsets below line up with them. */}
+                  {canPrintLabel ? (
+                    <th className="sticky right-[92px] z-20 w-[92px] min-w-[92px] bg-muted px-3 py-2 font-medium">
+                      {t("Print")}
+                    </th>
+                  ) : null}
+                  <th className="sticky right-0 z-20 w-[92px] min-w-[92px] bg-muted px-3 py-2 font-medium">
+                    {t("Open")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((cell) => (
+                  <tr
+                    key={cell.id}
+                    className={cn(
+                      "border-t",
+                      cell.price?.paid &&
+                        "bg-success/[0.06] shadow-[inset_3px_0_0_0_hsl(var(--success))]",
+                      cell.verification === "EXCEPTION" && "bg-destructive/5"
+                    )}
+                  >
+                    <td className="whitespace-nowrap px-3 py-1.5 text-xs text-muted-foreground">
+                      {cell.receivedLabel}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5">
+                      <Link
+                        href={`/app/cargo/${cell.trackingNumber}`}
+                        className="font-mono text-xs hover:text-brand hover:underline"
+                      >
+                        {cell.trackingNumber}
+                      </Link>
+                    </td>
+                    <td className="max-w-[12rem] truncate px-3 py-1.5">
+                      {cell.customerName}
+                    </td>
+                    <td className="max-w-[18rem] truncate px-3 py-1.5 text-muted-foreground">
+                      {cell.description}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right font-mono tabular-nums">
+                      {cell.weightKg.toFixed(1)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right font-mono tabular-nums">
+                      {cell.packagesLabel}
+                    </td>
+                    <td className="hidden whitespace-nowrap px-3 py-1.5 md:table-cell">
+                      <PhotoProof photos={cell.photos} tracking={cell.trackingNumber} />
+                    </td>
+                    {showPrice ? (
+                      <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                        {cell.price ? (
+                          <>
+                            <span className="font-medium">
+                              {cell.price.currency} {cell.price.amount.toFixed(2)}
+                            </span>
+                            {/* An unconfirmed figure has to look unconfirmed,
+                                or a desk signs off a list it believes is
+                                already agreed. */}
+                            {!cell.price.confirmed ? (
+                              <span className="ml-1.5 rounded bg-signal/10 px-1.5 py-0.5 text-xs font-medium text-signal">
+                                {t("draft")}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    ) : null}
+                    <td className="hidden whitespace-nowrap px-3 py-1.5 text-xs text-muted-foreground 2xl:table-cell">
+                      {cell.receivedBy ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-xs">
+                      {cell.verification === "EXCEPTION" ? (
+                        <span className="font-medium text-destructive">{t("Flagged")}</span>
+                      ) : cell.verification === "VERIFIED" ? (
+                        <span className="text-success">{t("Checked in")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {t(SHORT_STATUS[cell.statusLabel] ?? cell.statusLabel)}
+                        </span>
+                      )}
+                    </td>
+                    {/* One click, one sticker. The label is normally printed
+                        the moment the cargo is recorded; this is here for the
+                        reprint, which is the only reason to come looking. */}
+                    {canPrintLabel ? (
+                      <td
+                        className={cn(
+                          "sticky right-[92px] z-10 w-[92px] min-w-[92px] px-3 py-1.5",
+                          // Matches the row so the pinned column does not look
+                          // like it is floating over the content it belongs to.
+                          cell.verification === "EXCEPTION"
+                            ? "bg-[hsl(var(--card))]"
+                            : "bg-card"
+                        )}
+                      >
+                        <Link
+                          href={`/app/cargo/${cell.trackingNumber}/label`}
+                          title={`${t("Print sticker for")} ${cell.trackingNumber}`}
+                          aria-label={`${t("Print sticker for")} ${cell.trackingNumber}`}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          {t("Print")}
+                        </Link>
+                      </td>
+                    ) : null}
+                    {/* An explicit way in. The tracking number is a link too,
+                        but a small mono number is a poor target and nothing
+                        about it says "there is more here". */}
+                    <td
+                      className={cn(
+                        "sticky right-0 z-10 w-[92px] min-w-[92px] px-3 py-1.5",
+                        cell.verification === "EXCEPTION"
+                          ? "bg-[hsl(var(--card))]"
+                          : "bg-card"
+                      )}
+                    >
+                      <Link
+                        href={`/app/cargo/${cell.trackingNumber}`}
+                        className="inline-flex items-center gap-0.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-brand"
+                      >
+                        {t("Open")}
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          {t("Nothing in this batch matches that filter.")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
