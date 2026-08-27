@@ -307,36 +307,36 @@ async function main() {
       },
     });
 
-  const closedBatch = await mkBatch({
+  /*
+    EXACTLY TWO BATCHES, because that is what AITRANSIT actually runs: one
+    consolidation out of Guangzhou for general cargo, one out of Hong Kong for
+    electronics and the special category. The source system's demo data carried
+    four, which made the batch list look busy and taught a new operator nothing
+    the two do not.
+
+    They are at different points on purpose. Guangzhou has LANDED, so its ten
+    items can sit at every stage after arrival — still to be checked in, checked
+    in, invoiced, chased, released, gone. Hong Kong is still IN THE AIR, so its
+    ten show the China half: registered, assigned, sealed, flying. Between them
+    the twenty cover the whole workflow without either batch telling a story
+    that could not happen.
+  */
+  const guangzhouBatch = await mkBatch({
     origin: "GUANGZHOU",
-    status: "VERIFIED",
+    status: "ARRIVED",
     airline: "Ethiopian Airlines",
     flightNumber: "ET 8611",
     waybillNumber: "071-45889231",
-    departureDate: daysAgo(21),
-    departedAt: daysAgo(21),
-    arrivalDate: daysAgo(18),
-    arrivedAt: daysAgo(18),
-    verifiedAt: daysAgo(18),
+    departureDate: daysAgo(6),
+    departedAt: daysAgo(6),
+    arrivalDate: daysAgo(3),
+    arrivedAt: daysAgo(3),
+    notes: "General cargo — normal goods and wigs.",
     createdById: china,
-    createdAt: daysAgo(26),
+    createdAt: daysAgo(12),
   });
 
-  const arrivedBatch = await mkBatch({
-    origin: "GUANGZHOU",
-    status: "ARRIVED",
-    airline: "Emirates SkyCargo",
-    flightNumber: "EK 9821",
-    waybillNumber: "176-33920114",
-    departureDate: daysAgo(4),
-    departedAt: daysAgo(4),
-    arrivalDate: daysAgo(1),
-    arrivedAt: daysAgo(1),
-    createdById: china,
-    createdAt: daysAgo(9),
-  });
-
-  const transitBatch = await mkBatch({
+  const hongKongBatch = await mkBatch({
     origin: "HONG_KONG",
     status: "IN_TRANSIT",
     airline: "Qatar Airways Cargo",
@@ -344,16 +344,9 @@ async function main() {
     waybillNumber: "157-88213076",
     departureDate: daysAgo(1),
     departedAt: daysAgo(1),
+    notes: "Electronics and special category out of Hong Kong.",
     createdById: china,
-    createdAt: daysAgo(6),
-  });
-
-  const openBatch = await mkBatch({
-    origin: "GUANGZHOU",
-    status: "OPEN",
-    notes: "Targeting the Thursday freighter.",
-    createdById: china,
-    createdAt: daysAgo(2),
+    createdAt: daysAgo(7),
   });
 
   // ---------------------------------------------------------------- shipments
@@ -385,137 +378,61 @@ async function main() {
   */
   const rateFor = (weightKg: number) => (weightKg >= 10 ? 13 : 13.5);
 
+  /*
+    Ten and ten. The counts are asserted at the end of this file — a demo batch
+    that quietly grows an eleventh item stops being the thing the spec asked for.
+  */
   const specs: Spec[] = [
-    // Completed journey
-    {
-      customer: 0,
-      goodsType: "GENERAL_MERCHANDISE",
-      description: "Assorted general goods",
-      packages: 6,
-      weightKg: 148.5,
-      batchId: closedBatch.id,
-      status: "DELIVERED",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 26,
-    },
-    {
-      customer: 1,
-      goodsType: "PHONE_ACCESSORIES",
-      description: "Mobile phone accessories",
-      packages: 3,
-      weightKg: 62.25,
-      batchId: closedBatch.id,
-      status: "DELIVERED",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 25,
-    },
-    // Arrived, checked in, paid — waiting at the counter
-    {
-      customer: 2,
-      goodsType: "TEXTILES_GARMENTS",
-      description: "Ladies' clothing",
-      packages: 8,
-      weightKg: 211,
-      batchId: arrivedBatch.id,
-      status: "READY_FOR_PICKUP",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 9,
-    },
-    // Arrived, checked in, unpaid — the chase list
-    {
-      customer: 3,
-      goodsType: "MACHINERY_PARTS",
-      description: "Water pump spare parts",
-      packages: 2,
-      weightKg: 94.8,
-      batchId: arrivedBatch.id,
-      status: "RECEIVED_AT_ZAMBIA",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 8,
-    },
-    // Arrived but not yet checked in (the Lusaka to-do list)
-    {
-      customer: 4,
-      goodsType: "COSMETICS",
-      description: "Human hair & beauty products",
-      packages: 5,
-      weightKg: 77.4,
-      batchId: arrivedBatch.id,
-      status: "IN_TRANSIT",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 8,
-    },
-    // In the air
-    {
-      customer: 0,
-      goodsType: "FOOTWEAR",
-      description: "Shoes / sneakers",
-      packages: 12,
-      weightKg: 305.2,
-      batchId: transitBatch.id,
-      status: "IN_TRANSIT",
-      origin: "HONG_KONG",
-      registeredDaysAgo: 6,
-    },
-    {
-      customer: 1,
-      goodsType: "ELECTRONICS",
-      description: "LED lighting",
-      packages: 4,
-      weightKg: 118,
-      batchId: transitBatch.id,
-      status: "IN_TRANSIT",
-      origin: "HONG_KONG",
-      registeredDaysAgo: 5,
-    },
-    // Sitting in China
-    {
-      customer: 2,
-      goodsType: "STATIONERY",
-      description: "Office stationery",
-      packages: 3,
-      weightKg: 41.6,
-      batchId: openBatch.id,
-      status: "READY_TO_DEPART",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 2,
-    },
-    {
-      customer: 3,
-      goodsType: "AUTO_SPARES",
-      description: "Motorcycle spare parts",
-      packages: 7,
-      weightKg: 189.35,
-      batchId: openBatch.id,
-      status: "READY_TO_DEPART",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 1,
-    },
-    {
-      customer: 4,
-      goodsType: "FURNITURE_FITTINGS",
-      description: "Kitchen fittings",
-      packages: 2,
-      weightKg: 66,
-      batchId: null,
-      status: "READY_TO_DEPART",
-      origin: "GUANGZHOU",
-      registeredDaysAgo: 0,
-    },
+    // ---------------- Guangzhou (landed) — the Lusaka half of the workflow
+    { customer: 0, goodsType: "TEXTILES_GARMENTS", description: "Ladies' clothing", packages: 8, weightKg: 211, batchId: guangzhouBatch.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 12 },
+    { customer: 1, goodsType: "GENERAL_MERCHANDISE", description: "Assorted general goods", packages: 6, weightKg: 148.5, batchId: guangzhouBatch.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 12 },
+    { customer: 2, goodsType: "COSMETICS", description: "Human hair and beauty products", packages: 5, weightKg: 77.4, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 11 },
+    { customer: 3, goodsType: "FOOTWEAR", description: "Shoes and sneakers", packages: 12, weightKg: 305.2, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 11 },
+    { customer: 4, goodsType: "TEXTILES_GARMENTS", description: "Wigs and hair bundles", packages: 3, weightKg: 28.6, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 10 },
+    { customer: 0, goodsType: "MACHINERY_PARTS", description: "Water pump spare parts", packages: 2, weightKg: 94.8, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 10 },
+    { customer: 1, goodsType: "AUTO_SPARES", description: "Motorcycle spare parts", packages: 7, weightKg: 189.35, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 10 },
+    { customer: 2, goodsType: "FURNITURE_FITTINGS", description: "Kitchen fittings", packages: 2, weightKg: 66, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 9 },
+    { customer: 3, goodsType: "GENERAL_MERCHANDISE", description: "Household plasticware", packages: 4, weightKg: 52.75, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 9 },
+    { customer: 4, goodsType: "STATIONERY", description: "Office stationery", packages: 3, weightKg: 0.8, batchId: guangzhouBatch.id, status: "IN_TRANSIT", origin: "GUANGZHOU", registeredDaysAgo: 9 },
+
+    // ---------------- Hong Kong (in the air) — the China half
+    { customer: 0, goodsType: "ELECTRONICS", description: "LED lighting panels", packages: 4, weightKg: 118, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 7 },
+    { customer: 1, goodsType: "PHONE_ACCESSORIES", description: "Mobile phone accessories", packages: 3, weightKg: 62.25, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 7 },
+    { customer: 2, goodsType: "ELECTRONICS", description: "Laptop chargers and cables", packages: 5, weightKg: 41.9, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
+    { customer: 3, goodsType: "ELECTRONICS", description: "Bluetooth speakers", packages: 6, weightKg: 88.4, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
+    { customer: 4, goodsType: "PHONE_ACCESSORIES", description: "Phone cases and screen protectors", packages: 2, weightKg: 17.3, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
+    { customer: 0, goodsType: "ELECTRONICS", description: "Power banks", packages: 4, weightKg: 73.6, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 5 },
+    { customer: 1, goodsType: "COSMETICS", description: "Branded cosmetics", packages: 3, weightKg: 24.15, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 5 },
+    { customer: 2, goodsType: "ELECTRONICS", description: "CCTV cameras and recorders", packages: 5, weightKg: 102.8, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 4 },
+    { customer: 3, goodsType: "ELECTRONICS", description: "Tablet computers", packages: 2, weightKg: 31.5, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 3 },
+    { customer: 4, goodsType: "PHONE_ACCESSORIES", description: "Smart watches", packages: 1, weightKg: 0.6, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 2 },
   ];
+
+  /*
+    The specification is explicit: exactly ten items per sample batch. Asserting
+    it here rather than trusting the list above, because a seed is edited by
+    people in a hurry and an eleventh row is invisible until somebody counts.
+  */
+  for (const [label, id] of [
+    ["Guangzhou", guangzhouBatch.id],
+    ["Hong Kong", hongKongBatch.id],
+  ] as const) {
+    const n = specs.filter((spec) => spec.batchId === id).length;
+    if (n !== 10) {
+      throw new Error(`${label} batch must hold exactly 10 sample items, found ${n}.`);
+    }
+  }
 
   const created: { id: string; trackingNumber: string; spec: Spec }[] = [];
 
   for (const spec of specs) {
     const registeredAt = daysAgo(spec.registeredDaysAgo);
     const batch =
-      spec.batchId === closedBatch.id
-        ? closedBatch
-        : spec.batchId === arrivedBatch.id
-          ? arrivedBatch
-          : spec.batchId === transitBatch.id
-            ? transitBatch
-            : null;
+      spec.batchId === guangzhouBatch.id
+        ? guangzhouBatch
+        : spec.batchId === hongKongBatch.id
+          ? hongKongBatch
+          : null;
 
     const departedAt =
       spec.status === "READY_TO_DEPART" ? null : (batch?.departedAt ?? null);
@@ -719,7 +636,7 @@ async function main() {
     await prisma.shipmentException.create({
       data: {
         shipmentId: damaged.id,
-        batchId: arrivedBatch.id,
+        batchId: guangzhouBatch.id,
         type: "DAMAGED_CARGO",
         description:
           "One carton arrived with a torn corner. Contents counted and complete; customer informed.",

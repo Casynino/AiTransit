@@ -825,3 +825,14 @@ body:has(> .ai-site) {
 @media (prefers-reduced-motion: reduce) {
   :where(.ai-site) .ai-aurora { animation: none; }
 }
+
+/* The live dot on the route board. Opacity and scale only — both run on the
+   compositor — and it stops for anyone who has asked for less motion. */
+:where(.ai-site) .ai-pulse { animation: ai-pulse 2.4s ease-in-out infinite; }
+@keyframes ai-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.85); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.ai-site) .ai-pulse { animation: none; }
+}

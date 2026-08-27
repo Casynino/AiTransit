@@ -27,6 +27,7 @@ import { CountUp, Reveal } from "@/components/brand/motion";
 import { Photo } from "@/components/brand/photo";
 import { ProcessTimeline } from "@/components/brand/process";
 import { QuickPanel } from "@/components/brand/quick-panel";
+import { RouteBoard } from "@/components/brand/route-board";
 import { RouteGlobe } from "@/components/brand/route-globe";
 import { StarField } from "@/components/brand/star-field";
 import { Testimonials } from "@/components/brand/testimonials";
@@ -185,53 +186,54 @@ export default async function HomePage() {
           HERO — full-bleed photography, the corridor on a globe
       ================================================================= */}
       <section className="ai-on-ink relative overflow-hidden pb-36 pt-32 md:pb-44 md:pt-40">
-        <div aria-hidden className="absolute inset-0">
-          <Image
-          unoptimized
-            src={img(IMAGES.apron, 2000)}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-          <span
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(100deg, hsl(213 62% 8% / 0.97) 0%, hsl(213 62% 8% / 0.9) 42%, hsl(213 62% 8% / 0.55) 100%)",
-            }}
-          />
-        </div>
-        {/* The sky sits over the photograph and under the copy. It is what
-            carries the hero in the light theme, where the same image behind a
-            pale scrim would otherwise read as a washed-out stock photo. */}
+        {/*
+          NO PHOTOGRAPH HERE, on purpose.
+
+          This band used to open on a dark airport apron — the same stock
+          photograph the source system uses, in the same composition, with a
+          globe in a box on the right. Side by side the two sites read as one
+          company with two logos, which is the one thing this brand was not
+          allowed to be.
+
+          What carries it instead is the thing the source system does not have:
+          the sky. Starfield, two slow colour drifts, and the route globe scaled
+          up and bled off the right edge so it is atmosphere rather than an
+          illustration sitting in a column. Nothing here is stock.
+        */}
         <StarField />
+
+        {/* The corridor, as ambience. Enormous, half off the page, and behind
+            everything — it still spins and can still be dragged where the copy
+            does not cover it. */}
+        <div
+          aria-hidden="false"
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] items-center justify-center lg:flex"
+        >
+          <RouteGlobe className="pointer-events-auto w-[46rem] max-w-none translate-x-[18%] opacity-[0.85]" />
+        </div>
 
         <Wrap className="relative">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
-              <div className="ai-rise">
-                <Badge tone="ink">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: "hsl(var(--ai-copper))" }}
-                  />
-                  Guangzhou · Hong Kong → Lusaka
-                </Badge>
-              </div>
-
-              <h1 className="ai-display-xl ai-rise ai-rise-1 mt-7">
-                From China to Zambia,
-                <br className="hidden sm:block" /> delivered with{" "}
-                <span style={{ color: "hsl(var(--ai-copper))" }}>confidence</span>.
+              {/* The old headline said "delivered with confidence", which is
+                  what every freight company on earth says. This one says what
+                  the customer actually buys: the whole middle of the journey
+                  stops being their problem. */}
+              <h1 className="ai-display-xl ai-rise ai-rise-1">
+                Buy in China.
+                <br className="hidden sm:block" /> Collect in Lusaka.{" "}
+                <span style={{ color: "hsl(var(--ai-copper))" }}>
+                  We do the rest.
+                </span>
               </h1>
 
               <p className="ai-lede ai-rise ai-rise-2 mt-7 max-w-xl">
-                Air cargo with duty already included to our Lusaka warehouse. We
-                pay your suppliers in RMB, walk the Guangzhou markets with you,
-                inspect and pack what you buy, and change your money at a rate we
-                confirm first.
+                We pay your supplier in RMB, walk the Guangzhou markets with
+                you, inspect and pack what you buy, and fly it to our Lusaka
+                warehouse with the duty already in the price.{" "}
+                <strong className="font-semibold">
+                  One company, both ends of the route.
+                </strong>
               </p>
 
               <div className="ai-rise ai-rise-3 mt-9">
@@ -279,24 +281,15 @@ export default async function HomePage() {
             </div>
 
             {/*
-              The corridor, live — and shown on a phone too.
+              The board, over the globe. See components/brand/route-board.
 
-              It was desktop-only, which meant the single most striking thing on
-              the site was invisible to most of the people who visit it. It is
-              capped smaller on a handset so it never pushes the calls to action
-              below the fold, and cobe scales its own buffer to the rendered
-              width, so the smaller canvas is genuinely cheaper rather than the
-              same work drawn smaller.
+              On a handset the globe is hidden entirely and this stands alone —
+              a phone has no room for both, and of the two it is the board that
+              answers the question a visitor arrived with.
             */}
             <div className="ai-rise ai-rise-3 relative">
-              <RouteGlobe className="mx-auto w-full max-w-[16rem] sm:max-w-[20rem] lg:max-w-[30rem]" />
-              <p
-                className="mt-4 text-center text-xs"
-                style={{ color: "hsl(var(--ai-light)/0.62)" }}
-              >
-                Our loading airports, the hubs we connect through, and home.
-                <span className="hidden sm:inline"> Drag to spin.</span>
-              </p>
+              <RouteGlobe className="mx-auto mb-8 w-full max-w-[15rem] sm:max-w-[17rem] lg:hidden" />
+              <RouteBoard categories={rates} className="lg:ml-auto lg:max-w-[26rem]" />
             </div>
           </div>
         </Wrap>

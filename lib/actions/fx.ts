@@ -20,13 +20,32 @@ const schema = z.object({
     .refine((v) => !Number.isNaN(Number(v)), "The rate must be a number.")
     .transform(Number)
     .refine((v) => v > 0, "The rate must be greater than zero.")
-    // A fat-fingered 27000 instead of 2700 would multiply every invoice tenfold.
+    /*
+      A KWACHA range, not a shilling one.
+
+      This guard was inherited as 100–100,000, which is right for USD→TZS at
+      roughly 2,700 and catches a fat-fingered extra zero. The kwacha trades
+      near 27, so that same guard rejected every correct Zambian rate — the
+      Finance desk could not save a rate at all. The band below is wide enough
+      to survive a real devaluation and still narrow enough to catch the
+      decimal-point error it exists for.
+    */
     .refine(
-      (v) => v >= 100 && v <= 100_000,
-      "That rate looks wrong for USD→ZMW. Check the number of digits."
+      (v) => v >= 5 && v <= 500,
+      "That rate looks wrong for USD→ZMW. Check the decimal point."
     ),
+  buyRate: z.string().trim().optional(),
+  sellRate: z.string().trim().optional(),
+  source: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
+
+/** Optional numeric field: blank means "not stated", not zero. */
+function decimalOrNull(value: string | undefined) {
+  if (!value) return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? new Prisma.Decimal(n) : null;
+}
 
 /**
  * Publishes a new USD→ZMW rate.
@@ -67,7 +86,19 @@ export async function setExchangeRate(
           fromCurrency: BASE_CURRENCY,
           toCurrency: LOCAL_CURRENCY,
           rate: new Prisma.Decimal(parsed.data.rate),
+          buyRate: decimalOrNull(parsed.data.buyRate),
+          sellRate: decimalOrNull(parsed.data.sellRate),
           notes: parsed.data.notes || null,
+          /*
+            CONFIRMED, because a person with `fx.manage` typed it and pressed
+            save — that is what confirmation is. Rates that arrive any other
+            way (the seed, an import, a provider) land as INDICATIVE and have
+            to be accepted here before anything settles at them.
+          */
+          status: "CONFIRMED",
+          source: parsed.data.source?.trim() || "Entered by hand",
+          confirmedById: user.id,
+          confirmedAt: new Date(),
           setById: user.id,
         },
       });

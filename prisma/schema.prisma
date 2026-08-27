@@ -494,10 +494,14 @@ model User {
   customerId String?   @unique
   customer   Customer? @relation("CustomerPortalUser", fields: [customerId], references: [id], onDelete: Cascade)
 
-  fxRatesSet          PublishedFxRate[] @relation("FxRateSetBy")
-  appointmentsHandled Appointment[]     @relation("AppointmentHandledBy")
-  exchangeReviews     ExchangeRequest[] @relation("ExchangeReviewedBy")
-  supplierPayments    SupplierPayment[] @relation("SupplierPaymentHandledBy")
+  fxRatesSet           PublishedFxRate[] @relation("FxRateSetBy")
+  appointmentsHandled  Appointment[]     @relation("AppointmentHandledBy")
+  exchangeReviews      ExchangeRequest[] @relation("ExchangeReviewedBy")
+  supplierPayments     SupplierPayment[] @relation("SupplierPaymentHandledBy")
+  /// Rates this user accepted. See FxRateStatus — proposing and confirming a
+  /// rate are two different acts, and the schema keeps them apart.
+  fxRatesConfirmed     ExchangeRate[]    @relation("FxRateConfirmedBy")
+  publishedFxConfirmed PublishedFxRate[] @relation("PublishedFxConfirmedBy")
 
   @@index([role])
   @@index([department, active])
@@ -1828,24 +1832,76 @@ model PricingRule {
 /// invoice snapshots the rate in force when it was raised and never follows a
 /// later change — otherwise last month's accounts would silently rewrite
 /// themselves every time the rate moved.
+/// Where a rate came from, and whether anybody has stood behind it yet.
+enum FxRateStatus {
+  /// Seeded, imported, or pulled from a provider. USABLE FOR DISPLAY, and for
+  /// an estimate, but it is nobody's promise. Customer-facing surfaces must say
+  /// so — see "Rates subject to confirmation" on the exchange page.
+  INDICATIVE
+  /// A named person at AITRANSIT has looked at it and accepted it. Only a
+  /// confirmed rate should settle money.
+  CONFIRMED
+  /// Superseded or withdrawn. Kept, never deleted: an invoice may still point
+  /// at it, and an invoice must always be able to explain its own arithmetic.
+  RETIRED
+}
+
+/// The SETTLEMENT rate: what the books convert at.
+///
+/// Distinct from `PublishedFxRate`, which is the shop-window board for the
+/// money-changing service. This one is accounting infrastructure — an invoice
+/// raised in USD and paid in kwacha stores the row it used, forever.
+///
+/// A DATED HISTORY, NOT A SETTING. Updating the rate inserts a row; nothing is
+/// ever overwritten, because recalculating an old invoice would change a figure
+/// a customer was already given.
 model ExchangeRate {
   id String @id @default(cuid())
 
   fromCurrency String  @default("USD")
   toCurrency   String  @default("ZMW")
-  /// Units of toCurrency per one unit of fromCurrency, e.g. 2700.
+  /// The rate the books settle at. Units of toCurrency per one unit of
+  /// fromCurrency, e.g. 27.5000.
   rate         Decimal @db.Decimal(14, 4)
+
+  /// The two sides of the spread, when the desk keeps one. Optional because
+  /// the accounting rate above is what actually converts a ledger entry; these
+  /// record what the desk was buying and selling at on the day, so a query
+  /// about a historical margin has somewhere to look.
+  buyRate  Decimal? @db.Decimal(14, 4)
+  sellRate Decimal? @db.Decimal(14, 4)
+
+  /// INDICATIVE until somebody accepts it. Seeds land as INDICATIVE on purpose:
+  /// a number nobody has confirmed must never be able to pass itself off as one
+  /// the company stands behind.
+  status FxRateStatus @default(INDICATIVE)
+
+  /// Where the figure came from — "Bank of Zambia", "manual", a provider name.
+  /// `sourceRef` carries the provider's own identifier or the URL it was read
+  /// from, so a rate on a six-month-old invoice can still be traced.
+  source    String?
+  sourceRef String?
+  /// When the provider says the quote was struck, as opposed to when we stored
+  /// it. Null for a rate typed in by hand.
+  fetchedAt DateTime?
 
   effectiveFrom DateTime @default(now())
   active        Boolean  @default(true)
   notes         String?
 
-  setById String?
-  setBy   User?   @relation(fields: [setById], references: [id], onDelete: SetNull)
+  /// Who put it in, and who accepted it. Two different acts and often two
+  /// different people: Finance proposes the morning rate, Admin confirms it.
+  setById       String?
+  setBy         User?     @relation(fields: [setById], references: [id], onDelete: SetNull)
+  confirmedById String?
+  confirmedBy   User?     @relation("FxRateConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt   DateTime?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([active, fromCurrency, toCurrency, effectiveFrom])
+  @@index([status])
 }
 
 /// Published rates behind the public shipping calculator.
@@ -2952,6 +3008,26 @@ model PublishedFxRate {
 
   /// Shown on the public board beneath the pair — "cash only", "min USD 500".
   note String?
+
+  /// Same three-state life as the settlement rate. The public board renders
+  /// "Rates subject to confirmation" for anything not CONFIRMED, so a seeded
+  /// opening figure can never read as a price AITRANSIT has agreed to trade at.
+  status FxRateStatus @default(INDICATIVE)
+
+  /// Provenance, for the same reason `ExchangeRate` carries it: a rate is a
+  /// claim, and a claim needs a source.
+  source    String?
+  sourceRef String?
+  fetchedAt DateTime?
+
+  /// When this board price starts applying. The board shows one row per pair,
+  /// so this is a display fact rather than a history — the history that matters
+  /// legally is on `ExchangeRate`.
+  effectiveFrom DateTime @default(now())
+
+  confirmedById String?
+  confirmedBy   User?     @relation("PublishedFxConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt   DateTime?
 
   active    Boolean @default(true)
   sortOrder Int     @default(0)
