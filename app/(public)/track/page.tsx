@@ -30,6 +30,7 @@ import {
 import { COMPANY, PAYMENT_METHODS } from "@/lib/constants";
 import { formatUsd } from "@/lib/money";
 import { trackByCode, type PublicShipment, type TrackingResult } from "@/lib/tracking";
+import { IMAGES } from "@/lib/imagery";
 
 export const metadata: Metadata = {
   title: "Track your cargo",
@@ -63,6 +64,8 @@ export default async function TrackPage({
         eyebrow="Track cargo"
         title="Where is my cargo?"
         lede="Enter the tracking number from the label on your box. It works from the moment we register it in Guangzhou until you collect it in Makeni."
+        photo={IMAGES.warehouseTablet}
+        photoAlt="A parcel being scanned into the warehouse"
       >
         <TrackInput autoFocus={!q} />
       </PageHero>

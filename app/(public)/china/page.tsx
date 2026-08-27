@@ -12,6 +12,9 @@ import {
   Wrap,
 } from "@/components/brand/ui";
 import { COMPANY } from "@/lib/constants";
+import { IMAGES } from "@/lib/imagery";
+import { PhotoBand } from "@/components/brand/photo-band";
+import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "China warehouse address",
@@ -39,6 +42,20 @@ export default function ChinaPage() {
         eyebrow="China warehouse"
         title="Send your supplier this address"
         lede="Copy the Chinese block below and send it to them on WeChat or WhatsApp. It is what their driver reads at our gate in Baiyun District."
+        media={
+          <PhotoDuo
+            main={IMAGES.guangzhouSkyline}
+            inset={IMAGES.warehouseTablet}
+            mainAlt="The Guangzhou skyline"
+            insetAlt="Goods being checked in at the counter"
+            priority
+          />
+        }
+        stats={[
+          { value: "Baiyun", label: "district, Guangzhou" },
+          { value: "Free", label: "collection from your supplier" },
+          { value: "Same day", label: "tracking once it reaches us" },
+        ]}
       />
 
       <Section tone="stone">
@@ -175,6 +192,23 @@ export default function ChinaPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.guangzhouAerial}
+        eyebrow="Next step"
+        title="Your supplier does not need to know anything about shipping"
+        lede="Give them our Baiyun address, or give us theirs and we collect. Either way the next thing you see is a tracking number."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/pickup" tone="copper">
+            Arrange a collection
+          </BtnLink>
+          <BtnLink href="/book" tone="outline-invert">
+            Book your cargo
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

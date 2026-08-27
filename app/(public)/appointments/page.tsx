@@ -8,9 +8,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { PhotoBand } from "@/components/brand/photo-band";
 import { BookingForm } from "@/components/brand/booking-form";
 import { Reveal } from "@/components/brand/motion";
 import {
+  BtnLink,
   Card,
   Eyebrow,
   PageHero,
@@ -70,6 +72,8 @@ export default async function AppointmentsPage({
         eyebrow="Appointments"
         title="Book a pickup, a market day, or a factory tour"
         lede="One form for everything with a date on it — collecting your cargo in Makeni, or meeting a supplier in Guangzhou with someone who speaks the language."
+        photo={IMAGES.clothingRail}
+        photoAlt="A wholesale market stall in Guangzhou"
       />
 
       <Section tone="stone">
@@ -204,6 +208,23 @@ export default async function AppointmentsPage({
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.pearlRiver}
+        eyebrow="Next step"
+        title="We will meet you at the market"
+        lede="An interpreter, a driver and somebody who knows which building sells what — booked the same way you book a pickup in Makeni."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/markets" tone="copper">
+            Explore the markets
+          </BtnLink>
+          <BtnLink href="/contact" tone="outline-invert">
+            Ask a question first
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

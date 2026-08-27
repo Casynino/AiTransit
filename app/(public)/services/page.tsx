@@ -25,6 +25,9 @@ import {
 } from "@/components/brand/ui";
 import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
 import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
+import { IMAGES } from "@/lib/imagery";
+import { PhotoBand } from "@/components/brand/photo-band";
+import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "Cargo services",
@@ -100,6 +103,20 @@ export default function ServicesPage() {
         eyebrow="Cargo services"
         title="One company from your supplier's gate to your shop floor"
         lede="Most forwarders start when the cargo reaches their warehouse. We start earlier — paying the factory, checking the goods and collecting them — and we finish later, with duty already settled before your cargo lands."
+        media={
+          <PhotoDuo
+            main={IMAGES.cargoLoading}
+            inset={IMAGES.boxHandover}
+            mainAlt="Cargo being loaded onto an aircraft"
+            insetAlt="A parcel handed across the counter"
+            priority
+          />
+        }
+        stats={[
+          { value: "6", label: "services, four of them free" },
+          { value: "2", label: "airports out of China" },
+          { value: "0", label: "duty to pay on arrival" },
+        ]}
       >
         <div className="flex flex-wrap gap-2.5">
           <BtnLink href="/calculator" tone="copper">
@@ -272,6 +289,23 @@ export default function ServicesPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.apron}
+        eyebrow="Next step"
+        title="Ready when you are"
+        lede="Send us the supplier's address and we take it from there — collection, inspection, packing, freight and duty, on one invoice."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/book" tone="copper">
+            Book your cargo
+          </BtnLink>
+          <BtnLink href="/calculator" tone="outline-invert">
+            Work out the cost
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

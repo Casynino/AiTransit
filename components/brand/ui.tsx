@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Reveal } from "@/components/brand/motion";
+import { Photo } from "@/components/brand/photo";
 import { StarField } from "@/components/brand/star-field";
 
 import { cn } from "@/lib/utils";
@@ -97,6 +99,7 @@ export function SectionHead({
   align = "left",
   className,
   copper,
+  aside,
 }: {
   eyebrow?: string;
   title: React.ReactNode;
@@ -104,20 +107,78 @@ export function SectionHead({
   align?: "left" | "center";
   className?: string;
   copper?: boolean;
+  /**
+   * The right-hand half of the header row.
+   *
+   * A `max-w-2xl` headline in a 1260px column leaves half the row empty, and
+   * on a wide screen that reads as an unfinished page rather than as
+   * restraint — it was the single most common complaint about this site. So a
+   * section header can now carry something opposite the headline: the CTA it
+   * was going to float there anyway, a photograph, a figure worth knowing.
+   * Stacks under the headline below `lg`, where the column is the full width
+   * and there is no empty half to fill.
+   */
+  aside?: React.ReactNode;
 }) {
-  return (
-    <div
-      className={cn(
-        "max-w-2xl",
-        align === "center" && "mx-auto text-center",
-        className
-      )}
-    >
+  const head = (
+    <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center")}>
       {eyebrow ? <Eyebrow copper={copper}>{eyebrow}</Eyebrow> : null}
-      <h2 className={cn("ai-display-lg", eyebrow ? "mt-4" : undefined)}>
+      <h2
+        className={cn(
+          "ai-display-lg text-balance",
+          eyebrow ? "mt-4" : undefined
+        )}
+      >
         {title}
       </h2>
       {lede ? <p className="ai-lede mt-5">{lede}</p> : null}
+    </div>
+  );
+
+  if (!aside) return <div className={className}>{head}</div>;
+
+  return (
+    <div
+      className={cn(
+        "grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-end lg:gap-16",
+        className
+      )}
+    >
+      {head}
+      <div className="lg:pb-1">{aside}</div>
+    </div>
+  );
+}
+
+/**
+ * A figure and a line about it, for the right-hand side of a section header.
+ *
+ * Deliberately plain. The headline is the loud thing in that row; this is the
+ * evidence beside it, and evidence that shouts stops being evidence.
+ */
+export function AsideFacts({
+  facts,
+  children,
+}: {
+  facts: { value: string; label: string }[];
+  children?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dl className="grid grid-cols-3 gap-6">
+        {facts.map((fact) => (
+          <div key={fact.label}>
+            <dt className="ai-display-sm leading-none">{fact.value}</dt>
+            <dd
+              className="mt-2 text-[0.8rem] leading-snug"
+              style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+            >
+              {fact.label}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {children ? <div className="mt-7">{children}</div> : null}
     </div>
   );
 }
@@ -272,32 +333,159 @@ export function Stat({
  * it — the header is pulled out of flow (see the note in site-header.tsx), so
  * each page owns its own top clearance rather than the layout guessing.
  *
- * Deliberately short. An inside page's job is the thing below the banner, and a
- * full-height hero on a rates page is a screen the reader has to scroll past to
- * reach what they came for.
+ * TWO COLUMNS, and that is the whole point of this component.
+ *
+ * It used to be a single `max-w-3xl` block. On a phone that is correct and on a
+ * laptop it is fine, but on any wide screen it left the entire right-hand half
+ * of every interior page as bare navy — eight pages that each opened with a
+ * paragraph floating in an empty field. A headline needs something to be
+ * beside. So each page now passes either `media` (a composition of its own) or
+ * `photo` (a single picture, which this frames), and the column is filled.
+ *
+ * `stats` is the third option and the cheapest: three figures in a row under
+ * the copy. Proof directly beneath the promise is the pattern trust-led sites
+ * converge on, and it fills the space with something a customer actually wants
+ * rather than with decoration.
  */
 export function PageHero({
   eyebrow,
   title,
   lede,
   children,
+  media,
+  photo,
+  photoAlt = "",
+  stats,
+  align = "split",
 }: {
   eyebrow: string;
   title: React.ReactNode;
   lede?: React.ReactNode;
   children?: React.ReactNode;
+  /** A composition for the right column. Wins over `photo`. */
+  media?: React.ReactNode;
+  /** A single photograph, framed and given depth by this component. */
+  photo?: string;
+  photoAlt?: string;
+  stats?: { value: string; label: string }[];
+  /**
+   * `split` puts the copy in a column beside the media. `wide` lets the copy
+   * run the full width — for a page whose own first section is the visual,
+   * where a hero picture would be the second photograph in one screen.
+   */
+  align?: "split" | "wide";
 }) {
+  const hasMedia = Boolean(media || photo);
+  const split = align === "split" && hasMedia;
+
   return (
-    <section className="ai-on-ink relative overflow-hidden pb-16 pt-32 md:pb-20 md:pt-40">
+    <section className="ai-on-ink relative isolate overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
       <StarField />
+
+      {/* A wash of brand colour across the band so the navy is never flat.
+          Sits under the content and over the stars. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          background:
+            "radial-gradient(58% 55% at 88% 12%, hsl(var(--ai-emerald) / 0.16) 0%, transparent 70%), radial-gradient(44% 44% at 6% 92%, hsl(var(--ai-copper) / 0.13) 0%, transparent 68%)",
+        }}
+      />
+
       <Wrap className="relative z-10">
-        <div className="max-w-3xl">
-          <Eyebrow copper>{eyebrow}</Eyebrow>
-          <h1 className="ai-display-lg mt-5">{title}</h1>
-          {lede ? <p className="ai-lede mt-6 max-w-2xl">{lede}</p> : null}
-          {children ? <div className="mt-9">{children}</div> : null}
+        <div
+          className={cn(
+            split &&
+              "grid items-center gap-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-20"
+          )}
+        >
+          <div className={cn(!split && "max-w-3xl")}>
+            <Reveal>
+              <Eyebrow copper>{eyebrow}</Eyebrow>
+            </Reveal>
+            <Reveal delay={60}>
+              <h1 className="ai-display-lg mt-5 text-balance">{title}</h1>
+            </Reveal>
+            {lede ? (
+              <Reveal delay={120}>
+                <p className="ai-lede mt-6 max-w-2xl">{lede}</p>
+              </Reveal>
+            ) : null}
+            {children ? (
+              <Reveal delay={180}>
+                <div className="mt-9">{children}</div>
+              </Reveal>
+            ) : null}
+
+            {stats?.length ? (
+              <Reveal delay={240}>
+                <dl
+                  className="mt-12 grid max-w-xl grid-cols-2 gap-x-8 gap-y-7 border-t pt-8 sm:grid-cols-3"
+                  style={{ borderColor: "hsl(var(--ai-light) / 0.16)" }}
+                >
+                  {stats.map((stat) => (
+                    <div key={stat.label}>
+                      {/* The display serif, not the mono. These read as
+                          headlines rather than as readings off an instrument,
+                          and half of them are words ("Free", "Same day") that
+                          a monospace face makes look like console output. */}
+                      <dt className="ai-display-sm leading-none">{stat.value}</dt>
+                      <dd
+                        className="mt-1.5 text-[0.82rem] leading-snug"
+                        style={{ color: "hsl(var(--ai-light) / 0.62)" }}
+                      >
+                        {stat.label}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
+            ) : null}
+          </div>
+
+          {split ? (
+            <Reveal delay={140} className="lg:pl-4">
+              {media ?? (
+                <PageHeroPhoto src={photo as string} alt={photoAlt} />
+              )}
+            </Reveal>
+          ) : null}
         </div>
       </Wrap>
     </section>
+  );
+}
+
+/**
+ * The default treatment for a hero's single photograph.
+ *
+ * A plain rectangle beside a headline reads as a stock template, so it gets a
+ * ring, a deep shadow and a slow parallax — the three things that make a
+ * picture look placed rather than pasted.
+ */
+function PageHeroPhoto({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="relative">
+      <span
+        aria-hidden
+        className="absolute -inset-4 -z-10 rounded-[calc(var(--ai-radius-lg)+1rem)] opacity-70 blur-2xl"
+        style={{
+          background:
+            "linear-gradient(140deg, hsl(var(--ai-emerald) / 0.35), transparent 55%, hsl(var(--ai-copper) / 0.28))",
+        }}
+      />
+      <Photo
+        src={src}
+        alt={alt}
+        ratio="wide"
+        width={1100}
+        priority
+        parallax={7}
+        scrim="soft"
+        sizes="(max-width: 1024px) 92vw, 46vw"
+        className="ring-1 ring-[hsl(var(--ai-light)/0.14)] shadow-[0_46px_90px_-34px_hsl(213_62%_3%/0.85)]"
+      />
+    </div>
   );
 }

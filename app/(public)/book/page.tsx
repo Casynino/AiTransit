@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 
+import { PhotoBand } from "@/components/brand/photo-band";
 import { BookingForm } from "@/components/brand/request-forms";
-import { Eyebrow, PageHero, Section, Wrap } from "@/components/brand/ui";
+import {
+  BtnLink,
+  Eyebrow,
+  PageHero,
+  Section,
+  Wrap,
+} from "@/components/brand/ui";
 import { COMPANY } from "@/lib/constants";
+import { IMAGES } from "@/lib/imagery";
 
 export const metadata: Metadata = {
   title: "Book your cargo",
@@ -17,6 +25,8 @@ export default function BookPage() {
         eyebrow="Book cargo"
         title="Tell us what is coming"
         lede="A booking is not a shipment — it is a heads-up so we know to expect your goods and can tell you exactly where to send them."
+        photo={IMAGES.loadingRamp}
+        photoAlt="Freight being loaded at the ramp"
       />
 
       <Section tone="stone">
@@ -73,6 +83,23 @@ export default function BookPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.apronVehicles}
+        eyebrow="Next step"
+        title="The next step is a tracking number"
+        lede="Once your goods reach our Guangzhou counter we weigh them, photograph them and put them on the next flight out."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/track" tone="copper">
+            Track your cargo
+          </BtnLink>
+          <BtnLink href="/china" tone="outline-invert">
+            China warehouse address
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

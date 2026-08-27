@@ -24,6 +24,7 @@ import {
 import { FaqList, type Faq } from "@/components/brand/faq";
 import { MarketCard } from "@/components/brand/market-card";
 import { CountUp, Reveal } from "@/components/brand/motion";
+import { Photo } from "@/components/brand/photo";
 import { ProcessTimeline } from "@/components/brand/process";
 import { QuickPanel } from "@/components/brand/quick-panel";
 import { RouteGlobe } from "@/components/brand/route-globe";
@@ -31,6 +32,7 @@ import { StarField } from "@/components/brand/star-field";
 import { Testimonials } from "@/components/brand/testimonials";
 import { TrackInput } from "@/components/brand/track-input";
 import {
+  AsideFacts,
   Badge,
   BtnLink,
   Card,
@@ -342,6 +344,26 @@ export default async function HomePage() {
             eyebrow="What we do"
             title="Six things, and four of them cost you nothing extra"
             lede="AITRANSIT is a freight company that also handles the money and walks the markets. Everything below is part of the ordinary service."
+            aside={
+              <Reveal delay={120}>
+                <Photo
+                  src={IMAGES.apronCrew}
+                  alt="Ground crew working an aircraft in Guangzhou"
+                  ratio="wide"
+                  width={900}
+                  parallax
+                  sizes="(max-width: 1024px) 92vw, 42vw"
+                  className="shadow-[var(--ai-shadow-lg)]"
+                />
+                <p
+                  className="mt-4 text-[0.82rem]"
+                  style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                >
+                  Guangzhou and Hong Kong to Lusaka — the same team on both ends
+                  of the route.
+                </p>
+              </Reveal>
+            }
           />
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -402,17 +424,25 @@ export default async function HomePage() {
       ================================================================= */}
       <Section tone="ink" id="markets">
         <Wrap>
-          <div className="flex flex-wrap items-end justify-between gap-8">
-            <SectionHead
-              eyebrow="Explore China"
-              title="Know which market sells what — before you fly"
-              lede="Guangzhou for clothing and shoes, Yiwu for everything small, Shenzhen for electronics, Foshan for furniture. We keep the directory, and we will meet you there."
-            />
-            <BtnLink href="/markets" tone="copper">
-              All {markets.length} markets
-              <ArrowRight className="h-4 w-4" />
-            </BtnLink>
-          </div>
+          <SectionHead
+            eyebrow="Explore China"
+            title="Know which market sells what — before you fly"
+            lede="Guangzhou for clothing and shoes, Yiwu for everything small, Shenzhen for electronics, Foshan for furniture. We keep the directory, and we will meet you there."
+            aside={
+              <AsideFacts
+                facts={[
+                  { value: `${markets.length}`, label: "markets in the directory" },
+                  { value: "5", label: "cities we cover on the ground" },
+                  { value: "Guided", label: "visits with an interpreter" },
+                ]}
+              >
+                <BtnLink href="/markets" tone="copper">
+                  All {markets.length} markets
+                  <ArrowRight className="h-4 w-4" />
+                </BtnLink>
+              </AsideFacts>
+            }
+          />
 
           {featured.length > 0 ? (
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -466,6 +496,26 @@ export default async function HomePage() {
             eyebrow="How it works"
             title="Seven steps, and you only do the first one"
             lede="From your supplier's gate in Guangzhou to your hands in Makeni. Every stage is somebody's named job, and your tracking page moves as they finish it."
+            aside={
+              <Reveal delay={120}>
+                <Photo
+                  src={IMAGES.warehouseTablet}
+                  alt="Cargo being checked in at the warehouse counter"
+                  ratio="wide"
+                  width={900}
+                  parallax
+                  sizes="(max-width: 1024px) 92vw, 42vw"
+                  className="shadow-[var(--ai-shadow-lg)]"
+                />
+                <p
+                  className="mt-4 text-[0.82rem]"
+                  style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                >
+                  Every box is scanned and photographed at both ends, so the
+                  tracking page is never guesswork.
+                </p>
+              </Reveal>
+            }
           />
         </Wrap>
         <ProcessTimeline />
@@ -476,17 +526,25 @@ export default async function HomePage() {
       ================================================================= */}
       <Section tone="alt" id="rates">
         <Wrap>
-          <div className="flex flex-wrap items-end justify-between gap-8">
-            <SectionHead
-              eyebrow="Cargo rates"
-              title="Per kilo, duty included, published"
-              lede={`Cargo under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg. From 10 kg the rate drops. The final figure comes from the weight our Lusaka warehouse confirms.`}
-            />
-            <BtnLink href="/calculator" tone="ink">
-              Price your cargo
-              <ArrowRight className="h-4 w-4" />
-            </BtnLink>
-          </div>
+          <SectionHead
+            eyebrow="Cargo rates"
+            title="Per kilo, duty included, published"
+            lede={`Cargo under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg. From 10 kg the rate drops. The final figure comes from the weight our Lusaka warehouse confirms.`}
+            aside={
+              <AsideFacts
+                facts={[
+                  { value: "13.50", label: "USD per kg, normal goods" },
+                  { value: `${MIN_BILLABLE_KG} kg`, label: "minimum billed weight" },
+                  { value: "7 days", label: "free storage in Lusaka" },
+                ]}
+              >
+                <BtnLink href="/calculator" tone="ink">
+                  Price your cargo
+                  <ArrowRight className="h-4 w-4" />
+                </BtnLink>
+              </AsideFacts>
+            }
+          />
 
           {rates.length === 0 ? (
             <Card className="mt-12">

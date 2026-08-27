@@ -39,7 +39,38 @@ export const IMAGES = {
   furniture: photo("1555041469-a586c61ea9bc"),
   lighting: photo("1524484485831-a92ffc0de03f"),
   autoParts: photo("1486262715619-67b85e0b08d3"),
+
+  /* ---------------------------------------------------------------- route
+     The two ends of the line. A freight company that flies one route should
+     show that route, not stock photographs of anonymous skylines. */
+  cargoLoading: photo("1774698078446-59299e016718"),
+  apronCrew: photo("1583911026662-95161686d9a6"),
+  apronVehicles: photo("1553616040-548049bba792"),
+  freightTruck: photo("1508053751937-80506404c3f6"),
+  jetOnStand: photo("1571086291540-b137111fa1c7"),
+  loadingRamp: photo("1750783306461-9c40dd99e1ae"),
+
+  // China
+  guangzhouSkyline: photo("1583996829982-823143cc975a"),
+  guangzhouAerial: photo("1521605493113-8087b77d5136"),
+  pearlRiver: photo("1700045269992-7825424908a7"),
+
+  // Zambia
+  lusakaStreet: photo("1700218626406-e89c763bfbbc"),
+  lusakaShopfront: photo("1684513159147-b171ece6685f"),
+  lusakaTower: photo("1714484964374-ff49ac595879"),
+
+  // Money
+  countingCash: photo("1518458028785-8fbcd101ebb9"),
+  banknotesFan: photo("1580048915913-4f8f5cb481c4"),
+
+  // People at work
+  warehouseTablet: photo("1781559818983-c32838ee3d55"),
+  warehouseDesk: photo("1742203102929-f2810971a534"),
+  boxHandover: photo("1573207535342-8c0f9506112e"),
 } as const;
+
+export type ImageKey = keyof typeof IMAGES;
 
 /** A sized, cropped, format-negotiated URL. */
 export function img(url: string, width: number, quality = 68) {

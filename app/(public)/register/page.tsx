@@ -2,9 +2,17 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Coins, FileText, PackageSearch, Receipt } from "lucide-react";
 
+import { PhotoBand } from "@/components/brand/photo-band";
 import { RegisterForm } from "@/components/brand/register-form";
-import { Eyebrow, PageHero, Section, Wrap } from "@/components/brand/ui";
+import {
+  BtnLink,
+  Eyebrow,
+  PageHero,
+  Section,
+  Wrap,
+} from "@/components/brand/ui";
 import { currentCustomer } from "@/lib/portal";
+import { IMAGES } from "@/lib/imagery";
 
 export const metadata: Metadata = {
   title: "Create an account",
@@ -46,6 +54,8 @@ export default async function RegisterPage() {
         eyebrow="Customer portal"
         title="Create your AITRANSIT account"
         lede="Track your cargo, read your invoices and send us requests — without waiting for a reply on WhatsApp."
+        photo={IMAGES.warehouseDesk}
+        photoAlt="An account being opened at the counter"
       />
 
       <Section tone="stone">
@@ -83,6 +93,23 @@ export default async function RegisterPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.jetOnStand}
+        eyebrow="Next step"
+        title="Everything about your cargo, in one place"
+        lede="Invoices, payments, pickup notes, storage days and your credit position — behind one login, updated as the warehouse works."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/login" tone="copper">
+            Sign in
+          </BtnLink>
+          <BtnLink href="/track" tone="outline-invert">
+            Track without an account
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

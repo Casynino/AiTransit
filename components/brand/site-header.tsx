@@ -44,10 +44,23 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
-  /* The homepage is the only page that opens on a full-bleed sky. Everywhere
-     else the header sits on the page background from the first pixel and needs
-     its surface immediately. */
-  const overHero = pathname === "/";
+  /*
+    EVERY public page now opens on a dark banner — the homepage on its sky, the
+    rest on `PageHero`, the market directory on a full-bleed photograph — so the
+    header floats transparently over all of them and only takes a surface once
+    you have scrolled off it. It used to be transparent on the homepage alone,
+    which was right when the inside pages opened on stone and is now the thing
+    that would make them look like a different site.
+
+    `SOLID_ROUTES` is the escape hatch, and it is here rather than absent
+    because the failure mode is bad: a page that opens on a LIGHT surface would
+    get white nav links on near-white, invisible until the reader scrolls. Any
+    future public page that does not open dark belongs in this list.
+  */
+  const SOLID_ROUTES: string[] = [];
+  const overHero = !SOLID_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
   const solid = scrolled || !overHero || open;
 
   useEffect(() => {

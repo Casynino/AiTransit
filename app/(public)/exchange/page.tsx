@@ -7,6 +7,7 @@ import {
   SupplierPaymentRequestForm,
 } from "@/components/brand/exchange-forms";
 import {
+  AsideFacts,
   BtnLink,
   Card,
   Eyebrow,
@@ -17,6 +18,9 @@ import {
 } from "@/components/brand/ui";
 import { COMPANY } from "@/lib/constants";
 import { publishedFxBoard } from "@/lib/exchange";
+import { IMAGES } from "@/lib/imagery";
+import { PhotoBand } from "@/components/brand/photo-band";
+import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "Money exchange & China payments",
@@ -42,6 +46,15 @@ export default async function ExchangePage() {
         eyebrow="Money exchange"
         title="Change money and pay China, at a rate we confirm first"
         lede="The same company that flies your cargo handles the currency behind it. Book a rate here; our finance desk agrees it with you before any money moves."
+        media={
+          <PhotoDuo
+            main={IMAGES.countingCash}
+            inset={IMAGES.banknotesFan}
+            mainAlt="Banknotes being counted at a desk"
+            insetAlt="Assorted currency"
+            priority
+          />
+        }
       >
         <div className="flex flex-wrap gap-2.5">
           <BtnLink href="#book" tone="copper">
@@ -58,21 +71,29 @@ export default async function ExchangePage() {
       {/* The board */}
       <Section tone="stone" id="rates">
         <Wrap>
-          <div className="flex flex-wrap items-end justify-between gap-8">
-            <SectionHead
-              eyebrow="Today's rates"
-              title="What we buy and sell at"
-              lede="Published so you can plan. Confirmed by a person before you commit."
-            />
-            <BtnLink
-              href={`https://wa.me/${COMPANY.whatsapp}`}
-              tone="outline"
-              external
-            >
-              <MessageCircle className="h-4 w-4" />
-              Ask for a rate
-            </BtnLink>
-          </div>
+          <SectionHead
+            eyebrow="Today's rates"
+            title="What we buy and sell at"
+            lede="Published so you can plan. Confirmed by a person before you commit."
+            aside={
+              <AsideFacts
+                facts={[
+                  { value: `${board.length}`, label: "pairs on the board" },
+                  { value: "Daily", label: "reviewed by our finance desk" },
+                  { value: "Person", label: "confirms before money moves" },
+                ]}
+              >
+                <BtnLink
+                  href={`https://wa.me/${COMPANY.whatsapp}`}
+                  tone="outline"
+                  external
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Ask for a rate
+                </BtnLink>
+              </AsideFacts>
+            }
+          />
 
           {board.length === 0 ? (
             <Card className="mt-12">
@@ -236,6 +257,23 @@ export default async function ExchangePage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.paperwork}
+        eyebrow="Next step"
+        title="One company for the money and the freight"
+        lede="Book the rate here, confirm it with our finance desk, and pay your supplier the same day — with the proof in your portal."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="#book" tone="copper">
+            Book money exchange
+          </BtnLink>
+          <BtnLink href="/contact" tone="outline-invert">
+            Talk to finance
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

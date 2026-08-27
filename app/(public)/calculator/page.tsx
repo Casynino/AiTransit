@@ -3,6 +3,7 @@ import { MessageCircle, ScaleIcon, ShieldCheck, Timer } from "lucide-react";
 
 import { QuoteCalculator } from "@/components/brand/quote-calculator";
 import {
+  AsideFacts,
   BtnLink,
   Card,
   PageHero,
@@ -13,6 +14,13 @@ import {
 import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
 import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 import { publicRateCard } from "@/lib/rate-card";
+import { IMAGES } from "@/lib/imagery";
+import { PhotoBand } from "@/components/brand/photo-band";
+import {
+  Photo,
+  PhotoDuo,
+} from "@/components/brand/photo";
+import { Reveal } from "@/components/brand/motion";
 
 export const metadata: Metadata = {
   title: "Cargo rates & quote",
@@ -29,6 +37,20 @@ export default async function CalculatorPage() {
         eyebrow="Rates & quote"
         title="Know what it costs before you send it"
         lede={`Every rate below covers freight and duty to our Lusaka warehouse. Cargo under ${MIN_BILLABLE_KG} kg is billed as ${MIN_BILLABLE_KG} kg, and from 10 kg the rate per kilo drops.`}
+        media={
+          <PhotoDuo
+            main={IMAGES.cargoHold}
+            inset={IMAGES.packedCartons}
+            mainAlt="Freight secured in the hold"
+            insetAlt="Cartons ready to be weighed"
+            priority
+          />
+        }
+        stats={[
+          { value: "USD 13.50", label: "per kg, normal goods" },
+          { value: "Duty in", label: "nothing added at the counter" },
+          { value: "7 days", label: "free storage in Lusaka" },
+        ]}
       />
 
       <Section tone="stone">
@@ -49,6 +71,26 @@ export default async function CalculatorPage() {
             eyebrow="The full card"
             title="Published, and the same card your invoice is priced from"
             lede="These figures come out of the rate book our finance desk edits. If a rate changes, this page changes with it — there is no second copy to fall out of step."
+            aside={
+              <Reveal delay={120}>
+                <Photo
+                  src={IMAGES.warehouseAisle}
+                  alt="The Lusaka warehouse, where the billable weight is confirmed"
+                  ratio="wide"
+                  width={900}
+                  parallax
+                  sizes="(max-width: 1024px) 92vw, 42vw"
+                  className="shadow-[var(--ai-shadow-lg)]"
+                />
+                <p
+                  className="mt-4 text-[0.82rem]"
+                  style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                >
+                  Your invoice is priced from the weight this scale confirms at
+                  check-in — not from the figure on the calculator.
+                </p>
+              </Reveal>
+            }
           />
 
           {categories.length > 0 ? (
@@ -131,6 +173,16 @@ export default async function CalculatorPage() {
           <SectionHead
             eyebrow="How the final bill is decided"
             title="Three rules, stated before you are billed by them"
+            lede="None of them is a surprise, and none of them appears for the first time on your invoice."
+            aside={
+              <AsideFacts
+                facts={[
+                  { value: `${MIN_BILLABLE_KG} kg`, label: "billed as a minimum" },
+                  { value: "10 kg", label: "where the rate drops" },
+                  { value: `${STORAGE_POLICY.freeDays} days`, label: "before storage starts" },
+                ]}
+              />
+            }
           />
           <div className="mt-14 grid gap-5 md:grid-cols-3">
             {[
@@ -182,6 +234,23 @@ export default async function CalculatorPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.cargoLoading}
+        eyebrow="Next step"
+        title="The rate you are quoted is the rate you are billed"
+        lede="Duty is already in it, and the only thing that changes the figure is the weight our Lusaka scale confirms at check-in."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/book" tone="copper">
+            Book your cargo
+          </BtnLink>
+          <BtnLink href="/contact" tone="outline-invert">
+            Ask for a firm quote
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

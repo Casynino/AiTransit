@@ -13,6 +13,9 @@ import {
   Wrap,
 } from "@/components/brand/ui";
 import { COMPANY } from "@/lib/constants";
+import { IMAGES } from "@/lib/imagery";
+import { PhotoBand } from "@/components/brand/photo-band";
+import { PhotoDuo } from "@/components/brand/photo";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -32,6 +35,20 @@ export default function ContactPage() {
         eyebrow="Contact"
         title="Talk to a person, in the country your question is in"
         lede="Guangzhou for suppliers, inspection and collection. Lusaka for cargo, money and pickup. All three of us are on WeChat and WhatsApp."
+        media={
+          <PhotoDuo
+            main={IMAGES.lusakaStreet}
+            inset={IMAGES.pearlRiver}
+            mainAlt="A street in Lusaka"
+            insetAlt="Guangzhou on the Pearl River"
+            priority
+          />
+        }
+        stats={[
+          { value: "3", label: "people you can ring by name" },
+          { value: "2", label: "countries, one company" },
+          { value: "WeChat", label: "and WhatsApp on both ends" },
+        ]}
       >
         <div className="flex flex-wrap gap-2.5">
           <BtnLink
@@ -245,6 +262,23 @@ export default function ContactPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.lusakaTower}
+        eyebrow="Next step"
+        title="Two countries, one company, three people"
+        lede="Whichever end your question is at, somebody at AITRANSIT answers it — in Guangzhou or in Lusaka, on WeChat or WhatsApp."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/appointments" tone="copper">
+            Book an appointment
+          </BtnLink>
+          <BtnLink href="/track" tone="outline-invert">
+            Track your cargo
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }

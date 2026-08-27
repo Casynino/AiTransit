@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 
+import { PhotoBand } from "@/components/brand/photo-band";
 import { PickupForm } from "@/components/brand/request-forms";
-import { Eyebrow, PageHero, Section, Wrap } from "@/components/brand/ui";
+import {
+  BtnLink,
+  Eyebrow,
+  PageHero,
+  Section,
+  Wrap,
+} from "@/components/brand/ui";
+import { IMAGES } from "@/lib/imagery";
 
 export const metadata: Metadata = {
   title: "Supplier collection",
@@ -16,6 +24,13 @@ export default function PickupPage() {
         eyebrow="Supplier collection"
         title="We will collect from your supplier"
         lede="Your supplier does not need to arrange shipping or find our warehouse. Give us their address and we go to them — anywhere in Guangzhou, at no cost."
+        photo={IMAGES.freightTruck}
+        photoAlt="A collection truck on the road"
+        stats={[
+          { value: "Free", label: "anywhere in Guangzhou" },
+          { value: "Photographed", label: "the moment we take them" },
+          { value: "Same day", label: "tracking at our counter" },
+        ]}
       />
 
       <Section tone="stone">
@@ -57,6 +72,23 @@ export default function PickupPage() {
           </div>
         </Wrap>
       </Section>
+
+      <PhotoBand
+        src={IMAGES.loadingTruck}
+        eyebrow="Next step"
+        title="We go to your supplier, anywhere in Guangzhou"
+        lede="No fee, no arrangement for them to make. We confirm the address first, photograph the goods when we take them, and you get the tracking number the same day."
+        height="short"
+      >
+        <div className="flex flex-wrap gap-2.5">
+          <BtnLink href="/book" tone="copper">
+            Book your cargo
+          </BtnLink>
+          <BtnLink href="/contact" tone="outline-invert">
+            Ask us first
+          </BtnLink>
+        </div>
+      </PhotoBand>
     </>
   );
 }
