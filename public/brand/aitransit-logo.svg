@@ -1,22 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-label="AITRANSIT Cargo & Exchange">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 120" role="img" aria-label="AITRANSIT Cargo & Exchange">
   <title>AITRANSIT</title>
-  <!--
-    The printed lockup, for documents that leave the building.
-
-    Fixed inks rather than tokens: an invoice, a pickup note and a manifest all
-    print on white in any theme, and a colour that brightened for a dark screen
-    would put pale green on a page somebody is about to photocopy.
-  -->
-  <g transform="translate(14 26) scale(1.02)">
-    <circle cx="6" cy="48" r="4.6" fill="#0A1B33"/>
-    <path d="M6.00 48.00 Q34.00 48.00 57.00 27.00" fill="none" stroke="#0C6E5B"
-          stroke-width="5.2" stroke-linecap="round"/>
-    <path d="M61.87 22.55 L58.23 34.28 L49.87 25.12 Z" fill="#C77A2B"/>
+  <!-- The printed lockup, for documents that leave the building. Fixed inks:
+       an invoice prints on white in any theme. -->
+  <g transform="translate(16 26) scale(1.08)">
+    <path fill="#0A1B33" fill-rule="evenodd"
+      d="M24.60 6.00 L35.40 6.00 L54.00 58.00 L40.50 58.00 L34.80 30.00 L25.20 30.00 L19.50 58.00 L6.00 58.00 Z M30.00 17.20 L33.30 30.00 L26.70 30.00 Z"/>
+    <path d="M14 41 L58 33" fill="none" stroke="#0C6E5B" stroke-width="5" stroke-linecap="round"/>
+    <path d="M65.28 31.68 L54.48 39.33 L52.47 28.31 Z" fill="#C77A2B"/>
   </g>
-  <text x="104" y="66" font-size="46" fill="#0A1B33">
+  <text x="112" y="66" font-size="46" fill="#0A1B33">
     <tspan font-family="Georgia, 'Times New Roman', serif" font-weight="600">AI</tspan><tspan
-          font-family="Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="0.6">TRANSIT</tspan>
+      font-family="Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="0.8">TRANSIT</tspan>
   </text>
-  <text x="106" y="92" font-family="Helvetica, Arial, sans-serif" font-size="13"
-        font-weight="700" letter-spacing="4.6" fill="#C77A2B">CARGO &amp; EXCHANGE</text>
+  <text x="114" y="92" font-family="Helvetica, Arial, sans-serif" font-size="12.5"
+        font-weight="700" letter-spacing="4.4" fill="#C77A2B">CARGO &amp; EXCHANGE</text>
 </svg>

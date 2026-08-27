@@ -119,8 +119,18 @@ export default async function ExchangePage() {
             </div>
           )}
 
+          {board[0]?.updatedLabel ? (
+            <p className="ai-muted mt-6 text-sm">
+              Board last updated{" "}
+              <strong style={{ color: "hsl(var(--ai-charcoal))" }}>
+                {board[0].updatedLabel}
+              </strong>
+              .
+            </p>
+          ) : null}
+
           <p
-            className="mt-8 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed"
+            className="mt-4 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed"
             style={{ color: "hsl(var(--ai-charcoal-soft))" }}
           >
             <ShieldCheck

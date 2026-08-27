@@ -42,6 +42,7 @@ npm install
 npm run db:push
 npm run db:seed
 npm run db:seed:pricing     # the rate book and the product catalogue
+npm run db:seed:markets     # the China markets directory
 npm run dev            # http://localhost:3001
 ```
 
@@ -232,6 +233,34 @@ npm run verify:pricing    # check the live rate book against the published card
 - Shipments carry a `CANCELLED` status as an administrative exit. It is not part
   of the five-stage happy path.
 
+
+## China markets & the concierge diary
+
+AITRANSIT is not only freight, and the public site says so. Two features carry
+that, and both reuse infrastructure rather than inventing it.
+
+**The markets directory** (`/markets`, `/markets/[slug]`) reads `ChinaMarket` —
+the same table the support desk reads and Admin edits at `/app/admin/markets`.
+Thirteen markets ship seeded from `lib/markets.ts`; run
+`npm run db:seed:markets` on a fresh database. Search and category filtering
+happen on the client because the whole set is already on the page and a round
+trip per keystroke would make a thirteen-row list feel slower than a
+thousand-row one.
+
+**The diary** (`Appointment`) is new. Target Express had `BookingRequest`
+("cargo is coming") and `PickupRequest` ("collect from my supplier") and both
+are kept — they are about cargo. This is about a DATE: a pickup slot at Makeni
+and a factory visit in Guangzhou have nothing in common commercially and
+everything in common operationally, so they share one model, one queue at
+`/app/appointments` and one status lifecycle.
+
+A cargo pickup is checked against the consignment before the request is even
+accepted — an unknown tracking number is refused, and so is cargo already
+collected. Cargo still in transit is allowed through, because customers book
+ahead and the desk confirms once it lands.
+
+`REQUESTED` is the only status a customer's action can produce. Everything past
+it needs `ticket.manage`.
 
 ## The money desk
 

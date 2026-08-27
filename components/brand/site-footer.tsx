@@ -56,6 +56,7 @@ export function SiteFooter() {
             links={[
               ["Air cargo", "/services"],
               ["Rates & quote", "/calculator"],
+              ["Explore China markets", "/markets"],
               ["Money exchange", "/exchange"],
               ["Pay a supplier", "/exchange#pay-supplier"],
               ["China warehouse address", "/china"],
@@ -66,6 +67,7 @@ export function SiteFooter() {
             title="Your account"
             links={[
               ["Track cargo", "/track"],
+              ["Book an appointment", "/appointments"],
               ["Customer portal", "/portal"],
               ["Create an account", "/register"],
               ["Sign in", "/login"],

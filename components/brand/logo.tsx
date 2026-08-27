@@ -1,85 +1,73 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The AITRANSIT mark.
+ * The AITRANSIT mark: an A crossed by a flight path.
  *
- * ORIGINAL, and deliberately nothing like the artwork this project was forked
- * from. That was a globe with an aeroplane crossing it — the single commonest
- * freight logo there is, and reusing it would have made AITRANSIT read as the
- * same company under a new name.
+ * Taken from the company's own flyer rather than invented — the A is the
+ * initial, and the path that crosses it where a crossbar would sit is the
+ * China-to-Zambia route leaving to the right. It is redrawn here rather than
+ * traced: the arrowhead is computed on the path's own axis, the A's strokes are
+ * evened out so they hold at 20px, and the whole thing is painted with tokens
+ * so one file works on stone, on navy and on a printed invoice.
  *
- * WHAT IT MEANS. A route, drawn as one continuous gesture: an origin node in
- * Guangzhou, a path that runs flat before it climbs, and an arrowhead at the
- * Lusaka end still travelling. The flat opening matters — cargo sits in a
- * warehouse before it flies, and a mark that launches straight off the baseline
- * would be claiming a speed no freight company has. The climb settles at about
- * 42°, which reads as confident rather than aggressive.
- *
- * The arrowhead is computed on the curve's tangent rather than drawn by eye. A
- * head a few degrees off its path looks like a mistake at poster size and like
- * a smudge on a QR label, and this mark has to survive both.
- *
- * TWO INKS, never one: emerald for the route, copper for the head. On the rare
- * surface that can only take a single colour — a rubber stamp, a fax — pass
- * `tone="mono"` and the whole mark prints in the current text colour.
+ * Nothing about it is shared with the mark this project was forked from, which
+ * was a globe with an aeroplane crossing it.
  */
 
-/** The route: flat out of the warehouse, then climbing. */
-const ROUTE = "M6.00 48.00 Q34.00 48.00 57.00 27.00";
-/** The head, sitting on that curve's tangent. See the note above. */
-const HEAD = "M61.87 22.55 L58.23 34.28 L49.87 25.12 Z";
+/**
+ * The A, as two subpaths: the letter, then its counter.
+ *
+ * Even-odd fill knocks the second out of the first, so the triangular opening
+ * near the apex is a genuine hole rather than a stone-coloured shape painted on
+ * top. That matters because the mark sits on navy, on stone and on photographs,
+ * and a painted counter would show as a patch on all but one of them.
+ */
+const A_MARK =
+  "M24.60 6.00 L35.40 6.00 L54.00 58.00 L40.50 58.00 L34.80 30.00 " +
+  "L25.20 30.00 L19.50 58.00 L6.00 58.00 Z " +
+  "M30.00 17.20 L33.30 30.00 L26.70 30.00 Z";
+/** The route, crossing the A and leaving to the right. */
+const PATH = "M14.00 41.00 L58.00 33.00";
+/** Its head, on the path's own axis. */
+const HEAD = "M65.28 31.68 L54.48 39.33 L52.47 28.31 Z";
+
+type Tone = "brand" | "invert" | "mono";
 
 export function AitransitMark({
   className,
   tone = "brand",
 }: {
   className?: string;
-  /** "mono" prints the whole mark in the inherited text colour. */
-  tone?: "brand" | "mono" | "invert";
+  tone?: Tone;
 }) {
-  const route =
-    tone === "brand"
-      ? "hsl(var(--ai-emerald))"
-      : tone === "invert"
-        ? "hsl(var(--ai-stone))"
-        : "currentColor";
-  const head =
-    tone === "brand"
-      ? "hsl(var(--ai-copper))"
-      : tone === "invert"
-        ? "hsl(var(--ai-copper))"
-        : "currentColor";
-  const node =
+  const letter =
     tone === "brand"
       ? "hsl(var(--ai-ink))"
       : tone === "invert"
         ? "hsl(var(--ai-stone))"
         : "currentColor";
+  const route =
+    tone === "mono" ? "currentColor" : "hsl(var(--ai-emerald-bright))";
+  const head = tone === "mono" ? "currentColor" : "hsl(var(--ai-copper))";
 
   return (
     <svg
-      /*
-        Cropped to the artwork, not to a square.
-
-        The mark is naturally about 2:1 — a route is a horizontal idea — and
-        centring it in a square box left a third of the frame empty above the
-        origin, which reads as a mark that has slipped downwards. Size it by
-        HEIGHT and let the width follow. The square lock-up needed for an app
-        icon is drawn separately, in app/icon.svg, with its own padding.
-      */
-      viewBox="0 18 64 38"
+      /* Cropped to the artwork. The mark is naturally wider than tall — a route
+         is a horizontal idea — so size it by height and let width follow. */
+      viewBox="2 2 68 60"
       xmlns="http://www.w3.org/2000/svg"
       className={cn("h-8 w-auto", className)}
       aria-hidden="true"
       focusable="false"
     >
-      {/* Origin. Solid, because the cargo is really there before it moves. */}
-      <circle cx="6" cy="48" r="4.6" fill={node} />
+      <path d={A_MARK} fill={letter} fillRule="evenodd" />
+      {/* The route is drawn over the A and under its head, so the crossing
+          reads as one continuous line passing behind the letter's strokes. */}
       <path
-        d={ROUTE}
+        d={PATH}
         fill="none"
         stroke={route}
-        strokeWidth="5.2"
+        strokeWidth="5"
         strokeLinecap="round"
       />
       <path d={HEAD} fill={head} />
@@ -88,13 +76,11 @@ export function AitransitMark({
 }
 
 /**
- * The mark with the name set beside it — the lockup used in the header, the
- * footer and on documents.
+ * The mark with the name beside it.
  *
- * "AI" is set in the display serif and "TRANSIT" in the sans, at the same
- * optical size. The company is read as one word and pronounced as two, and
- * splitting the type is how the wordmark says that without a hyphen or a
- * colour change doing the work.
+ * "AI" is set in the display serif and "TRANSIT" in the sans at the same
+ * optical size: the company is read as one word and said as two, and splitting
+ * the type carries that without a hyphen or a second colour doing the work.
  */
 export function AitransitLockup({
   className,
@@ -102,31 +88,27 @@ export function AitransitLockup({
   tone = "brand",
 }: {
   className?: string;
-  /** Adds the strapline beneath. For footers and title pages, not navigation. */
   tagline?: boolean;
-  tone?: "brand" | "mono" | "invert";
+  tone?: Tone;
 }) {
-  const ink =
-    tone === "invert" ? "hsl(var(--ai-stone))" : "hsl(var(--ai-ink))";
+  const ink = tone === "invert" ? "hsl(var(--ai-stone))" : "hsl(var(--ai-ink))";
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <AitransitMark className="h-7 w-auto shrink-0" tone={tone} />
+      <AitransitMark className="h-[1.85rem] w-auto shrink-0" tone={tone} />
       <span className="flex flex-col leading-none">
         <span
-          className="text-[1.22rem] leading-none tracking-[-0.01em]"
+          className="text-[1.2rem] leading-none tracking-[-0.005em]"
           style={{ color: ink }}
         >
-          <span
-            style={{ fontFamily: "var(--ai-display)", fontWeight: 600 }}
-          >
+          <span style={{ fontFamily: "var(--ai-display)", fontWeight: 600 }}>
             AI
           </span>
           <span
             style={{
               fontFamily: "var(--ai-sans)",
               fontWeight: 700,
-              letterSpacing: "0.012em",
+              letterSpacing: "0.015em",
             }}
           >
             TRANSIT
@@ -134,7 +116,7 @@ export function AitransitLockup({
         </span>
         {tagline ? (
           <span
-            className="mt-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.22em]"
+            className="mt-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.24em]"
             style={{ color: "hsl(var(--ai-copper))" }}
           >
             Cargo &amp; Exchange
@@ -142,5 +124,24 @@ export function AitransitLockup({
         ) : null}
       </span>
     </span>
+  );
+}
+
+/**
+ * The full lockup as a file, for documents that leave the building.
+ *
+ * Fixed inks: an invoice prints on white in any theme, and a colour that
+ * brightened for a dark screen would put pale green on a page somebody is about
+ * to photocopy.
+ */
+export function BrandLogo({ className }: { className?: string }) {
+  return (
+    // A plain img on purpose: next/image refuses SVG without
+    // dangerouslyAllowSVG, and there is nothing here for it to optimise.
+    <img
+      src="/brand/aitransit-logo.svg"
+      alt="AITRANSIT Cargo"
+      className={cn("h-12 w-auto", className)}
+    />
   );
 }

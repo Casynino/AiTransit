@@ -479,6 +479,11 @@ const SUPPORT_SECTIONS: NavSection[] = [
     group: { label: "Customer Support", icon: "MessageSquare" },
     items: [
       { href: "/app/support/tickets", label: "Tickets", icon: "MessageSquare" },
+      /* The diary. This desk books the slots and rings people back about them,
+         so it sits with tickets rather than under China Services — a Makeni
+         pickup and a Guangzhou factory visit are the same job to whoever is
+         answering the phone. */
+      { href: "/app/appointments", label: "Appointments", icon: "CalendarClock" },
       { href: "/app/exceptions", label: "Issues & Claims", icon: "TriangleAlert" },
     ],
   },
@@ -915,6 +920,7 @@ const ADMIN_SECTIONS: NavSection[] = [
     group: { label: "Support and issues", icon: "MessageSquare" },
     items: [
       { href: "/app/support/tickets", label: "Tickets", icon: "MessageSquare", permission: "ticket.manage" },
+      { href: "/app/appointments", label: "Appointments", icon: "CalendarClock", permission: "ticket.manage" },
       // "Support home", not "Home" — this menu already has one, and a bare
       // Home here would collide with the owner's own dashboard.
       { href: "/app/support", label: "Support home", icon: "Headset", permission: "ticket.manage", exact: true },

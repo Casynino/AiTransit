@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { publicMarkets } from "@/lib/public-markets";
 import { siteUrl } from "@/lib/site-url";
 
 /**
@@ -13,7 +14,7 @@ import { siteUrl } from "@/lib/site-url";
  * business needs found, the guides are what brings strangers in, and the rest
  * supports both.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const now = new Date();
 
@@ -30,6 +31,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "", priority: 1, frequency: "weekly" },
     { path: "/track", priority: 0.9, frequency: "daily" },
     { path: "/calculator", priority: 0.9, frequency: "weekly" },
+    { path: "/markets", priority: 0.9, frequency: "weekly" },
+    { path: "/appointments", priority: 0.8, frequency: "monthly" },
     { path: "/services", priority: 0.8, frequency: "monthly" },
     { path: "/exchange", priority: 0.8, frequency: "daily" },
     { path: "/book", priority: 0.8, frequency: "monthly" },
@@ -39,12 +42,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/contact", priority: 0.6, frequency: "monthly" },
   ];
 
+  /* Every market guide is its own page and each one is a genuine landing point
+     — somebody searching "Yiwu wholesale market Zambia" should find the guide,
+     not the directory. Read from the database so a market Admin adds appears in
+     the index without anybody remembering to list it here. */
+  const markets = await publicMarkets();
+
   return [
     ...pages.map((page) => ({
       url: `${base}${page.path}`,
       lastModified: now,
       changeFrequency: page.frequency,
       priority: page.priority,
+    })),
+    ...markets.map((market) => ({
+      url: `${base}/markets/${market.slug}`,
+      lastModified: market.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
   ];
 }

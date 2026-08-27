@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
   Banknote,
   Boxes,
+  Building2,
   ClipboardCheck,
   Coins,
   HandCoins,
@@ -12,13 +14,19 @@ import {
   PackageCheck,
   Plane,
   Receipt,
+  ScanLine,
   ShieldCheck,
+  Store,
   Truck,
   UserPlus,
 } from "lucide-react";
 
 import { FaqList, type Faq } from "@/components/brand/faq";
+import { MarketCard } from "@/components/brand/market-card";
+import { CountUp, Reveal } from "@/components/brand/motion";
 import { ProcessTimeline } from "@/components/brand/process";
+import { QuickPanel } from "@/components/brand/quick-panel";
+import { RouteGlobe } from "@/components/brand/route-globe";
 import { Testimonials } from "@/components/brand/testimonials";
 import { TrackInput } from "@/components/brand/track-input";
 import {
@@ -28,27 +36,30 @@ import {
   Eyebrow,
   Section,
   SectionHead,
-  Stat,
   Wrap,
 } from "@/components/brand/ui";
 import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
 import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 import { publishedFxBoard } from "@/lib/exchange";
+import { IMAGES, img } from "@/lib/imagery";
+import { publicMarkets } from "@/lib/public-markets";
 import { publicRateCard } from "@/lib/rate-card";
+import { siteStats } from "@/lib/site-stats";
 
 /**
  * The AITRANSIT homepage.
  *
- * Ordered around a decision rather than around the company: what you can do
- * right now (hero), what we actually do (services), how it works (corridor),
- * why us (proof), what it costs (rates), the other half of the business
- * (exchange), where we are (warehouses), what others say, what you are
- * wondering (FAQ), and how to reach a person.
+ * Built around what a visitor is actually here to do, in the order they are
+ * likely to want it: act now (hero + quick panel), understand the corridor
+ * (globe), see what we do (services), see where to buy (markets), understand
+ * the process, check the price, check the rate, meet the company, and finally
+ * ask a question.
  *
- * Every number on this page is read from the same tables the invoice is priced
- * from — the rate card from PricingRule, the exchange board from
- * PublishedFxRate. A marketing page that hardcodes a price is a page that
- * quietly starts lying the first time Finance changes one.
+ * EVERY FIGURE COMES FROM THE DATABASE. Rates from PricingRule, exchange from
+ * PublishedFxRate, markets from ChinaMarket, the counters from real shipment
+ * and customer counts. A marketing page with hardcoded numbers starts lying the
+ * first time somebody in Finance changes one, and there is no worse place for
+ * that than a price.
  */
 
 const SERVICES = [
@@ -56,37 +67,43 @@ const SERVICES = [
     icon: Plane,
     title: "Air cargo, duty included",
     body: "Guangzhou and Hong Kong to our Lusaka warehouse. The rate you are quoted covers freight and duty — nothing is added at the counter.",
-    tag: "Core service",
+    tag: "Core",
+    image: IMAGES.apron,
   },
   {
     icon: HandCoins,
     title: "We pay your supplier",
     body: "Settle your factory in RMB through us and get the payment proof the same day. One company for the money and the freight.",
     tag: "China desk",
+    image: IMAGES.paperwork,
   },
   {
     icon: ClipboardCheck,
     title: "Goods inspection",
     body: "Before anything is packed we check it against your order — quantity, model, obvious damage — and send you the photographs.",
     tag: "Free",
+    image: IMAGES.warehouseAisle,
   },
   {
     icon: Truck,
     title: "Collection from suppliers",
     body: "Your supplier does not need to ship anywhere. Give us the address and we collect from their door in Guangzhou.",
     tag: "Free",
+    image: IMAGES.loadingTruck,
   },
   {
     icon: PackageCheck,
     title: "Packing and reinforcement",
-    body: "We repack your cargo for the hold at no cost. Cartons that survive a warehouse do not always survive a flight.",
+    body: "We repack your cargo for the hold at no cost. A carton built for a warehouse shelf is not built for an aircraft.",
     tag: "Free",
+    image: IMAGES.packedCartons,
   },
   {
     icon: Receipt,
     title: "Pay freight on collection",
-    body: "Established customers ship first and settle in Lusaka. No deposit needed to get your goods moving.",
+    body: "Established customers ship first and settle in Lusaka. No deposit is needed to get your goods moving.",
     tag: "On approval",
+    image: IMAGES.cargoHold,
   },
 ];
 
@@ -94,7 +111,7 @@ const REASONS = [
   {
     icon: BadgeCheck,
     title: "The quote is the invoice",
-    body: `Duty is settled by us before your cargo lands. There is no clearing bill afterwards, no agent to appoint, and no surprise at the counter.`,
+    body: "Duty is settled by us before your cargo lands. No clearing bill afterwards, no agent to appoint, no surprise at the counter.",
   },
   {
     icon: Boxes,
@@ -102,7 +119,7 @@ const REASONS = [
     body: "Guangzhou and Makeni are ours — not agents. The people who weigh your cargo and the people who hand it over work for the same company.",
   },
   {
-    icon: ShieldCheck,
+    icon: ScanLine,
     title: "Released only against a scan",
     body: "Every consignment carries a QR label from China. Cargo is handed over when that label scans against a pickup note, and not before.",
   },
@@ -135,6 +152,10 @@ const FAQS: Faq[] = [
     a: `Nothing for the first ${STORAGE_POLICY.freeDays} days from the day we check your cargo in at Lusaka. After that it is USD ${STORAGE_POLICY.perDayUsd} per day. Your tracking page shows the check-in date, the days used and any fee, so nobody is surprised by one.`,
   },
   {
+    q: "Can you take me around the markets in China?",
+    a: "Yes — that is a real part of what we do. Book a market, supplier or factory visit and one of our people meets you there, translates, and gets whatever you buy to our warehouse the same day.",
+  },
+  {
     q: "Can you pay my supplier in China?",
     a: "Yes. Send us the supplier's details and the amount; our China desk checks them, confirms the figure with you, pays in RMB and sends you the proof. If the goods are flying with us it is filed against your cargo.",
   },
@@ -142,38 +163,49 @@ const FAQS: Faq[] = [
     q: "Is a money exchange booking a transfer?",
     a: "No, and we are careful about this. Booking puts a request in front of our finance desk, who confirm the rate with you before any money moves. The rates on our exchange page are indicative until that confirmation.",
   },
-  {
-    q: "What do I need to collect my cargo?",
-    a: "A pickup note, which we issue once payment is confirmed or credit is approved. Bring it to the Makeni warehouse — we scan it against your cargo and hand it over.",
-  },
 ];
 
 export default async function HomePage() {
-  const [rates, fx] = await Promise.all([publicRateCard(), publishedFxBoard()]);
+  const [rates, fx, markets, stats] = await Promise.all([
+    publicRateCard(),
+    publishedFxBoard(),
+    publicMarkets(),
+    siteStats(),
+  ]);
+
   const office = COMPANY.offices[0];
+  const featured = markets.slice(0, 3);
 
   return (
     <>
       {/* ================================================================
-          HERO
+          HERO — full-bleed photography, the corridor on a globe
       ================================================================= */}
-      <section className="ai-on-ink relative overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
-        {/* Two soft fields of colour rather than a photograph. A stock cargo
-            photo is the single most recognisable thing about a freight template
-            and every competitor is using the same three. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-40 -top-40 h-[38rem] w-[38rem] rounded-full opacity-[0.16] blur-3xl"
-          style={{ background: "hsl(var(--ai-emerald))" }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-56 -left-32 h-[32rem] w-[32rem] rounded-full opacity-[0.12] blur-3xl"
-          style={{ background: "hsl(var(--ai-copper))" }}
-        />
+      <section className="ai-on-ink relative overflow-hidden pb-36 pt-32 md:pb-44 md:pt-40">
+        <div aria-hidden className="absolute inset-0">
+          <Image
+            src={img(IMAGES.apron, 2000)}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+          <span
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(100deg, hsl(213 62% 8% / 0.97) 0%, hsl(213 62% 8% / 0.9) 42%, hsl(213 62% 8% / 0.55) 100%)",
+            }}
+          />
+          <span
+            className="absolute -right-40 -top-32 h-[40rem] w-[40rem] rounded-full opacity-[0.18] blur-3xl"
+            style={{ background: "hsl(var(--ai-emerald))" }}
+          />
+        </div>
 
         <Wrap className="relative">
-          <div className="grid items-end gap-14 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <div className="ai-rise">
                 <Badge tone="ink">
@@ -186,129 +218,231 @@ export default async function HomePage() {
               </div>
 
               <h1 className="ai-display-xl ai-rise ai-rise-1 mt-7">
-                The China–Zambia trade route,
-                <br className="hidden sm:block" /> run by{" "}
-                <span style={{ color: "hsl(var(--ai-copper))" }}>
-                  your own people
-                </span>
-                .
+                From China to Zambia,
+                <br className="hidden sm:block" /> delivered with{" "}
+                <span style={{ color: "hsl(var(--ai-copper))" }}>confidence</span>.
               </h1>
 
               <p className="ai-lede ai-rise ai-rise-2 mt-7 max-w-xl">
                 Air cargo with duty already included to our Lusaka warehouse. We
-                pay your suppliers in RMB, inspect and pack your goods in
-                Guangzhou, and change your money at a rate we confirm with you
-                first.
+                pay your suppliers in RMB, walk the Guangzhou markets with you,
+                inspect and pack what you buy, and change your money at a rate we
+                confirm first.
               </p>
 
               <div className="ai-rise ai-rise-3 mt-9">
                 <TrackInput />
-                <p
-                  className="mt-3 text-sm"
-                  style={{ color: "hsl(var(--ai-stone)/0.5)" }}
-                >
-                  Tracking number from your label — or{" "}
-                  <Link href="/track" className="ai-link">
-                    look it up another way
-                  </Link>
-                  .
-                </p>
               </div>
 
-              <div className="ai-rise ai-rise-4 mt-8 flex flex-wrap gap-2.5">
+              <div className="ai-rise ai-rise-4 mt-7 flex flex-wrap gap-2.5">
                 <BtnLink href="/calculator" tone="primary">
-                  Get a quote
+                  Calculate cargo price
                   <ArrowRight className="h-4 w-4" />
+                </BtnLink>
+                <BtnLink href="/markets" tone="outline-invert">
+                  <Store className="h-4 w-4" />
+                  Explore China markets
                 </BtnLink>
                 <BtnLink href="/exchange#rates" tone="outline-invert">
                   <Coins className="h-4 w-4" />
-                  Exchange rates
-                </BtnLink>
-                <BtnLink href="/exchange#book" tone="outline-invert">
-                  Book money exchange
+                  Today&rsquo;s rates
                 </BtnLink>
               </div>
+
+              <ul className="ai-rise ai-rise-4 mt-10 flex flex-wrap gap-x-7 gap-y-3">
+                {[
+                  [BadgeCheck, "Duty included"],
+                  [Building2, "Lusaka warehouse"],
+                  [ScanLine, "QR tracking"],
+                  [MessageCircle, "A person answers"],
+                ].map(([Icon, label]) => {
+                  const I = Icon as typeof BadgeCheck;
+                  return (
+                    <li
+                      key={label as string}
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "hsl(var(--ai-stone)/0.72)" }}
+                    >
+                      <I
+                        className="h-4 w-4"
+                        style={{ color: "hsl(var(--ai-copper))" }}
+                      />
+                      {label as string}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
-            {/* The corridor, as facts rather than a map. */}
-            <div className="ai-rise ai-rise-3">
-              <div
-                className="rounded-[var(--ai-radius-lg)] border p-7"
-                style={{
-                  borderColor: "hsl(var(--ai-ink-3))",
-                  background: "hsl(var(--ai-ink-2)/0.7)",
-                }}
+            {/* The corridor, live. Drag it. */}
+            <div className="ai-rise ai-rise-3 relative hidden lg:block">
+              <RouteGlobe className="mx-auto w-full max-w-[30rem]" />
+              <p
+                className="mt-4 text-center text-xs"
+                style={{ color: "hsl(var(--ai-stone)/0.42)" }}
               >
-                <Eyebrow copper>The corridor</Eyebrow>
-                <dl className="mt-6 space-y-6">
-                  {[
-                    ["Two loading airports", "Guangzhou and Hong Kong"],
-                    ["5–12 days", "Counter in China to our Lusaka floor"],
-                    ["Duty included", "Settled by us, before it lands"],
-                    [
-                      `${STORAGE_POLICY.freeDays} free storage days`,
-                      `Then USD ${STORAGE_POLICY.perDayUsd} a day at Makeni`,
-                    ],
-                  ].map(([term, detail]) => (
-                    <div key={term} className="ai-rule pt-6 first:border-0 first:pt-0">
-                      <dt className="ai-display-sm">{term}</dt>
-                      <dd
-                        className="mt-1 text-sm"
-                        style={{ color: "hsl(var(--ai-stone)/0.6)" }}
-                      >
-                        {detail}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+                Our two loading airports, the hubs we connect through, and home.
+                Drag to spin.
+              </p>
             </div>
           </div>
         </Wrap>
       </section>
 
+      {/* Seven doors, overlapping the hero. */}
+      <QuickPanel />
+
       {/* ================================================================
-          SERVICES
+          COUNTERS — real figures out of the operational database
       ================================================================= */}
-      <Section tone="stone" id="services">
+      <Section tone="stone" className="!pt-20">
+        <Wrap>
+          <dl className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {[
+              { to: stats.delivered, label: "Consignments delivered", hint: "Collected by their owners in Lusaka" },
+              { to: stats.customers, label: "Customers served", hint: "Importing through us from China" },
+              { to: stats.weightFlownKg, label: "Kilos flown", hint: "Weighed on our own scales", suffix: " kg" },
+              { to: markets.length, label: "China markets", hint: "In our sourcing directory" },
+            ].map((stat, index) => (
+              <Reveal key={stat.label} delay={index * 80}>
+                <div>
+                  <dd>
+                    <CountUp
+                      to={stat.to}
+                      suffix={stat.suffix}
+                      className="ai-display-lg block"
+                      // Display serif carries statistics across the site.
+                    />
+                  </dd>
+                  <dt className="mt-2 font-semibold">{stat.label}</dt>
+                  <p className="ai-muted mt-1 text-sm">{stat.hint}</p>
+                </div>
+              </Reveal>
+            ))}
+          </dl>
+        </Wrap>
+      </Section>
+
+      {/* ================================================================
+          SERVICES — image-led
+      ================================================================= */}
+      <Section tone="alt" id="services">
         <Wrap>
           <SectionHead
             eyebrow="What we do"
-            title="Six things, and five of them cost you nothing extra"
-            lede="AITRANSIT is a freight company that also handles the money. Everything below is part of the ordinary service — there is no premium tier."
+            title="Six things, and four of them cost you nothing extra"
+            lede="AITRANSIT is a freight company that also handles the money and walks the markets. Everything below is part of the ordinary service."
           />
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {SERVICES.map(({ icon: Icon, title, body, tag }) => (
-              <Card key={title} lift className="flex flex-col">
-                <div className="flex items-start justify-between gap-3">
-                  <span
-                    className="grid h-11 w-11 place-items-center rounded-xl"
-                    style={{
-                      background: "hsl(var(--ai-emerald-soft))",
-                      color: "hsl(var(--ai-emerald))",
-                    }}
-                  >
-                    <Icon className="h-5 w-5" />
+            {SERVICES.map(({ icon: Icon, title, body, tag, image }, index) => (
+              <Reveal key={title} delay={(index % 3) * 90}>
+                <Card lift className="flex h-full flex-col overflow-hidden !p-0">
+                  <span className="relative block aspect-[16/10] overflow-hidden">
+                    <Image
+                      src={img(image, 800)}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                    <span
+                      aria-hidden
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(to top, hsl(213 62% 8% / 0.55), transparent 60%)",
+                      }}
+                    />
+                    <span className="absolute left-4 top-4">
+                      <Badge tone={tag === "Free" ? "copper" : "ink"}>{tag}</Badge>
+                    </span>
                   </span>
-                  <Badge tone={tag === "Free" ? "copper" : "ink"}>{tag}</Badge>
-                </div>
-                <h3 className="ai-display-sm mt-5">{title}</h3>
-                <p
-                  className="mt-2.5 flex-1 text-[0.95rem] leading-relaxed"
-                  style={{ color: "hsl(var(--ai-charcoal-soft))" }}
-                >
-                  {body}
-                </p>
-              </Card>
+                  <span className="flex flex-1 flex-col p-6">
+                    <span
+                      className="grid h-10 w-10 place-items-center rounded-xl"
+                      style={{
+                        background: "hsl(var(--ai-emerald-soft))",
+                        color: "hsl(var(--ai-emerald))",
+                      }}
+                    >
+                      <Icon className="h-[1.15rem] w-[1.15rem]" />
+                    </span>
+                    <span className="ai-display-sm mt-4 block">{title}</span>
+                    <span className="ai-muted mt-2.5 block flex-1 text-[0.93rem] leading-relaxed">
+                      {body}
+                    </span>
+                  </span>
+                </Card>
+              </Reveal>
             ))}
           </div>
 
           <div className="mt-10">
-            <Link href="/services" className="ai-link">
+            <BtnLink href="/services" tone="ink">
               Everything we handle in China
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </BtnLink>
+          </div>
+        </Wrap>
+      </Section>
+
+      {/* ================================================================
+          CHINA MARKETS — the exploration feature
+      ================================================================= */}
+      <Section tone="ink" id="markets">
+        <Wrap>
+          <div className="flex flex-wrap items-end justify-between gap-8">
+            <SectionHead
+              eyebrow="Explore China"
+              title="Know which market sells what — before you fly"
+              lede="Guangzhou for clothing and shoes, Yiwu for everything small, Shenzhen for electronics, Foshan for furniture. We keep the directory, and we will meet you there."
+            />
+            <BtnLink href="/markets" tone="copper">
+              All {markets.length} markets
+              <ArrowRight className="h-4 w-4" />
+            </BtnLink>
+          </div>
+
+          {featured.length > 0 ? (
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((market, index) => (
+                <Reveal key={market.slug} delay={index * 90}>
+                  <MarketCard
+                    market={{
+                      slug: market.slug,
+                      name: market.name,
+                      nameCn: market.nameCn,
+                      city: market.city,
+                      district: market.district,
+                      bestFor: market.bestFor,
+                      products: market.products,
+                      route: market.route,
+                    }}
+                  />
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            <Card className="mt-12">
+              <p className="ai-muted">
+                Our market directory is being published. Message us and we will
+                point you at the right building.
+              </p>
+            </Card>
+          )}
+
+          <div className="ai-rule mt-14 flex flex-wrap items-center justify-between gap-6 pt-10">
+            <p className="ai-lede max-w-lg">
+              Not travelling? Tell us the product and we will source it, compare
+              suppliers and send you photographs and prices.
+            </p>
+            <BtnLink
+              href="/appointments?service=SOURCING_HELP"
+              tone="outline-invert"
+            >
+              Request sourcing help
+            </BtnLink>
           </div>
         </Wrap>
       </Section>
@@ -316,11 +450,11 @@ export default async function HomePage() {
       {/* ================================================================
           PROCESS
       ================================================================= */}
-      <Section tone="alt" id="how">
+      <Section tone="stone" id="how">
         <Wrap className="mb-14">
           <SectionHead
             eyebrow="How it works"
-            title="Six steps, and you only do the first one"
+            title="Seven steps, and you only do the first one"
             lede="From your supplier's gate in Guangzhou to your hands in Makeni. Every stage is somebody's named job, and your tracking page moves as they finish it."
           />
         </Wrap>
@@ -328,41 +462,9 @@ export default async function HomePage() {
       </Section>
 
       {/* ================================================================
-          WHY AITRANSIT
-      ================================================================= */}
-      <Section tone="ink">
-        <Wrap>
-          <div className="grid gap-14 lg:grid-cols-[0.85fr_1.15fr]">
-            <SectionHead
-              eyebrow="Why AITRANSIT"
-              title="Built so you are never surprised"
-              lede="Most of what goes wrong with China freight goes wrong after the cargo lands — a duty bill nobody mentioned, a rate that moved, a box handed to the wrong person. Each of these exists to close one of those."
-            />
-            <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2">
-              {REASONS.map(({ icon: Icon, title, body }) => (
-                <div key={title}>
-                  <Icon
-                    className="h-6 w-6"
-                    style={{ color: "hsl(var(--ai-copper))" }}
-                  />
-                  <h3 className="ai-display-sm mt-4">{title}</h3>
-                  <p
-                    className="mt-2 text-[0.95rem] leading-relaxed"
-                    style={{ color: "hsl(var(--ai-stone)/0.66)" }}
-                  >
-                    {body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Wrap>
-      </Section>
-
-      {/* ================================================================
           RATES
       ================================================================= */}
-      <Section tone="stone" id="rates">
+      <Section tone="alt" id="rates">
         <Wrap>
           <div className="flex flex-wrap items-end justify-between gap-8">
             <SectionHead
@@ -378,59 +480,47 @@ export default async function HomePage() {
 
           {rates.length === 0 ? (
             <Card className="mt-12">
-              <p style={{ color: "hsl(var(--ai-charcoal-soft))" }}>
+              <p className="ai-muted">
                 Our rate card is being published. Message us on WhatsApp and we
                 will quote your cargo directly.
               </p>
             </Card>
           ) : (
             <div className="mt-12 grid gap-5 md:grid-cols-3">
-              {rates.map((category) => (
-                <Card key={category.category} lift className="flex flex-col">
-                  <h3 className="ai-display-sm">{category.label}</h3>
-                  <p
-                    className="mt-2 min-h-[3.25rem] text-sm leading-relaxed"
-                    style={{ color: "hsl(var(--ai-charcoal-soft))" }}
-                  >
-                    {category.examples}
-                  </p>
-                  <dl
-                    className="mt-6 space-y-3 border-t pt-6"
-                    style={{ borderColor: "hsl(var(--ai-stone-3))" }}
-                  >
-                    {category.tiers.map((tier) => (
-                      <div
-                        key={tier.label}
-                        className="flex items-baseline justify-between gap-3"
-                      >
-                        <dt
-                          className="text-sm"
-                          style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+              {rates.map((category, index) => (
+                <Reveal key={category.category} delay={index * 90}>
+                  <Card lift className="flex h-full flex-col">
+                    <h3 className="ai-display-sm">{category.label}</h3>
+                    <p className="ai-muted mt-2 min-h-[3.25rem] text-sm leading-relaxed">
+                      {category.examples}
+                    </p>
+                    <dl
+                      className="mt-6 space-y-3 border-t pt-6"
+                      style={{ borderColor: "hsl(var(--ai-stone-3))" }}
+                    >
+                      {category.tiers.map((tier) => (
+                        <div
+                          key={tier.label}
+                          className="flex items-baseline justify-between gap-3"
                         >
-                          {tier.label}
-                        </dt>
-                        <dd
-                          className="ai-num text-lg font-semibold"
-                          style={{ color: "hsl(var(--ai-ink))" }}
-                        >
-                          {tier.price}
-                          <span
-                            className="ml-1 text-xs font-medium"
-                            style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                          <dt className="ai-muted text-sm">{tier.label}</dt>
+                          <dd
+                            className="ai-num text-lg font-semibold"
+                            style={{ color: "hsl(var(--ai-ink))" }}
                           >
-                            /kg
-                          </span>
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <p
-                    className="mt-5 text-xs"
-                    style={{ color: "hsl(var(--ai-charcoal-soft))" }}
-                  >
-                    Flies via {category.route}
-                  </p>
-                </Card>
+                            {tier.price}
+                            <span className="ai-muted ml-1 text-xs font-medium">
+                              /kg
+                            </span>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="ai-muted mt-5 text-xs">
+                      Flies via {category.route}
+                    </p>
+                  </Card>
+                </Reveal>
               ))}
             </div>
           )}
@@ -467,37 +557,42 @@ export default async function HomePage() {
 
             <div>
               {fx.length === 0 ? (
-                <div
-                  className="rounded-[var(--ai-radius-lg)] border border-white/25 p-8 text-white/80"
-                >
+                <div className="rounded-[var(--ai-radius-lg)] border border-white/25 p-8 text-white/80">
                   Today&rsquo;s board is being published. Message us and we will
                   quote you directly.
                 </div>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {fx.map((pair) => (
-                    <div
-                      key={pair.id}
-                      className="rounded-[var(--ai-radius)] border border-white/20 bg-white/[0.08] p-5"
-                    >
-                      <p className="text-sm font-semibold tracking-wide">
-                        {pair.base} → {pair.quote}
-                      </p>
-                      <dl className="mt-4 space-y-1.5 text-sm">
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/60">Buy</dt>
-                          <dd className="ai-num">{pair.buy}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/60">Sell</dt>
-                          <dd className="ai-num">{pair.sell}</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {fx.map((pair) => (
+                      <div
+                        key={pair.id}
+                        className="rounded-[var(--ai-radius)] border border-white/20 bg-white/[0.08] p-5"
+                      >
+                        <p className="text-sm font-semibold tracking-wide">
+                          {pair.base} → {pair.quote}
+                        </p>
+                        <dl className="mt-4 space-y-1.5 text-sm">
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-white/60">Buy</dt>
+                            <dd className="ai-num">{pair.buy}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-white/60">Sell</dt>
+                            <dd className="ai-num">{pair.sell}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                  {fx[0]?.updatedLabel ? (
+                    <p className="mt-4 text-xs text-white/55">
+                      Board last updated {fx[0].updatedLabel}.
+                    </p>
+                  ) : null}
+                </>
               )}
-              <p className="mt-5 text-xs text-white/60">
+              <p className="mt-3 text-xs text-white/60">
                 Indicative and subject to confirmation by our finance desk at the
                 time of your booking.
               </p>
@@ -507,75 +602,88 @@ export default async function HomePage() {
       </Section>
 
       {/* ================================================================
-          WAREHOUSES
+          WHY AITRANSIT + WAREHOUSES
       ================================================================= */}
-      <Section tone="stone" id="warehouses">
+      <Section tone="stone">
         <Wrap>
-          <SectionHead
-            eyebrow="Where we are"
-            title="Two warehouses, both ours"
-            lede="Send the Chinese address to your supplier exactly as it appears — it is what their driver reads at our gate."
-          />
+          <div className="grid gap-14 lg:grid-cols-[0.85fr_1.15fr]">
+            <SectionHead
+              eyebrow="Why AITRANSIT"
+              title="Built so you are never surprised"
+              lede="Most of what goes wrong with China freight goes wrong after the cargo lands — a duty bill nobody mentioned, a rate that moved, a box handed to the wrong person. Each of these closes one of those."
+            />
+            <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2">
+              {REASONS.map(({ icon: Icon, title, body }, index) => (
+                <Reveal key={title} delay={index * 80}>
+                  <div>
+                    <Icon
+                      className="h-6 w-6"
+                      style={{ color: "hsl(var(--ai-emerald))" }}
+                    />
+                    <h3 className="ai-display-sm mt-4">{title}</h3>
+                    <p className="ai-muted mt-2 text-[0.95rem] leading-relaxed">
+                      {body}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
 
-          <div className="mt-12 grid gap-5 lg:grid-cols-2">
-            <Card>
-              <div className="flex items-center gap-2">
-                <MapPin
-                  className="h-5 w-5"
-                  style={{ color: "hsl(var(--ai-emerald))" }}
-                />
-                <Eyebrow>Zambia — collection</Eyebrow>
-              </div>
-              <h3 className="ai-display mt-5">{office.name}</h3>
-              <address
-                className="mt-4 not-italic leading-relaxed"
-                style={{ color: "hsl(var(--ai-charcoal-soft))" }}
-              >
-                {office.lines.map((line) => (
-                  <span key={line} className="block">
-                    {line}
+          <div className="mt-20 grid gap-5 lg:grid-cols-2">
+            {[
+              {
+                image: IMAGES.warehouseAisle,
+                eyebrow: "Zambia — collection point",
+                title: office.name,
+                lines: office.lines,
+                href: "/contact",
+                cta: "Directions and hours",
+              },
+              {
+                image: IMAGES.loadingTruck,
+                eyebrow: "China — supplier drop-off",
+                title: `${COMPANY.chinaOffice.city} warehouse`,
+                lines: COMPANY.chinaOffice.lines,
+                href: "/china",
+                cta: "Copy the address for your supplier",
+              },
+            ].map((place, index) => (
+              <Reveal key={place.title} delay={index * 100}>
+                <Card className="flex h-full flex-col overflow-hidden !p-0">
+                  <span className="relative block aspect-[16/9]">
+                    <Image
+                      src={img(place.image, 1000)}
+                      alt=""
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover"
+                    />
                   </span>
-                ))}
-              </address>
-              <p className="mt-6">
-                <Link href="/contact" className="ai-link">
-                  Directions and opening hours
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </p>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-2">
-                <MapPin
-                  className="h-5 w-5"
-                  style={{ color: "hsl(var(--ai-copper))" }}
-                />
-                <Eyebrow copper>China — supplier drop-off</Eyebrow>
-              </div>
-              <h3 className="ai-display mt-5">
-                {COMPANY.chinaOffice.city} warehouse
-              </h3>
-              <address className="mt-4 space-y-0.5 not-italic font-medium leading-relaxed">
-                {COMPANY.chinaOffice.lines.map((line) => (
-                  <span key={line} className="block">
-                    {line}
+                  <span className="flex flex-1 flex-col p-6">
+                    <span className="flex items-center gap-2">
+                      <MapPin
+                        className="h-4 w-4"
+                        style={{ color: "hsl(var(--ai-copper))" }}
+                      />
+                      <Eyebrow copper>{place.eyebrow}</Eyebrow>
+                    </span>
+                    <span className="ai-display-sm mt-3 block">{place.title}</span>
+                    <address className="ai-muted mt-3 block flex-1 not-italic text-sm leading-relaxed">
+                      {place.lines.map((line) => (
+                        <span key={line} className="block">
+                          {line}
+                        </span>
+                      ))}
+                    </address>
+                    <Link href={place.href} className="ai-link mt-5 text-sm">
+                      {place.cta}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
                   </span>
-                ))}
-              </address>
-              <p
-                className="mt-3 text-sm"
-                style={{ color: "hsl(var(--ai-charcoal-soft))" }}
-              >
-                {COMPANY.chinaOffice.addressEn}
-              </p>
-              <p className="mt-6">
-                <Link href="/china" className="ai-link">
-                  Copy the address for your supplier
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </p>
-            </Card>
+                </Card>
+              </Reveal>
+            ))}
           </div>
         </Wrap>
       </Section>
@@ -596,7 +704,7 @@ export default async function HomePage() {
             <SectionHead
               eyebrow="Questions"
               title="The ones we answer every day"
-              lede="If yours is not here, message us — a person replies, usually within the hour during working days."
+              lede="If yours is not here, message us — a person replies, usually within the hour on a working day."
             />
             <FaqList items={FAQS} />
           </div>
@@ -608,7 +716,7 @@ export default async function HomePage() {
       ================================================================= */}
       <Section tone="ink" id="contact">
         <Wrap>
-          <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
               <Eyebrow copper>Talk to a person</Eyebrow>
               <h2 className="ai-display-lg mt-4">
@@ -616,8 +724,8 @@ export default async function HomePage() {
               </h2>
               <p className="ai-lede mt-5">
                 Ring whoever is closest to your question — Guangzhou for
-                suppliers and collection, Lusaka for cargo, money and pickup.
-                All three are on WeChat and WhatsApp.
+                suppliers, markets and collection; Lusaka for cargo, money and
+                pickup. All three are on WeChat and WhatsApp.
               </p>
               <div className="mt-8 flex flex-wrap gap-2.5">
                 <BtnLink

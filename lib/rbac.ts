@@ -686,6 +686,10 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   // where it now points, or the redirect is a wall for exactly the desks the
   // move was for. Longest prefix wins, so this beats the /app/support rule.
   { prefix: "/app/support/follow-up", permission: "collections.view" },
+  /* The diary. Support answers the phone about a booking, so it opens on the
+     same permission as a ticket — and Admin holds everything, so the owner can
+     work it too. */
+  { prefix: "/app/appointments", permission: "ticket.manage" },
   { prefix: "/app/support", permission: "ticket.manage" },
   { prefix: "/app/finance/exchange-rate", permission: "fx.manage" },
   /* The money desk. `fx.manage` for both — reading the queue and quoting a

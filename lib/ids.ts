@@ -195,3 +195,12 @@ export async function nextSupplierPaymentReference(
   const n = await nextSequence(tx, `supplierPayment:${year}`);
   return `SP-${year}-${pad(n)}`;
 }
+
+/** A booked slot in the diary: APT-2026-000123. */
+export async function nextAppointmentReference(
+  tx: TxClient,
+  year = new Date().getFullYear()
+) {
+  const n = await nextSequence(tx, `appointment:${year}`);
+  return `APT-${year}-${pad(n)}`;
+}

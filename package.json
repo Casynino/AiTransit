@@ -25,7 +25,8 @@
     "verify:packages": "tsx --conditions=react-server prisma/verify-packages.ts",
     "verify:tracking": "tsx --conditions=react-server prisma/verify-tracking-hold.ts",
     "verify:investigations": "tsx --conditions=react-server prisma/verify-investigations.ts",
-    "finance:check": "tsx --conditions=react-server scripts/finance-check.mts"
+    "finance:check": "tsx --conditions=react-server scripts/finance-check.mts",
+    "db:seed:markets": "tsx prisma/seed-markets.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -45,6 +46,7 @@
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cobe": "^2.0.1",
     "d3-geo": "^3.1.1",
     "d3-timer": "^3.0.1",
     "date-fns": "^4.1.0",

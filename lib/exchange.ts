@@ -85,6 +85,19 @@ export type FxBoardRow = {
   buyValue: number | null;
   sellValue: number | null;
   note: string | null;
+  /**
+   * When this pair was last published, already formatted.
+   *
+   * A rate board with no timestamp asks the reader to assume it is current, and
+   * on a Monday morning that assumption is usually wrong. Saying "updated
+   * Friday 17:20" is what turns an indicative rate into an honest one — it lets
+   * somebody judge for themselves how much to trust it before they ring.
+   *
+   * Formatted here rather than on the page because three surfaces show it and
+   * a Date crossing the server boundary is rendered differently on each.
+   */
+  updatedLabel: string;
+  updatedAt: Date;
 };
 
 /**
@@ -101,6 +114,35 @@ function formatRate(value: number | null): string {
   return value.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
+  });
+}
+
+/**
+ * When a rate was last touched, in words somebody can act on.
+ *
+ * "Today at 09:14" and "Friday at 17:20" both tell a reader whether to trust
+ * the number in front of them; an ISO timestamp does not. Anything older than a
+ * week gets a date, because "12 days ago" is not a rate anybody should be
+ * planning against without ringing first.
+ */
+function formatUpdated(at: Date): string {
+  const now = new Date();
+  const sameDay = at.toDateString() === now.toDateString();
+  const time = at.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (sameDay) return `today at ${time}`;
+
+  const days = Math.floor((now.getTime() - at.getTime()) / 86_400_000);
+  if (days <= 1) return `yesterday at ${time}`;
+  if (days < 7) {
+    return `${at.toLocaleDateString("en-GB", { weekday: "long" })} at ${time}`;
+  }
+  return at.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -129,6 +171,8 @@ export const publishedFxBoard = cache(async (): Promise<FxBoardRow[]> => {
       buyValue: buy,
       sellValue: sell,
       note: row.note,
+      updatedLabel: formatUpdated(row.updatedAt),
+      updatedAt: row.updatedAt,
     };
   });
 });

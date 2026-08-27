@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, FileText, LayoutDashboard, Package, Receipt } from "lucide-react";
+import {
+  CalendarClock,
+  Coins,
+  FileText,
+  LayoutDashboard,
+  Package,
+  Receipt,
+} from "lucide-react";
 
 /**
  * The portal's five doors.
@@ -19,6 +26,7 @@ const LINKS = [
   { href: "/portal", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/portal/cargo", label: "My cargo", icon: Package },
   { href: "/portal/invoices", label: "Invoices", icon: Receipt },
+  { href: "/portal/appointments", label: "Bookings", icon: CalendarClock },
   { href: "/portal/requests", label: "Requests", icon: FileText },
   { href: "/portal/exchange", label: "Money exchange", icon: Coins },
 ];

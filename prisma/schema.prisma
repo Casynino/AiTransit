@@ -494,9 +494,10 @@ model User {
   customerId String?   @unique
   customer   Customer? @relation("CustomerPortalUser", fields: [customerId], references: [id], onDelete: Cascade)
 
-  fxRatesSet       PublishedFxRate[] @relation("FxRateSetBy")
-  exchangeReviews  ExchangeRequest[] @relation("ExchangeReviewedBy")
-  supplierPayments SupplierPayment[] @relation("SupplierPaymentHandledBy")
+  fxRatesSet          PublishedFxRate[] @relation("FxRateSetBy")
+  appointmentsHandled Appointment[]     @relation("AppointmentHandledBy")
+  exchangeReviews     ExchangeRequest[] @relation("ExchangeReviewedBy")
+  supplierPayments    SupplierPayment[] @relation("SupplierPaymentHandledBy")
 
   @@index([role])
   @@index([department, active])
@@ -553,6 +554,7 @@ model Customer {
   portalUser       User?             @relation("CustomerPortalUser")
   exchangeRequests ExchangeRequest[]
   supplierPayments SupplierPayment[]
+  appointments     Appointment[]
 
   shipments   Shipment[]
   invoices    Invoice[]
@@ -901,6 +903,9 @@ model Shipment {
   /// for in instalments, and most consignments involve neither.
   exchangeRequests ExchangeRequest[]
   supplierPayments SupplierPayment[]
+  /// Pickup slots booked against this consignment. Plural: a customer who
+  /// misses one books another, and the first stays as a cancelled row.
+  appointments     Appointment[]
 
   @@index([status])
   @@index([batchId])
@@ -3169,5 +3174,120 @@ model SupplierPayment {
   updatedAt DateTime  @updatedAt
 
   @@index([status, createdAt])
+  @@index([customerId])
+}
+
+// ---------------------------------------------------------------------------
+// APPOINTMENTS
+//
+// Everything a customer books a DATE for. New for AITRANSIT: Target Express had
+// BookingRequest (cargo is coming) and PickupRequest (collect from my supplier),
+// and both are kept — they are about cargo, not about a diary.
+//
+// This is the diary. A pickup slot at the Makeni counter and a factory visit in
+// Guangzhou have nothing in common commercially and everything in common
+// operationally: somebody has to be somewhere, at a time, and a member of staff
+// has to confirm it. One model, one queue, one status lifecycle.
+// ---------------------------------------------------------------------------
+
+enum AppointmentKind {
+  /// Collect cargo from the Lusaka warehouse. Checked against the consignment.
+  CARGO_PICKUP
+  /// Concierge in China — we meet the customer, or go on their behalf.
+  SUPPLIER_VISIT
+  FACTORY_VISIT
+  MARKET_VISIT
+  SOURCING_HELP
+  GOODS_INSPECTION
+  /// A conversation, in Lusaka or on a call.
+  CONSULTATION
+}
+
+/// Where a booking has got to.
+///
+/// REQUESTED is the only state a customer's own action can produce. Everything
+/// past it is a staff decision — the same discipline the money desk follows, and
+/// for the same reason: a diary slot the customer believes is confirmed, but
+/// which nobody at AITRANSIT has agreed, is worse than no booking at all.
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model Appointment {
+  id        String @id @default(cuid())
+  /// APT-2026-000123. Quoted by the customer at the counter or on the phone.
+  reference String @unique
+
+  kind   AppointmentKind
+  status AppointmentStatus @default(REQUESTED)
+
+  /// Linked when the request came from a signed-in portal account, or when the
+  /// desk matched it afterwards. Null for a walk-up enquiry off the public site.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  contactName  String
+  contactPhone String
+  contactEmail String?
+
+  /**
+   * WHAT THE CUSTOMER ASKED FOR. Stored as they gave it and never edited — a
+   * request is evidence of what somebody wanted, and correcting it destroys the
+   * only record of the original ask. What the desk decides goes in its own
+   * fields below.
+   */
+  /// Their preferred day. Not a promise until `confirmedFor` is set.
+  preferredDate DateTime
+  /// "Morning", "14:00–16:00" — free text, because the two warehouses keep
+  /// different hours and a fixed slot list would be wrong in one of them.
+  preferredTime String?
+  /// How many people are coming, for a visit. 1 for a pickup.
+  visitors      Int      @default(1)
+
+  /// Where: the market, the factory, the supplier. Null for a cargo pickup,
+  /// which is always at our own warehouse.
+  locationName     String?
+  locationAddress  String?
+  /// The market this visit is to, when it is one from our directory.
+  marketSlug       String?
+  /// What the customer is buying or having checked.
+  productType      String?
+  /// Mandarin is not optional for most of our customers in a factory.
+  needsInterpreter Boolean @default(false)
+
+  /// The consignment, for a cargo pickup. Restrict on delete: an appointment
+  /// pointing at cargo that has been erased is unanswerable at the counter.
+  shipmentId String?
+  shipment   Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  /// How many packages the customer expects to collect, when they know.
+  packages   Int?
+
+  /// Budget or scope, for sourcing work. USD like every other figure here.
+  budgetUsd Decimal? @db.Decimal(12, 2)
+  notes     String?
+
+  /**
+   * THE STAFF SIDE.
+   */
+  /// The slot AITRANSIT actually agreed. Null while the booking is only asked
+  /// for — which is what lets the public page say "requested" honestly.
+  confirmedFor DateTime?
+  /// Required on CANCELLED and on RESCHEDULED: a change nobody explained is a
+  /// phone call to the office.
+  staffNote    String?
+
+  handledById String?
+  handledBy   User?     @relation("AppointmentHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, preferredDate])
+  @@index([kind, status])
   @@index([customerId])
 }

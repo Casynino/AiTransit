@@ -23,9 +23,11 @@ import { cn } from "@/lib/utils";
  */
 
 const NAV = [
-  { href: "/services", label: "Cargo services" },
-  { href: "/calculator", label: "Rates & quote" },
-  { href: "/exchange", label: "Money exchange" },
+  { href: "/services", label: "Services" },
+  { href: "/markets", label: "China markets" },
+  { href: "/calculator", label: "Rates" },
+  { href: "/exchange", label: "Exchange" },
+  { href: "/appointments", label: "Book" },
   { href: "/track", label: "Track" },
   { href: "/contact", label: "Contact" },
 ];

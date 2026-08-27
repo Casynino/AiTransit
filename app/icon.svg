@@ -1,21 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AITRANSIT">
-  <!--
-    The favicon: the route mark on a navy tile.
-
-    A tile rather than the bare mark, because the mark is wide and a browser tab
-    gives it a square — floating it in that square shrinks it to nothing. On the
-    tile it can run corner to corner and still read at 16px, which is the only
-    size that actually matters here.
-
-    The route goes stone-white rather than emerald: emerald on navy at 16px is
-    two dark colours touching. The copper head survives and is what makes the
-    icon identifiable in a row of tabs.
-  -->
+  <!-- The favicon: the A on a navy tile so it can run edge to edge and still
+       read at 16px. The route goes stone-white — emerald on navy at that size
+       is two dark colours touching — and the copper head is what makes the tab
+       identifiable in a row of them. -->
   <rect width="64" height="64" rx="14" fill="#0A1B33"/>
-  <g transform="translate(4 5) scale(0.86)">
-    <circle cx="6" cy="48" r="4.6" fill="#FAF8F4"/>
-    <path d="M6.00 48.00 Q34.00 48.00 57.00 27.00" fill="none" stroke="#FAF8F4"
-          stroke-width="5.2" stroke-linecap="round"/>
-    <path d="M61.87 22.55 L58.23 34.28 L49.87 25.12 Z" fill="#C77A2B"/>
+  <g transform="translate(6.5 6) scale(0.72)">
+    <path fill="#FAF8F4" fill-rule="evenodd"
+      d="M24.60 6.00 L35.40 6.00 L54.00 58.00 L40.50 58.00 L34.80 30.00 L25.20 30.00 L19.50 58.00 L6.00 58.00 Z M30.00 17.20 L33.30 30.00 L26.70 30.00 Z"/>
+    <path d="M14 41 L58 33" fill="none" stroke="#16967A" stroke-width="5" stroke-linecap="round"/>
+    <path d="M65.28 31.68 L54.48 39.33 L52.47 28.31 Z" fill="#C77A2B"/>
   </g>
 </svg>
