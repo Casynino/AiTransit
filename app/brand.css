@@ -74,6 +74,15 @@ body:has(> .ai-site) {
   --ai-copper: 28 74% 38%;
   --ai-copper-soft: 32 68% 94%;
   --ai-copper-ink: 28 72% 32%;  /* copper text on --ai-copper-soft */
+  /*
+    Copper as a FILL rather than as ink — the Track button, the primary action
+    on a dark band, the selected pill. It is the flyer's bright copper and it
+    does not darken with `--ai-copper`, because the two roles pull in opposite
+    directions: text on stone has to go darker to be read, a fill carrying dark
+    ink has to stay bright for the same reason. Darkening one value for both
+    fixed the eyebrows at 4.7:1 and broke every copper button down to 3.5:1.
+  */
+  --ai-copper-fill: 28 80% 52%;
 
   /* --- Stone: warm off-white. The page itself. -------------------------- */
   --ai-stone: 40 33% 97%;       /* #FAF8F4 */
@@ -180,6 +189,7 @@ body:has(> .ai-site) {
   --ai-copper: 32 88% 60%;
   --ai-copper-soft: 30 45% 15%;
   --ai-copper-ink: 32 90% 74%;
+  --ai-copper-fill: 32 88% 60%;
 
   --ai-danger: 4 78% 62%;
 
@@ -361,10 +371,10 @@ body:has(> .ai-site) {
 :where(.ai-site) .ai-btn-ink:hover { background: hsl(var(--ai-ink-2)); }
 
 :where(.ai-site) .ai-btn-copper {
-  background: hsl(var(--ai-copper));
+  background: hsl(var(--ai-copper-fill));
   color: hsl(var(--ai-ink));
 }
-:where(.ai-site) .ai-btn-copper:hover { background: hsl(var(--ai-copper) / 0.9); }
+:where(.ai-site) .ai-btn-copper:hover { background: hsl(var(--ai-copper-fill) / 0.88); }
 
 :where(.ai-site) .ai-btn-outline {
   border-color: hsl(var(--ai-stone-3));

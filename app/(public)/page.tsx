@@ -574,7 +574,11 @@ export default async function HomePage() {
                           <dt className="ai-muted text-sm">{tier.label}</dt>
                           <dd
                             className="ai-num text-lg font-semibold"
-                            style={{ color: "hsl(var(--ai-ink))" }}
+                            /* `--ai-charcoal`, the TEXT role, not `--ai-ink`.
+                               Ink is the deep band and it is dark in both
+                               themes, so reading it as a foreground put the
+                               rate figure at 1.04:1 on a dark card. */
+                            style={{ color: "hsl(var(--ai-charcoal))" }}
                           >
                             {tier.price}
                             <span className="ai-muted ml-1 text-xs font-medium">

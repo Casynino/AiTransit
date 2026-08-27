@@ -258,7 +258,13 @@ export function ExchangeBookingForm() {
                 ? {
                     background: "hsl(var(--ai-emerald))",
                     borderColor: "hsl(var(--ai-emerald))",
-                    color: "white",
+                    /* The role token, not literal white. Emerald brightens in
+                       the dark theme to stay readable as TEXT on a dark page,
+                       so a hard-coded white label on it measured 2.45:1 at
+                       night. `--ai-white` means "a raised surface" — light by
+                       day, near-black by night — which is the contrast this
+                       pill wants in both. Same pairing as `.ai-btn-primary`. */
+                    color: "hsl(var(--ai-white))",
                   }
                 : {
                     borderColor: "hsl(var(--ai-stone-3))",
@@ -418,8 +424,8 @@ export function SupplierPaymentRequestForm() {
             style={
               type === value
                 ? {
-                    background: "hsl(var(--ai-copper))",
-                    borderColor: "hsl(var(--ai-copper))",
+                    background: "hsl(var(--ai-copper-fill))",
+                    borderColor: "hsl(var(--ai-copper-fill))",
                     color: "hsl(var(--ai-ink))",
                   }
                 : {
