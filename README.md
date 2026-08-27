@@ -32,13 +32,40 @@ READY_TO_DEPART     IN_TRANSIT    RECEIVED_AT_ZAMBIA   READY_FOR_PICKUP   DELIVE
 
 ## Getting started
 
+The app cannot do anything useful without a database — every money action
+demands an account and every page reads real rows — so the database comes
+first. On a laptop that is one command:
+
 ```bash
 npm install
-cp .env.example .env      # fill in DATABASE_URL, DIRECT_URL, AUTH_SECRET
+./scripts/dev-db.sh start   # local Postgres in ~/.aitransit-pg, no network needed
 npm run db:push
 npm run db:seed
+npm run db:seed:pricing     # the rate book and the product catalogue
 npm run dev
 ```
+
+Postgres does not survive a reboot — run `./scripts/dev-db.sh start` again
+after restarting. `./scripts/dev-db.sh reset` drops everything and re-seeds
+from scratch, which is the fastest way back to a clean slate mid-testing.
+
+For a hosted database instead, put a Neon connection string in `.env` (see
+[Deploying to Vercel + Neon](#deploying-to-vercel--neon)) and skip the
+`dev-db.sh` step.
+
+### Signing in
+
+`npm run db:seed` creates one account per role, all on `SEED_ADMIN_PASSWORD`
+from `.env`. **Change every one of them before this is used for real.**
+
+| Sign in as | Email | Lands on |
+| --- | --- | --- |
+| Admin | `admin@aitransit.co.zm` | `/app/dashboard` |
+| China Warehouse | `china@aitransit.co.zm` | `/app/dashboard` |
+| Zambia Warehouse | `warehouse@aitransit.co.zm` | `/app/dashboard` |
+| Finance | `finance@aitransit.co.zm` | `/app/dashboard` |
+| Customer Support | `support@aitransit.co.zm` | `/app/support` |
+| Customer | `customer@example.com` | `/portal` |
 
 `AUTH_SECRET` is generated with:
 

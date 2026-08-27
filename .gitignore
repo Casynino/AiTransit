@@ -34,3 +34,7 @@ next-env.d.ts
 # Manual screenshots are rebuilt from the running app by scripts/manuals/capture.mjs
 docs/manuals/shots/
 backups/
+
+# The local dev database lives in ~/.aitransit-pg, outside the repo — but if
+# somebody points AITRANSIT_PGDATA at a directory in here, do not commit it.
+/.aitransit-pg/
