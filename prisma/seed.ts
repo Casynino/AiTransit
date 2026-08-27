@@ -9,6 +9,8 @@
  * created when the database has none.
  */
 import { PrismaClient, Prisma } from "@prisma/client";
+
+import { generateQrToken, packageReference } from "../lib/ids";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
@@ -233,7 +235,33 @@ async function main() {
 
   console.log(`Staff ready: ${adminEmail} + ${staffSpec.length} department accounts`);
 
-  // Demo cargo only on a fresh database — never on top of real operations.
+  /*
+    EVERYTHING ABOVE THIS LINE IS PRODUCTION INFRASTRUCTURE and always runs:
+    company settings, the rate card, the five company accounts, the indicative
+    FX board and the staff logins. A live deployment needs all of it — an
+    install that cannot take a payment because no account exists is not an
+    install — and every write above is an upsert, so re-running is safe.
+
+    EVERYTHING BELOW IS DEMO CARGO, and it is opt-in.
+
+    The old guard was "skip if any shipment exists", which is right for a second
+    run and exactly wrong for the first: a fresh Neon database has no shipments,
+    so the very deploy that must not get fake data was the one guaranteed to.
+    Twenty invented consignments and five invented customers in a live system
+    are not a cosmetic problem — they enter the batch manifests, the revenue
+    figures and the credit book.
+
+    So it now takes a deliberate `SEED_DEMO_DATA=true`. Local `.env` sets it;
+    production must not.
+  */
+  if (process.env.SEED_DEMO_DATA !== "true") {
+    console.log(
+      "Demo cargo skipped — set SEED_DEMO_DATA=true to seed sample batches. " +
+        "Production data (settings, rates, accounts, FX board, staff) is in place."
+    );
+    return;
+  }
+
   const existing = await prisma.shipment.count();
   if (existing > 0) {
     console.log(`Skipping demo cargo — ${existing} shipment(s) already exist.`);
@@ -247,7 +275,13 @@ async function main() {
     { name: "Ndola Fashion House", phone: "+260955777888", city: "Ndola" },
     { name: "Chipata General Supplies", phone: "+260977999000", city: "Chipata" },
     { name: "Livingstone Beauty Store", phone: "+260966222333", city: "Livingstone" },
+    { name: "Kabwe Hardware Centre", phone: "+260977334455", city: "Kabwe" },
+    { name: "Solwezi Electronics", phone: "+260966778899", city: "Solwezi" },
+    { name: "Chingola Auto Spares", phone: "+260955112233", city: "Chingola" },
+    { name: "Mansa Household Goods", phone: "+260977556677", city: "Mansa" },
+    { name: "Kasama Trading Co", phone: "+260966990011", city: "Kasama" },
   ];
+
 
   const customers = [];
   for (const spec of customerSpec) {
@@ -321,32 +355,67 @@ async function main() {
     the twenty cover the whole workflow without either batch telling a story
     that could not happen.
   */
-  const guangzhouBatch = await mkBatch({
+  /*
+    FOUR BATCHES: two that have landed in Lusaka and two still filling in China.
+
+    That pairing is the point. The two landed ones exercise everything after
+    arrival — check-in, weighing, pricing, invoicing, credit, release — and the
+    two in China exercise everything before it, including a batch that is still
+    open and taking cargo. One batch of each kind out of each origin, so the
+    Guangzhou lane and the Hong Kong lane are both represented at both ends.
+
+    Ten consignments each, one per customer, and no customer appears twice in
+    the same batch — a manifest with the same name on two lines is not what a
+    real batch looks like and it hides grouping bugs.
+  */
+  const guangzhouLanded = await mkBatch({
     origin: "GUANGZHOU",
     status: "ARRIVED",
     airline: "Ethiopian Airlines",
     flightNumber: "ET 8611",
     waybillNumber: "071-45889231",
-    departureDate: daysAgo(6),
-    departedAt: daysAgo(6),
-    arrivalDate: daysAgo(3),
-    arrivedAt: daysAgo(3),
-    notes: "General cargo — normal goods and wigs.",
+    departureDate: daysAgo(9),
+    departedAt: daysAgo(9),
+    arrivalDate: daysAgo(5),
+    arrivedAt: daysAgo(5),
+    notes: "General cargo — normal goods and wigs. Landed at Lusaka.",
     createdById: china,
-    createdAt: daysAgo(12),
+    createdAt: daysAgo(16),
   });
 
-  const hongKongBatch = await mkBatch({
+  const hongKongLanded = await mkBatch({
     origin: "HONG_KONG",
-    status: "IN_TRANSIT",
+    status: "ARRIVED",
     airline: "Qatar Airways Cargo",
     flightNumber: "QR 8142",
     waybillNumber: "157-88213076",
-    departureDate: daysAgo(1),
-    departedAt: daysAgo(1),
-    notes: "Electronics and special category out of Hong Kong.",
+    departureDate: daysAgo(7),
+    departedAt: daysAgo(7),
+    arrivalDate: daysAgo(3),
+    arrivedAt: daysAgo(3),
+    notes: "Electronics and special category. Landed at Lusaka.",
     createdById: china,
-    createdAt: daysAgo(7),
+    createdAt: daysAgo(14),
+  });
+
+  const guangzhouLoading = await mkBatch({
+    origin: "GUANGZHOU",
+    status: "OPEN",
+    notes: "Filling in Guangzhou — targeting the Thursday freighter.",
+    createdById: china,
+    createdAt: daysAgo(3),
+  });
+
+  const hongKongLoading = await mkBatch({
+    origin: "HONG_KONG",
+    status: "READY_TO_DEPART",
+    airline: "Emirates SkyCargo",
+    flightNumber: "EK 9821",
+    waybillNumber: "176-33920114",
+    departureDate: daysAgo(-1),
+    notes: "Sealed in Hong Kong, flies tomorrow.",
+    createdById: china,
+    createdAt: daysAgo(4),
   });
 
   // ---------------------------------------------------------------- shipments
@@ -382,30 +451,63 @@ async function main() {
     Ten and ten. The counts are asserted at the end of this file — a demo batch
     that quietly grows an eleventh item stops being the thing the spec asked for.
   */
-  const specs: Spec[] = [
-    // ---------------- Guangzhou (landed) — the Lusaka half of the workflow
-    { customer: 0, goodsType: "TEXTILES_GARMENTS", description: "Ladies' clothing", packages: 8, weightKg: 211, batchId: guangzhouBatch.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 12 },
-    { customer: 1, goodsType: "GENERAL_MERCHANDISE", description: "Assorted general goods", packages: 6, weightKg: 148.5, batchId: guangzhouBatch.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 12 },
-    { customer: 2, goodsType: "COSMETICS", description: "Human hair and beauty products", packages: 5, weightKg: 77.4, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 11 },
-    { customer: 3, goodsType: "FOOTWEAR", description: "Shoes and sneakers", packages: 12, weightKg: 305.2, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 11 },
-    { customer: 4, goodsType: "TEXTILES_GARMENTS", description: "Wigs and hair bundles", packages: 3, weightKg: 28.6, batchId: guangzhouBatch.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 10 },
-    { customer: 0, goodsType: "MACHINERY_PARTS", description: "Water pump spare parts", packages: 2, weightKg: 94.8, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 10 },
-    { customer: 1, goodsType: "AUTO_SPARES", description: "Motorcycle spare parts", packages: 7, weightKg: 189.35, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 10 },
-    { customer: 2, goodsType: "FURNITURE_FITTINGS", description: "Kitchen fittings", packages: 2, weightKg: 66, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 9 },
-    { customer: 3, goodsType: "GENERAL_MERCHANDISE", description: "Household plasticware", packages: 4, weightKg: 52.75, batchId: guangzhouBatch.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 9 },
-    { customer: 4, goodsType: "STATIONERY", description: "Office stationery", packages: 3, weightKg: 0.8, batchId: guangzhouBatch.id, status: "IN_TRANSIT", origin: "GUANGZHOU", registeredDaysAgo: 9 },
+  /*
+    Forty consignments: ten per batch, one per customer, no repeats inside a
+    batch. Counts are asserted below rather than trusted.
 
-    // ---------------- Hong Kong (in the air) — the China half
-    { customer: 0, goodsType: "ELECTRONICS", description: "LED lighting panels", packages: 4, weightKg: 118, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 7 },
-    { customer: 1, goodsType: "PHONE_ACCESSORIES", description: "Mobile phone accessories", packages: 3, weightKg: 62.25, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 7 },
-    { customer: 2, goodsType: "ELECTRONICS", description: "Laptop chargers and cables", packages: 5, weightKg: 41.9, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
-    { customer: 3, goodsType: "ELECTRONICS", description: "Bluetooth speakers", packages: 6, weightKg: 88.4, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
-    { customer: 4, goodsType: "PHONE_ACCESSORIES", description: "Phone cases and screen protectors", packages: 2, weightKg: 17.3, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 6 },
-    { customer: 0, goodsType: "ELECTRONICS", description: "Power banks", packages: 4, weightKg: 73.6, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 5 },
-    { customer: 1, goodsType: "COSMETICS", description: "Branded cosmetics", packages: 3, weightKg: 24.15, batchId: hongKongBatch.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 5 },
-    { customer: 2, goodsType: "ELECTRONICS", description: "CCTV cameras and recorders", packages: 5, weightKg: 102.8, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 4 },
-    { customer: 3, goodsType: "ELECTRONICS", description: "Tablet computers", packages: 2, weightKg: 31.5, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 3 },
-    { customer: 4, goodsType: "PHONE_ACCESSORIES", description: "Smart watches", packages: 1, weightKg: 0.6, batchId: hongKongBatch.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 2 },
+    The two LANDED batches carry the full spread of post-arrival states —
+    delivered, released, checked in, and a couple still to be checked in, which
+    is what a warehouse floor actually looks like on any given morning. The two
+    still in China are READY_TO_DEPART, because nothing has flown yet.
+  */
+  const specs: Spec[] = [
+    // ---- Guangzhou, landed at Lusaka: general cargo -------------------------
+    { customer: 0, goodsType: "TEXTILES_GARMENTS", description: "Ladies' clothing", packages: 8, weightKg: 211, batchId: guangzhouLanded.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 16 },
+    { customer: 1, goodsType: "GENERAL_MERCHANDISE", description: "Assorted general goods", packages: 6, weightKg: 148.5, batchId: guangzhouLanded.id, status: "DELIVERED", origin: "GUANGZHOU", registeredDaysAgo: 16 },
+    { customer: 2, goodsType: "FOOTWEAR", description: "Shoes and sneakers", packages: 12, weightKg: 305.2, batchId: guangzhouLanded.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 15 },
+    { customer: 3, goodsType: "COSMETICS", description: "Human hair and beauty products", packages: 5, weightKg: 77.4, batchId: guangzhouLanded.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 15 },
+    { customer: 4, goodsType: "TEXTILES_GARMENTS", description: "Wigs and hair bundles", packages: 3, weightKg: 28.6, batchId: guangzhouLanded.id, status: "READY_FOR_PICKUP", origin: "GUANGZHOU", registeredDaysAgo: 14 },
+    { customer: 5, goodsType: "MACHINERY_PARTS", description: "Water pump spare parts", packages: 2, weightKg: 94.8, batchId: guangzhouLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 14 },
+    { customer: 6, goodsType: "FURNITURE_FITTINGS", description: "Kitchen fittings", packages: 4, weightKg: 66, batchId: guangzhouLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 13 },
+    { customer: 7, goodsType: "AUTO_SPARES", description: "Motorcycle spare parts", packages: 7, weightKg: 189.35, batchId: guangzhouLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "GUANGZHOU", registeredDaysAgo: 13 },
+    { customer: 8, goodsType: "GENERAL_MERCHANDISE", description: "Household plasticware", packages: 4, weightKg: 52.75, batchId: guangzhouLanded.id, status: "IN_TRANSIT", origin: "GUANGZHOU", registeredDaysAgo: 12 },
+    { customer: 9, goodsType: "STATIONERY", description: "Office stationery", packages: 3, weightKg: 0.8, batchId: guangzhouLanded.id, status: "IN_TRANSIT", origin: "GUANGZHOU", registeredDaysAgo: 12 },
+
+    // ---- Hong Kong, landed at Lusaka: electronics and special ---------------
+    { customer: 1, goodsType: "ELECTRONICS", description: "LED lighting panels", packages: 4, weightKg: 118, batchId: hongKongLanded.id, status: "DELIVERED", origin: "HONG_KONG", registeredDaysAgo: 14 },
+    { customer: 3, goodsType: "PHONE_ACCESSORIES", description: "Mobile phone accessories", packages: 3, weightKg: 62.25, batchId: hongKongLanded.id, status: "READY_FOR_PICKUP", origin: "HONG_KONG", registeredDaysAgo: 14 },
+    { customer: 6, goodsType: "ELECTRONICS", description: "Laptop chargers and cables", packages: 5, weightKg: 41.9, batchId: hongKongLanded.id, status: "READY_FOR_PICKUP", origin: "HONG_KONG", registeredDaysAgo: 13 },
+    { customer: 0, goodsType: "ELECTRONICS", description: "Bluetooth speakers", packages: 6, weightKg: 88.4, batchId: hongKongLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "HONG_KONG", registeredDaysAgo: 13 },
+    { customer: 2, goodsType: "ELECTRONICS", description: "CCTV cameras and recorders", packages: 5, weightKg: 102.8, batchId: hongKongLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "HONG_KONG", registeredDaysAgo: 12 },
+    { customer: 4, goodsType: "PHONE_ACCESSORIES", description: "Power banks", packages: 4, weightKg: 73.6, batchId: hongKongLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "HONG_KONG", registeredDaysAgo: 12 },
+    { customer: 5, goodsType: "COSMETICS", description: "Branded cosmetics", packages: 3, weightKg: 24.15, batchId: hongKongLanded.id, status: "RECEIVED_AT_ZAMBIA", origin: "HONG_KONG", registeredDaysAgo: 11 },
+    { customer: 7, goodsType: "ELECTRONICS", description: "Tablet computers", packages: 2, weightKg: 31.5, batchId: hongKongLanded.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 11 },
+    { customer: 8, goodsType: "PHONE_ACCESSORIES", description: "Smart watches", packages: 1, weightKg: 0.6, batchId: hongKongLanded.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 10 },
+    { customer: 9, goodsType: "ELECTRONICS", description: "Solar inverters and batteries", packages: 3, weightKg: 145.2, batchId: hongKongLanded.id, status: "IN_TRANSIT", origin: "HONG_KONG", registeredDaysAgo: 10 },
+
+    // ---- Guangzhou, still open in China -------------------------------------
+    { customer: 2, goodsType: "TEXTILES_GARMENTS", description: "Men's shirts and trousers", packages: 9, weightKg: 167.4, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 5 },
+    { customer: 5, goodsType: "FOOTWEAR", description: "Ladies' sandals", packages: 6, weightKg: 88.9, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 5 },
+    { customer: 0, goodsType: "GENERAL_MERCHANDISE", description: "Kitchenware assortment", packages: 7, weightKg: 120.6, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 4 },
+    { customer: 8, goodsType: "FURNITURE_FITTINGS", description: "Cabinet handles and hinges", packages: 3, weightKg: 44.2, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 4 },
+    { customer: 1, goodsType: "TEXTILES_GARMENTS", description: "Braiding hair", packages: 4, weightKg: 36.8, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 3 },
+    { customer: 9, goodsType: "AUTO_SPARES", description: "Brake pads and filters", packages: 5, weightKg: 131.5, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 3 },
+    { customer: 3, goodsType: "STATIONERY", description: "School exercise books", packages: 10, weightKg: 204.3, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 2 },
+    { customer: 6, goodsType: "COSMETICS", description: "Skin care products", packages: 2, weightKg: 19.7, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 2 },
+    { customer: 4, goodsType: "GENERAL_MERCHANDISE", description: "Plastic storage crates", packages: 8, weightKg: 96.4, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 1 },
+    { customer: 7, goodsType: "TEXTILES_GARMENTS", description: "Children's clothing", packages: 5, weightKg: 58.1, batchId: guangzhouLoading.id, status: "READY_TO_DEPART", origin: "GUANGZHOU", registeredDaysAgo: 1 },
+
+    // ---- Hong Kong, sealed in China, flies tomorrow -------------------------
+    { customer: 4, goodsType: "ELECTRONICS", description: "Smart TVs", packages: 4, weightKg: 178.5, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 6 },
+    { customer: 7, goodsType: "PHONE_ACCESSORIES", description: "Phone cases and protectors", packages: 2, weightKg: 17.3, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 6 },
+    { customer: 1, goodsType: "ELECTRONICS", description: "Wireless earbuds", packages: 3, weightKg: 22.9, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 5 },
+    { customer: 5, goodsType: "ELECTRONICS", description: "Computer monitors", packages: 5, weightKg: 134.7, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 5 },
+    { customer: 9, goodsType: "ELECTRONICS", description: "Router and networking kit", packages: 2, weightKg: 28.4, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 4 },
+    { customer: 0, goodsType: "PHONE_ACCESSORIES", description: "Charging cables in bulk", packages: 6, weightKg: 54.2, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 4 },
+    { customer: 8, goodsType: "ELECTRONICS", description: "Digital cameras", packages: 1, weightKg: 0.9, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 3 },
+    { customer: 2, goodsType: "COSMETICS", description: "Branded perfumes", packages: 2, weightKg: 14.6, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 3 },
+    { customer: 6, goodsType: "ELECTRONICS", description: "Gaming consoles", packages: 3, weightKg: 41.8, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 2 },
+    { customer: 3, goodsType: "ELECTRONICS", description: "Kitchen appliances", packages: 4, weightKg: 97.3, batchId: hongKongLoading.id, status: "READY_TO_DEPART", origin: "HONG_KONG", registeredDaysAgo: 2 },
   ];
 
   /*
@@ -414,12 +516,19 @@ async function main() {
     people in a hurry and an eleventh row is invisible until somebody counts.
   */
   for (const [label, id] of [
-    ["Guangzhou", guangzhouBatch.id],
-    ["Hong Kong", hongKongBatch.id],
+    ["Guangzhou (landed)", guangzhouLanded.id],
+    ["Hong Kong (landed)", hongKongLanded.id],
+    ["Guangzhou (loading)", guangzhouLoading.id],
+    ["Hong Kong (loading)", hongKongLoading.id],
   ] as const) {
-    const n = specs.filter((spec) => spec.batchId === id).length;
-    if (n !== 10) {
-      throw new Error(`${label} batch must hold exactly 10 sample items, found ${n}.`);
+    const items = specs.filter((spec) => spec.batchId === id);
+    if (items.length !== 10) {
+      throw new Error(`${label} must hold exactly 10 sample items, found ${items.length}.`);
+    }
+    // Ten different customers, not one customer ten times.
+    const distinct = new Set(items.map((i) => i.customer)).size;
+    if (distinct !== 10) {
+      throw new Error(`${label} must span 10 different customers, found ${distinct}.`);
     }
   }
 
@@ -428,11 +537,9 @@ async function main() {
   for (const spec of specs) {
     const registeredAt = daysAgo(spec.registeredDaysAgo);
     const batch =
-      spec.batchId === guangzhouBatch.id
-        ? guangzhouBatch
-        : spec.batchId === hongKongBatch.id
-          ? hongKongBatch
-          : null;
+      [guangzhouLanded, hongKongLanded, guangzhouLoading, hongKongLoading].find(
+        (b) => b.id === spec.batchId
+      ) ?? null;
 
     const departedAt =
       spec.status === "READY_TO_DEPART" ? null : (batch?.departedAt ?? null);
@@ -548,7 +655,77 @@ async function main() {
     });
   }
 
+  /*
+    ONE PACKAGE ROW PER CARTON, with its own QR token.
+
+    The demo used to record `packages: 8` as a number and create no Package
+    rows at all, so every sample consignment had a carton count and not one
+    scannable label. That is not a cosmetic gap: release at the Lusaka counter
+    is a QR scan against a pickup note, so a demo built that way could not
+    demonstrate — or regression-test — the one control that stops cargo being
+    handed to the wrong person.
+
+    Tokens come from the same generator the receiving flow uses. They are random
+    rather than derived from the tracking number, deliberately: tracking numbers
+    are sequential and public, and a guessable QR would be a forged label.
+  */
+  let packageRows = 0;
+  for (const entry of created) {
+    const arrived =
+      entry.spec.status === "RECEIVED_AT_ZAMBIA" ||
+      entry.spec.status === "READY_FOR_PICKUP" ||
+      entry.spec.status === "DELIVERED";
+
+    await prisma.package.createMany({
+      data: Array.from({ length: entry.spec.packages }, (_, i) => ({
+        shipmentId: entry.id,
+        sequence: i + 1,
+        reference: packageReference(entry.trackingNumber, i + 1),
+        qrToken: generateQrToken(),
+        // Split the declared weight evenly across the cartons; the real figure
+        // is whatever the Lusaka scale says, and only arrived cargo has one.
+        weightKg: new Prisma.Decimal(
+          Math.round((entry.spec.weightKg / entry.spec.packages) * 1000) / 1000
+        ),
+        receivedAt: arrived ? daysAgo(entry.spec.registeredDaysAgo - 4) : null,
+        receivedById: arrived ? zambia : null,
+        deliveredAt: entry.spec.status === "DELIVERED" ? daysAgo(2) : null,
+      })),
+    });
+    packageRows += entry.spec.packages;
+  }
+  console.log(`Packages: ${packageRows} cartons labelled with QR tokens.`);
+
   // ------------------------------------------------------------------ money
+  /*
+    The rate the demo books convert at. INDICATIVE, and the seeded FX rows say
+    so — this is a plausible opening figure for USD→ZMW, not a rate AITRANSIT
+    has agreed to trade at. Admin confirms the real one under Finance →
+    Exchange, and every invoice raised after that carries whatever they set.
+  */
+  const DEMO_USD_ZMW = 27.5;
+
+  await prisma.exchangeRate.upsert({
+    where: { id: "seed-usd-zmw" },
+    create: {
+      id: "seed-usd-zmw",
+      fromCurrency: "USD",
+      toCurrency: "ZMW",
+      rate: new Prisma.Decimal(DEMO_USD_ZMW),
+      buyRate: new Prisma.Decimal(26.5),
+      sellRate: new Prisma.Decimal(DEMO_USD_ZMW),
+      status: "INDICATIVE",
+      source: "Seeded opening figure",
+      notes: "Indicative. Admin must confirm before this settles anything.",
+    },
+    update: {},
+  });
+
+  const [usdCashAccount, mobileMoneyAccount] = await Promise.all([
+    prisma.companyAccount.findUniqueOrThrow({ where: { code: "CASH_OFFICE_USD" } }),
+    prisma.companyAccount.findUniqueOrThrow({ where: { code: "MOBILE_MONEY" } }),
+  ]);
+
   for (const entry of created) {
     const needsInvoice =
       entry.spec.status === "RECEIVED_AT_ZAMBIA" ||
@@ -573,23 +750,48 @@ async function main() {
         total: new Prisma.Decimal(total),
         amountPaid: new Prisma.Decimal(settled ? total : 0),
         status: settled ? "PAID" : "UNPAID",
+        /* The rate this bill was raised under, frozen onto it. Without this a
+           demo invoice cannot show a kwacha equivalent, and — worse — it would
+           silently restate itself every time Admin moved the rate, which is the
+           one thing invoices in this system are built not to do. */
+        exchangeRate: new Prisma.Decimal(DEMO_USD_ZMW),
         issuedById: finance,
       },
     });
 
     if (!settled) continue;
 
+    /*
+      Half the demo payments settle in USD cash and half in kwacha over mobile
+      money, because that is the split the business actually sees and because a
+      demo where every payment is in the invoice's own currency never exercises
+      the conversion columns at all.
+
+      A kwacha payment stores three things, not one: what the customer handed
+      over (`amount`, in ZMW), what it settled in USD (`creditedAmount`), and
+      the rate that got from one to the other. Storing only the first would
+      leave the bill unexplainable six months later.
+    */
+    const paidInUsd = entry.spec.status === "DELIVERED";
+    const account = paidInUsd ? usdCashAccount : mobileMoneyAccount;
+    const amountPaidNow = paidInUsd
+      ? total
+      : Math.round(total * DEMO_USD_ZMW * 100) / 100;
+
     const payment = await prisma.payment.create({
       data: {
         invoiceId: invoice.id,
-        amount: new Prisma.Decimal(total),
-        method: entry.spec.status === "DELIVERED" ? "CASH" : "MOBILE_MONEY",
-        reference:
-          entry.spec.status === "DELIVERED"
-            ? null
-            : `MP${randomBytes(4).toString("hex").toUpperCase()}`,
+        amount: new Prisma.Decimal(amountPaidNow),
+        currency: account.currency,
+        creditedAmount: new Prisma.Decimal(total),
+        exchangeRate: paidInUsd ? null : new Prisma.Decimal(DEMO_USD_ZMW),
+        accountId: account.id,
+        method: paidInUsd ? "CASH" : "MOBILE_MONEY",
+        reference: paidInUsd
+          ? null
+          : `MP${randomBytes(4).toString("hex").toUpperCase()}`,
         receivedById: finance,
-        paidAt: daysAgo(entry.spec.status === "DELIVERED" ? 17 : 1),
+        paidAt: daysAgo(paidInUsd ? 17 : 1),
       },
     });
 
@@ -598,6 +800,35 @@ async function main() {
         receiptNumber: `RCT-${year}-${pad(await seq(`receipt:${year}`))}`,
         paymentId: payment.id,
         issuedById: finance,
+      },
+    });
+
+    /*
+      THE LEDGER LINE. Money that moved without one is money the books cannot
+      see: an account balance in this system is a running total over ledger
+      rows, not a column, so eight seeded payments with no entries left every
+      demo account reading zero while the invoices showed them paid. The
+      finance reconciliation check catches exactly that disagreement, and it
+      was catching it.
+
+      `amountUsd` is the figure reporting sums on, so it is always the USD
+      equivalent whatever currency the customer actually handed over.
+    */
+    await prisma.ledgerEntry.create({
+      data: {
+        entryNumber: `GL-${year}-${pad(await seq(`ledger:${year}`))}`,
+        accountId: account.id,
+        direction: "IN",
+        kind: "CUSTOMER_PAYMENT",
+        amount: new Prisma.Decimal(amountPaidNow),
+        currency: account.currency,
+        amountUsd: new Prisma.Decimal(total),
+        exchangeRate: paidInUsd ? null : new Prisma.Decimal(DEMO_USD_ZMW),
+        occurredAt: daysAgo(paidInUsd ? 17 : 1),
+        description: `Payment for ${invoice.invoiceNumber}`,
+        sourceEntity: "Payment",
+        sourceId: payment.id,
+        paymentId: payment.id,
       },
     });
 
@@ -636,7 +867,7 @@ async function main() {
     await prisma.shipmentException.create({
       data: {
         shipmentId: damaged.id,
-        batchId: guangzhouBatch.id,
+        batchId: guangzhouLanded.id,
         type: "DAMAGED_CARGO",
         description:
           "One carton arrived with a torn corner. Contents counted and complete; customer informed.",

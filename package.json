@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start -p 3001",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -16,7 +16,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reset": "prisma db push --force-reset && npm run db:seed",
+    "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate",
     "db:seed:pricing": "tsx prisma/seed-pricing.ts",
     "verify:pricing": "tsx --conditions=react-server prisma/verify-pricing.ts",
@@ -26,10 +26,13 @@
     "verify:tracking": "tsx --conditions=react-server prisma/verify-tracking-hold.ts",
     "verify:investigations": "tsx --conditions=react-server prisma/verify-investigations.ts",
     "finance:check": "tsx --conditions=react-server scripts/finance-check.mts",
-    "db:seed:markets": "tsx prisma/seed-markets.ts"
+    "db:seed:markets": "tsx prisma/seed-markets.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "verify:workflow": "tsx prisma/verify-workflow.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed-all.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.0",

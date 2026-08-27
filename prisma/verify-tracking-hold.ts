@@ -207,10 +207,24 @@ async function main() {
           ? `collectable=${investigating.collectable}`
           : investigating.kind
       );
+      /*
+        The label is matched by SUBSTRING, not by equality.
+
+        It used to demand exactly "Under investigation". The tracker was later
+        changed to qualify the headline with the stage — "Arrived — under
+        investigation", "In transit — under investigation" — for a good reason
+        recorded beside HOLD_HEADLINE: the bare phrase cannot tell a customer
+        whether their cargo is in Lusaka or over the Indian Ocean. The
+        assertion was never updated, so it failed the improvement.
+
+        What must hold is the guarantee, not the wording: the customer is told
+        it is under investigation, and is NOT told it is ready for pickup.
+      */
       check(
-        'the customer is shown "Under investigation", not "Ready for pickup"',
+        'the customer is shown "under investigation", not "Ready for pickup"',
         investigating.kind === "shipment" &&
-          investigating.statusLabel === "Under investigation" &&
+          /under investigation/i.test(investigating.statusLabel) &&
+          !/ready for pickup/i.test(investigating.statusLabel) &&
           investigating.investigation?.state === "UNDER_INVESTIGATION",
         investigating.kind === "shipment" ? investigating.statusLabel : ""
       );
@@ -233,12 +247,13 @@ async function main() {
         data: { status: "COMPENSATION_APPROVED" },
       });
       const compensating = await trackByCode(subject.trackingNumber);
+      // Same reasoning as above: stage-qualified headline, substring match.
       check(
-        'an approved settlement reads "Compensation in progress" and still blocks pickup',
+        'an approved settlement reads "compensation in progress" and still blocks pickup',
         compensating.kind === "shipment" &&
           compensating.collectable === false &&
           compensating.investigation?.state === "COMPENSATION_IN_PROGRESS" &&
-          compensating.statusLabel === "Compensation in progress",
+          /compensation in progress/i.test(compensating.statusLabel),
         compensating.kind === "shipment" ? compensating.statusLabel : ""
       );
 

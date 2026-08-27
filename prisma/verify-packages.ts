@@ -76,9 +76,23 @@ async function main() {
   const sample = shipments.find((s) => s.packageList.length > 0)?.packageList[0];
   if (sample) {
     const parsed = parseQrPayload(packageQrPayload(sample.qrToken));
+    /*
+      The TOKEN is what must survive the round trip, not the kind.
+
+      This used to assert `kind === "package"`, which the parser is explicitly
+      designed never to return for a URL label: `/t/<token>` is deliberately
+      ambiguous and `parseQrPayload` says so in a comment — it guesses
+      "shipment" and the resolver at /t/[token] corrects it by looking the token
+      up in the package table first. Asserting the guess tested the opposite of
+      the documented contract and would have failed the moment anybody read it.
+
+      What actually matters, and is checked here, is that a scanned label yields
+      back exactly the token stored on the carton — that is the credential the
+      Lusaka counter releases against.
+    */
     check(
-      "a printed package QR parses back as a package",
-      parsed?.kind === "package" && parsed.token === sample.qrToken,
+      "a printed package QR round-trips its token",
+      parsed?.token === sample.qrToken,
       sample.reference
     );
   }
