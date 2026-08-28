@@ -103,14 +103,23 @@ export const CATEGORY_RATES: CategoryRate[] = [
 export const NORMAL_GOODS: Product[] = [
   "Clothes",
   "Shoes",
-  "Bags & luggage",
+  "Bags",
+  "Hats",
+  "Fabrics",
+  "Earrings",
+  "Chains",
+  "Bracelets",
+  "Rings (without stones)",
+  "LCD",
+  "Flash & Memory Cards",
+  "Car Accessories",
+  "Camera (no battery)",
   "Household items",
   "Kitchenware",
   "Toys",
   "Furniture & fittings",
   "Stationery",
-  "Jewellery (without stones)",
-  "General merchandise",
+  "General Merchandise",
   "Others",
 ].map((name) => ({
   name,
@@ -120,22 +129,32 @@ export const NORMAL_GOODS: Product[] = [
 }));
 
 export const NORMAL_GOODS_KEYWORDS: Record<string, string> = {
-  Clothes: "clothes,clothing,衣服,garment,帽子,hat,袜,sock,裤",
-  Shoes: "shoes,鞋子,皮鞋,footwear,鞋带,鞋垫,sneaker,boot",
-  "Bags & luggage": "bag,bags,箱包,包包,suitcase,luggage,backpack",
+  Clothes: "clothes,clothing,衣服,garment,袜,sock,裤,shirt,dress",
+  Shoes: "shoes,鞋子,皮鞋,footwear,鞋带,鞋垫,sneaker,boot,sandal",
+  Bags: "bag,bags,箱包,包包,suitcase,luggage,backpack,handbag",
+  Hats: "hat,hats,帽子,cap",
+  Fabrics: "fabric,fabrics,布,布料,textile,cloth,roll",
+  Earrings: "earring,earrings,耳环",
+  Chains: "chain,chains,项链,necklace",
+  Bracelets: "bracelet,bracelets,手链,bangle",
+  "Rings (without stones)": "ring,rings,戒指",
+  LCD: "lcd,液晶,显示屏,panel",
+  "Flash & Memory Cards": "memory card,flash,u盘,u disk,内存卡,sd card,usb",
+  "Car Accessories":
+    "car,auto,仪表盘,dashboard,活塞,piston,格栅,grille,减震器,shock absorber,spare",
+  "Camera (no battery)": "camera,相机,摄像头,no battery,不带电池",
   "Household items": "household,home,家居,家用,日用品",
   Kitchenware: "kitchen,厨房,厨具,cookware,utensil",
   Toys: "toy,toys,玩具",
-  "Furniture & fittings": "furniture,家具,fitting,fixture",
-  Stationery: "stationery,文具,pen,paper,notebook",
-  "Jewellery (without stones)": "earring,耳环,chain,项链,ring,戒指,jewellery,jewelry",
-  "General merchandise": "general,assorted,配件,accessories,杂货",
+  "Furniture & fittings": "furniture,家具,fitting,fixture,hinge,handle",
+  Stationery: "stationery,文具,pen,paper,notebook,exercise book",
+  "General Merchandise": "general,assorted,配件,accessories,杂货,mixed",
   Others: "other,misc",
 };
 
 /**
  * WIGS — a category of its own, and the reason AITRANSIT's card has three rows
- * where most forwarders have two. Hair is a large enough share of the Zambian
+ * where the source system has two. Hair is a large enough share of the Zambian
  * trade to be priced separately, and it flies Guangzhou like normal goods.
  */
 export const WIGS: Product[] = [
@@ -155,22 +174,37 @@ export const WIGS: Product[] = [
 /**
  * SPECIAL CATEGORY — the higher rate and the Hong Kong route.
  *
- * Electronics, batteries, liquids and cosmetics together, because they share a
- * price and an airport. The customer-facing NAME of this category is editable
- * in Admin settings — the business is still deciding what to call it — but the
- * enum value and therefore every priced invoice is unaffected by a rename.
+ * ITEMISED, not grouped. These used to be eleven umbrella names — "Phones &
+ * accessories", "Cameras & audio" — which is tidier to read and worse to use:
+ * a clerk holding a PlayStation had to decide whether it was electronics or
+ * audio, and Finance lost the one field that tells them what is actually in
+ * the box. The list is now the same granularity the desks already work at.
+ *
+ * Everything here is WEIGHT_BASED, deliberately. The source system prices some
+ * of these per piece; AITRANSIT's card is per kilo across the board, and
+ * importing a per-item method under a per-kilo rate would bill a 30 kg printer
+ * as one item.
  */
 export const SPECIAL_CATEGORY: Product[] = [
-  { name: "Electronics", keywords: "electronic,电子,gadget" },
-  { name: "Phones & accessories", keywords: "phone,手机,smartphone,charger,充电器,cable,case" },
-  { name: "Laptops & computers", keywords: "laptop,notebook,笔记本,电脑,computer,tablet,ipad,平板" },
-  { name: "Cameras & audio", keywords: "camera,相机,speaker,音箱,earphone,airpods,microphone" },
-  { name: "Batteries & power", keywords: "battery,电池,power bank,inverter,逆变器,solar,太阳能" },
-  { name: "LED & displays", keywords: "led,display,monitor,显示器,lcd,屏" },
-  { name: "Cosmetics & perfume", keywords: "cosmetic,化妆品,perfume,香水,cream,lotion" },
-  { name: "Medicines & food", keywords: "medicine,药,food,食品,保健品,capsule,supplement" },
-  { name: "Liquids & oils", keywords: "liquid,液体,oil,油,gel,凝胶,aerosol,spray" },
-  { name: "Machinery & spares", keywords: "machine,机器,motor,电机,bearing,轴承,spare,tool" },
+  { name: "Smart Phone (Full Box)", keywords: "phone,smartphone,手机,full box" },
+  { name: "Smart Phone (Unboxed)", keywords: "unboxed,老人机,senior phone" },
+  { name: "Laptop", keywords: "laptop,notebook,笔记本,电脑" },
+  { name: "Tablet", keywords: "tablet,ipad,平板" },
+  { name: "Kids Tablet", keywords: "kids tablet,儿童平板" },
+  { name: "Smart Watch", keywords: "watch,smart watch,手表" },
+  { name: "Camera", keywords: "camera,相机,摄像头" },
+  { name: "AirPods", keywords: "airpods,earbuds,耳机" },
+  { name: "Speakers", keywords: "speaker,音箱,soundbar" },
+  { name: "PlayStation", keywords: "playstation,console,游戏机,xbox" },
+  { name: "Batteries", keywords: "battery,电池,power bank,inverter,逆变器" },
+  { name: "Monitors", keywords: "monitor,显示器,screen" },
+  { name: "Chargers", keywords: "charger,充电器,cable,adapter" },
+  { name: "Printers", keywords: "printer,打印机,3d printer,toner" },
+  { name: "LED Displays", keywords: "led,display,模组,module" },
+  { name: "Medicines & Food Stuff", keywords: "medicine,药,food,食品,蛋白粉,protein,保健品,capsule,胶囊" },
+  { name: "Cosmetics", keywords: "cosmetic,化妆品,perfume,香水,cream,lotion,makeup" },
+  { name: "Oils", keywords: "oil,油,lubricant,润滑剂,凝胶,gel,沐浴露,liquid,液体" },
+  { name: "Documents", keywords: "document,papers,文件" },
   { name: "Others", keywords: "other,misc" },
 ].map((item) => ({
   ...item,

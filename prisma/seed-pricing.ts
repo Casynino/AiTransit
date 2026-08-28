@@ -95,6 +95,26 @@ async function main() {
     orderByCategory.set(product.category, next + 1);
   }
 
+  /*
+    RETIRE, DO NOT DELETE, anything no longer in the catalogue.
+
+    The list above is the source of truth, and it changes: umbrella names like
+    "Bags & luggage" were split into the granular items the desks actually work
+    at. Without this step the old names stayed ACTIVE beside the new ones and
+    the "Which item?" dropdown showed both — two ways to record the same box,
+    which is how a rate book quietly stops meaning anything.
+
+    Deactivated rather than removed, because shipments already recorded against
+    a retired name still point at it, and an invoice must always be able to say
+    what it was raised for.
+  */
+  const keep = ALL_PRODUCTS.map((product) => product.name);
+  const { count: retired } = await prisma.cargoType.updateMany({
+    where: { active: true, name: { notIn: keep } },
+    data: { active: false },
+  });
+  if (retired) console.log(`Retired ${retired} product(s) no longer in the catalogue.`);
+
   // ------------------------------------------------------------ rate book
   /*
     Three categories, two weight tiers each, and every rule category-wide
