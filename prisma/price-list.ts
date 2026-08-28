@@ -93,9 +93,16 @@ export type CategoryRate = {
   to a faithful copy, and it is the row most likely to want changing first.
 */
 export const CATEGORY_RATES: CategoryRate[] = [
-  // Normal goods — Guangzhou route. The bulk of the trade, hair included.
-  { category: "NORMAL_GOODS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 13.5 },
-  { category: "NORMAL_GOODS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 12.5 },
+  /*
+    Normal goods — Guangzhou route, and the bulk of the trade, hair included.
+
+    Two bands, and the heavier one is CHEAPER per kilogram, which is how air
+    freight is sold everywhere: the fixed cost of handling a consignment is
+    spread over more kilos. The boundary is inclusive at the bottom of the upper
+    band — exactly 10 kg pays the 10-and-above rate, not the under-10 one.
+  */
+  { category: "NORMAL_GOODS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 14.5 },
+  { category: "NORMAL_GOODS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 14.0 },
   /*
     The two Hong Kong categories. ONE rate at every weight for both, where
     normal goods has two tiers — expressed as a single unbounded band rather
@@ -105,31 +112,36 @@ export const CATEGORY_RATES: CategoryRate[] = [
     categories because the DESK sorts them separately — a phone and a drum of
     oil need different handling and different paperwork — not because they cost
     different money.
+
+    For electronics this is the FALLBACK rate: the nine items in PER_PIECE_USD
+    below are charged by the piece and never reach it. Anything electronic that
+    is not on that list — a box of chargers, a printer, a monitor — is weighed
+    and charged here.
   */
-  { category: "ELECTRONICS", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
-  { category: "LIQUID_SPECIAL", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
+  { category: "ELECTRONICS", minWeightKg: null, maxWeightKg: null, pricePerKg: 16.5 },
+  { category: "LIQUID_SPECIAL", minWeightKg: null, maxWeightKg: null, pricePerKg: 16.5 },
 ];
 
 /*
   PER-PIECE ITEMS — the mechanism, not just the numbers.
 
-  Upstream, a laptop costs USD 45 whether it weighs two kilos or five, because
-  what the customer is buying is carriage of a laptop. Nine items work that
-  way and everything else in the category falls back to the per-kg rate above.
+  A laptop costs USD 50 whether it weighs two kilos or five, because what the
+  customer is buying is carriage of a laptop. Nine items work that way and
+  everything else in the category falls back to the per-kg rate above.
 
   A product-specific rule beats a category-wide one in lib/pricing.ts, which is
   what makes this work without any special case in the engine.
 */
 export const PER_PIECE_USD: Record<string, number> = {
+  Laptop: 50,
+  Camera: 50,
+  Documents: 30,
   "Smart Phone (Full Box)": 25,
-  "Smart Phone (Unboxed)": 20,
-  Laptop: 45,
   Tablet: 25,
+  "Smart Phone (Unboxed)": 20,
   "Kids Tablet": 15,
-  "Smart Watch": 10,
-  Camera: 45,
-  Documents: 40,
   AirPods: 10,
+  "Smart Watch": 10,
 };
 
 /**

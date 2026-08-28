@@ -21,7 +21,7 @@ import {
 } from "@/components/app/pricing-admin";
 import { Badge } from "@/components/ui/badge";
 import { auditSentence } from "@/lib/audit-humanise";
-import { CATEGORY_LABELS } from "@/lib/cargo";
+import { CATEGORIES, CATEGORY_LABELS } from "@/lib/cargo";
 import { formatDateTime, formatRelative, toNumber } from "@/lib/format";
 import { currentRate } from "@/lib/fx";
 import { t } from "@/lib/i18n";
@@ -172,7 +172,13 @@ export default async function PricingConfigurationPage() {
       icon: Layers,
       label: t(locale, "Active categories"),
       value: String(activeCategories),
-      sub: `${t(locale, "of")} ${Object.keys(CATEGORY_LABELS).length} ${t(locale, "priced")}`,
+      /*
+        CATEGORIES, not the label map. CATEGORY_LABELS keeps an entry for the
+        retired WIGS so an old row still renders a name, and counting its keys
+        made this read "3 of 4 priced" — the fourth being a category nobody can
+        select and nothing can be priced into. CATEGORIES is the live list.
+      */
+      sub: `${t(locale, "of")} ${CATEGORIES.length} ${t(locale, "priced")}`,
       tone: "text-foreground",
     },
     {

@@ -20,18 +20,13 @@ import type { Locale } from "@/lib/locale";
 import type { ActionResult } from "@/lib/actions/types";
 import {
   AIRPORT_LABELS,
+  CATEGORIES,
   CATEGORY_EXAMPLES,
   CATEGORY_LABELS,
   ROUTE_FOR_CATEGORY,
 } from "@/lib/cargo";
 import { CustomerPicker } from "@/components/app/customer-picker";
 import { UnsavedGuard } from "@/components/app/unsaved-guard";
-
-const CATEGORIES: CargoCategory[] = [
-  "NORMAL_GOODS",
-  "ELECTRONICS",
-  "LIQUID_SPECIAL",
-];
 
 
 type CargoTypeOption = { id: string; name: string };

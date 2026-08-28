@@ -100,6 +100,23 @@ export const AIRPORT_LABELS: Record<Origin, string> = {
 };
 
 /** Which categories are allowed on a batch departing from a given airport. */
+/**
+ * The categories that actually exist, in the order they are offered.
+ *
+ * THE ONE LIST. CATEGORY_LABELS cannot be it, because that map has to keep an
+ * entry for the retired WIGS so an old row still renders a name — and counting
+ * its keys made the pricing page report "3 of 4 priced", the fourth being a
+ * category nobody can select. The receive form kept its own copy of this array
+ * for the same reason, which is two places to update and one to forget.
+ *
+ * Anything that offers, counts or iterates categories uses this.
+ */
+export const CATEGORIES: CargoCategory[] = [
+  "NORMAL_GOODS",
+  "ELECTRONICS",
+  "LIQUID_SPECIAL",
+];
+
 export const CATEGORIES_FOR_ROUTE: Record<Origin, CargoCategory[]> = {
   GUANGZHOU: ["NORMAL_GOODS"],
   HONG_KONG: ["ELECTRONICS", "LIQUID_SPECIAL"],
@@ -190,14 +207,38 @@ export function sequenceFromBatchNumber(batchNumber: string): number | null {
  * this wrong changes both the airport and the price.
  */
 const CATEGORY_KEYWORDS: [RegExp, CargoCategory][] = [
-  /* Wigs first. Hair is a category of its own for AITRANSIT and several of its
-     words ("bundles", "closure") would otherwise be read as general trade. */
+  /*
+    HAIR FIRST, AND IT IS NORMAL GOODS.
+
+    Hair words have to be tested before the electronics pattern, not because
+    they collide with it, but because "extension" and "bundle" would otherwise
+    fall through to the general trade rule and lose the specificity. Matching
+    here and returning NORMAL_GOODS is the same answer the fallback gives — the
+    rule exists so the intent is explicit and so a future edit to the fallback
+    cannot silently change what happens to a box of wigs.
+
+    This pointed at ELECTRONICS for about an hour, which would have routed hair
+    to Hong Kong at the electronics rate. Wigs stopped being a category of their
+    own and a blanket rename caught this line on the way past.
+  */
   [
     /\u5047\u53D1|wig|hairpiece|hair piece|human hair|\u4EBA\u53D1|closure|frontal|bundle|weave|braid|\u8FAB\u53D1|\u53D1\u5305|lace front|ponytail|extension/i,
+    "NORMAL_GOODS",
+  ],
+  /*
+    Then the handsets and computers, which fly Hong Kong and are mostly priced
+    per piece. Tested before the liquids rule because a "camera battery" is a
+    camera before it is a battery.
+  */
+  [
+    /\u624B\u673A|phone|ipad|\u5E73\u677F|tablet|laptop|\u7B14\u8BB0\u672C|\u7535\u8111|computer|\u76F8\u673A|camera|\u8033\u673A|earphone|airpod|\u624B\u8868|watch|led|lcd|\u663E\u793A\u5668|monitor|document|\u6587\u4EF6/i,
     "ELECTRONICS",
   ],
-  /* Then everything on the higher rate and the Hong Kong route: electronics,
-     batteries and liquids together, because they share a rate and an airport. */
+  /*
+    Then the rest of the Hong Kong route: powered goods that are not handsets,
+    plus everything liquid, medical or cosmetic. Same rate as electronics, and
+    a different shelf at the warehouse.
+  */
   [
     /\u624B\u673A|phone|ipad|\u5E73\u677F|tablet|laptop|\u7B14\u8BB0\u672C|\u7535\u8111|computer|\u76F8\u673A|camera|\u8033\u673A|earphone|airpod|\u624B\u8868|watch|\u97F3\u7BB1|speaker|\u7535\u6C60|battery|\u5145\u7535\u5668|charger|\u6253\u5370\u673A|printer|\u663E\u793A\u5668|monitor|led|playstation|\u6E38\u620F\u673A|console|\u82AF\u7247|chip|usb|\u8DEF\u7531\u5668|router|\u7535\u5B50|electronic|\u9006\u53D8\u5668|inverter|\u9EA6\u514B\u98CE|microphone|lcd|\u84DD\u7259|bluetooth|solar|\u592A\u9633\u80FD|\u836F|medicine|\u4FDD\u5065\u54C1|health product|\u9999\u6C34|perfume|\u5316\u5986\u54C1|cosmetic|\u80A5\u7682|soap|\u6CB9|oil|\u6DB2\u4F53|liquid|\u98DF\u54C1|food|gel|\u51DD\u80F6|cream|lotion|aerosol|spray/i,
     "LIQUID_SPECIAL",
