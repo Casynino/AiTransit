@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessageCircle, Phone } from "lucide-react";
+import { FileCheck, MessageCircle, Phone } from "lucide-react";
 
+import { TERMS_VERSION } from "@/lib/terms";
 import { CustomerCreditPanel } from "@/components/app/customer-credit";
 import { CustomerNotesForm } from "@/components/app/customer-notes";
 import { MessageComposer } from "@/components/app/message-composer";
@@ -152,6 +153,58 @@ export default async function CustomerProfilePage({
           ) : null
         }
       />
+
+      {/*
+        HAVE THEY AGREED TO OUR TERMS, AND WHICH ONES.
+
+        On the customer page rather than buried in an admin report, because the
+        moment this matters is the moment a clerk is on the telephone with
+        somebody disputing a storage charge. The answer has to be where they
+        are already looking.
+
+        A customer created at the Guangzhou counter has never seen a terms page
+        and shows as "not yet" — which is the truth, not a fault. They are asked
+        the first time they sign in to the portal.
+      */}
+      <div
+        className={
+          customer.termsVersion === TERMS_VERSION
+            ? "mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm"
+            : "mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-warning/40 bg-warning/5 px-4 py-3 text-sm"
+        }
+      >
+        <FileCheck className="h-4 w-4 shrink-0" />
+        {customer.termsAcceptedAt && customer.termsVersion ? (
+          <>
+            <span className="font-medium">
+              {customer.termsVersion === TERMS_VERSION
+                ? t(locale, "Agreed to our current terms")
+                : t(locale, "Agreed to an older version of our terms")}
+            </span>
+            <span className="text-muted-foreground">
+              v{customer.termsVersion} ·{" "}
+              {formatDate(customer.termsAcceptedAt, locale)}
+            </span>
+            {customer.termsVersion !== TERMS_VERSION ? (
+              <span className="text-muted-foreground">
+                {t(locale, "They will be asked again on their next sign-in.")}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <span className="font-medium">
+              {t(locale, "Has not agreed to our terms yet")}
+            </span>
+            <span className="text-muted-foreground">
+              {t(
+                locale,
+                "They are asked the first time they sign in to the customer portal."
+              )}
+            </span>
+          </>
+        )}
+      </div>
 
       {/* Headline numbers */}
       <dl className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3 lg:grid-cols-5">

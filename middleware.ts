@@ -72,11 +72,26 @@ export default auth((req) => {
 
   if (!isInternal && !isPortal) return NextResponse.next();
 
+  /*
+    THE PATH, FOR THE LAYOUT TO READ.
+
+    A server layout is not told which page is rendering inside it, and the
+    portal layout needs to know: it holds the terms gate, and somebody bounced
+    to the acceptance screen should land back on the invoice they were following
+    a link to rather than on the overview. Middleware is the only place in the
+    request that has both the pathname and a header to put it in.
+  */
+  const pathHeader = new Headers(req.headers);
+  pathHeader.set("x-pathname", req.nextUrl.pathname + req.nextUrl.search);
+
   if (!session?.user) {
     const url = new URL("/login", req.nextUrl);
     url.searchParams.set("callbackUrl", pathname);
     return withHint(NextResponse.redirect(url), false);
   }
+
+  const pass = () =>
+    NextResponse.next({ request: { headers: pathHeader } });
 
   /*
     THE TWO BUILDINGS DO NOT CONNECT.
@@ -97,7 +112,7 @@ export default auth((req) => {
       true
     );
   }
-  if (isPortal) return withHint(NextResponse.next(), true);
+  if (isPortal) return withHint(pass(), true);
 
   const required = permissionForPath(pathname);
   if (required) {
@@ -111,7 +126,7 @@ export default auth((req) => {
     }
   }
 
-  return withHint(NextResponse.next(), true);
+  return withHint(pass(), true);
 });
 
 export const config = {

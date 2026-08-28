@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 import { submitBooking, submitPickup } from "@/lib/actions/requests";
+import { TermsConsent } from "@/components/brand/terms-consent";
 import type { ActionResult } from "@/lib/actions/types";
 
 /**
@@ -172,6 +173,8 @@ export function BookingForm() {
         <textarea id="b-notes" name="notes" rows={3} className="ai-field" />
       </div>
 
+      <TermsConsent />
+
       <button type="submit" className="ai-btn ai-btn-primary w-full">
         Book my cargo
       </button>
@@ -302,6 +305,8 @@ export function PickupForm() {
         </label>
         <textarea id="p-notes" name="notes" rows={3} className="ai-field" />
       </div>
+
+      <TermsConsent />
 
       <button type="submit" className="ai-btn ai-btn-primary w-full">
         Request collection

@@ -22,6 +22,8 @@
 import { encode } from "next-auth/jwt";
 import { PrismaClient } from "@prisma/client";
 
+import { TERMS_VERSION } from "../lib/terms";
+
 const prisma = new PrismaClient();
 const BASE = process.env.PORTAL_BASE_URL ?? "http://localhost:3001";
 
@@ -127,6 +129,36 @@ async function main() {
 
   console.log(`  as: ${customer.name} (${customer.portalUser.email})\n`);
   const cookie = await sessionCookie(customer.portalUser.id);
+
+  /*
+    SATISFY THE TERMS GATE FIRST.
+
+    Since the portal is gated on accepting the terms, a signed-in account that
+    has not accepted is bounced from every page — so this test would measure the
+    gate rather than what it is for. It stamps both accounts as having accepted,
+    tests ownership, and puts them back exactly as it found them.
+
+    The gate itself is tested separately, in scripts/test-terms-gate.mts.
+  */
+  const before = await prisma.customer.findMany({
+    where: { portalUser: { isNot: null } },
+    select: { id: true, termsVersion: true, termsAcceptedAt: true },
+  });
+  const restoreTerms = async () => {
+    for (const row of before) {
+      await prisma.customer.update({
+        where: { id: row.id },
+        data: {
+          termsVersion: row.termsVersion,
+          termsAcceptedAt: row.termsAcceptedAt,
+        },
+      });
+    }
+  };
+  await prisma.customer.updateMany({
+    where: { id: { in: before.map((r) => r.id) } },
+    data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() },
+  });
 
   /* ── one real id per detail route, so the deep pages are exercised ─────── */
   const [cargo, invoice, note, claim, ticket, exchange, sourcing] =
@@ -352,6 +384,8 @@ async function main() {
   [302, 303, 307].includes(anon.status)
     ? ok(`signed out — /portal redirects (${anon.status})`)
     : bad(`signed out — /portal returned ${anon.status}, expected a redirect`);
+
+  await restoreTerms();
 
   console.log(`\n${passed} passed, ${failed} failed\n`);
   if (failed > 0) process.exit(1);

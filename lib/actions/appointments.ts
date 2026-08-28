@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { normalisePhone, normaliseCode } from "@/lib/format";
 import { nextAppointmentReference } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { acceptTermsField, recordTermsAcceptance } from "@/lib/terms-accept";
 import { authorize } from "@/lib/session";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
 
@@ -92,6 +93,7 @@ const bookingSchema = z.object({
     }),
   notes: z.string().trim().max(2000).optional(),
   customerId: z.string().trim().optional(),
+  acceptTerms: acceptTermsField(),
 });
 
 /**
@@ -168,6 +170,16 @@ export async function requestAppointment(
     }
 
     const created = await prisma.$transaction(async (tx) => {
+      await recordTermsAcceptance(
+        "appointment",
+        {
+          name: input.contactName,
+          phone: input.contactPhone,
+          email: input.contactEmail ?? null,
+        },
+        tx
+      );
+
       const reference = await nextAppointmentReference(tx);
       return tx.appointment.create({
         data: {

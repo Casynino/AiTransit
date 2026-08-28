@@ -556,17 +556,15 @@ model Customer {
   /// The portal account, if this customer has registered on the website. One
   /// account per customer — see the note on User.customerId.
   /**
+   * /**
    * HOW THIS CUSTOMER WANTS TO BE TOLD THINGS.
-   *
    * In-app is not listed because it is not optional: the portal's notification
    * centre is where a notification is written, and the settings below govern
    * whether it is ALSO pushed down a channel that costs money and interrupts
    * somebody's evening.
-   *
    * They default on for WhatsApp and email, which is what somebody registering
    * for a cargo service expects, and off for SMS, which costs per message and
    * duplicates WhatsApp for almost everybody in Lusaka.
-   *
    * These are preferences, and a preference is only honoured by a sender that
    * exists. Today the portal writes in-app notifications and nothing else. The
    * settings page says so on the page rather than letting somebody switch on a
@@ -576,7 +574,21 @@ model Customer {
   notifyEmail    Boolean @default(true)
   notifySms      Boolean @default(false)
 
+  /**
+   * WHICH TERMS THIS CUSTOMER AGREED TO, AND WHEN.
+   * Denormalised from TermsAcceptance on purpose. The acceptance table is the
+   * evidence; this pair is the gate. Every portal page checks whether the
+   * stored version matches the current one, and a join on every page load to
+   * answer a question with two columns in it would be a join on every page load.
+   * Null means never accepted — which is true of every customer the Guangzhou
+   * counter created at a desk, and they are the majority. Those customers meet
+   * the acceptance screen the first time they sign in.
+   */
+  termsVersion    String?
+  termsAcceptedAt DateTime?
+
   portalUser       User?             @relation("CustomerPortalUser")
+  termsAcceptances TermsAcceptance[]
   exchangeRequests ExchangeRequest[]
   supplierPayments SupplierPayment[]
   appointments     Appointment[]
@@ -1124,7 +1136,6 @@ model ExceptionEvent {
 
   /**
    * Whether the customer who raised the claim may read this entry.
-   *
    * An investigation timeline carries "rang Guangzhou, nobody picked up" next
    * to "told the customer we are still looking", and only the second is theirs
    * to see. Unlike TicketNote this defaults to hidden, because the events here
@@ -2061,15 +2072,12 @@ model TicketNote {
 
   /**
    * WHO IS ALLOWED TO READ THIS.
-   *
    * A ticket is one conversation with two kinds of writing in it: what was said
    * to the customer, and what the desk said to itself while working out what to
    * say. Both belong on the ticket — splitting them into two tables would mean
    * reading two timelines to reconstruct one afternoon — so the difference is a
    * flag instead.
-   *
    * IT DEFAULTS TO TRUE — hidden — and that default was chosen the second time.
-   *
    * The first version defaulted to visible, on the reasoning that a reply the
    * customer never sees makes the portal look broken. That reasoning had the
    * costs the wrong way round. Every TicketNote written before the portal
@@ -2077,12 +2085,10 @@ model TicketNote {
    * who could read it — "customer is difficult", "do not release until Finance
    * confirms", "third time they have claimed this". Defaulting those to visible
    * would have published years of them the day the portal shipped.
-   *
    * So the safe direction is hidden, and being seen is the deliberate act:
    * staff choose "reply to the customer" when they mean it, and the portal's
    * own writes pass `internal: false` explicitly. A missed reply is a support
    * failure somebody can fix. A published internal note cannot be unpublished.
-   *
    * The portal filters on `internal: false`. Nothing else may.
    */
   internal Boolean @default(true)
@@ -2427,6 +2433,50 @@ model LoginEvent {
 /// Deliberately thin: a line of text and somewhere to go. Anything richer
 /// belongs on the page it links to, not in a notification that will be read
 /// once on a phone in a warehouse.
+/**
+ * Every time somebody agreed to our terms of business.
+ * SEPARATE FROM THE CUSTOMER ROW because the two answer different questions.
+ * `Customer.termsVersion` answers "may this person use the portal right now",
+ * and it is overwritten each time they accept a new version. This table answers
+ * "what did they agree to, when, and from where", and nothing in it is ever
+ * overwritten — which is the only version of the answer worth having when the
+ * question is asked two years later by somebody disputing a charge.
+ * `customerId` is NULLABLE and that is the point. Most acceptances come from
+ * people who have no account: somebody booking a shipment, requesting a pickup
+ * or asking for a rate on the public site is doing business with us and is
+ * agreeing to the terms that govern it, and they do so before any Customer row
+ * exists. Their name and contact details are stored here as they gave them.
+ */
+model TermsAcceptance {
+  id String @id @default(cuid())
+
+  /// The TERMS_VERSION from lib/terms.ts that was on screen when they agreed.
+  version String
+
+  /// Where they were when they agreed — "register", "booking", "portal", …
+  source String
+
+  /**
+   * Who agreed. The customer link when there is one; the contact details always,
+   * because a public form has nothing else to identify the person by, and
+   * because a Customer record can be edited afterwards while this must not be.
+   */
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  name  String?
+  phone String?
+  email String?
+
+  ipAddress String?
+  userAgent String?
+
+  acceptedAt DateTime @default(now())
+
+  @@index([customerId, acceptedAt])
+  @@index([version, acceptedAt])
+}
+
 model Notification {
   id String @id @default(cuid())
 
@@ -3417,7 +3467,9 @@ model Appointment {
   budgetUsd Decimal? @db.Decimal(12, 2)
   notes     String?
 
-  /** A supplier's address card, a product list, a photo of what to look for. */
+  /**
+   * A supplier's address card, a product list, a photo of what to look for.
+   */
   documentUrl  String?
   documentName String?
 

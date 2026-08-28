@@ -168,7 +168,15 @@ export function SiteFooter() {
           style={{ color: "hsl(var(--ai-stone)/0.56)" }}
         >
           <p>
-            © {year} {COMPANY.name}. All rights reserved.
+            © {year} {COMPANY.name}. All rights reserved.{" "}
+            {/* On every page, in the place people look for it. Terms nobody can
+                find are terms a customer can say they never saw. */}
+            <Link
+              href="/terms"
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              Terms of business
+            </Link>
           </p>
           <p style={{ color: "hsl(var(--ai-copper))" }}>{COMPANY.tagline}</p>
         </div>

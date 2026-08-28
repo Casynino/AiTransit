@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRightLeft, CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { submitExchangeRequest } from "@/lib/actions/exchange";
+import { TermsConsent } from "@/components/brand/terms-consent";
 import type { ActionResult } from "@/lib/actions/types";
 import type { FxBoardRow } from "@/lib/exchange";
 
@@ -375,6 +376,8 @@ export function ExchangeBookingForm() {
           <textarea id="x-notes" name="notes" rows={3} className="ai-field" />
         </div>
 
+        <TermsConsent />
+
         <button type="submit" className="ai-btn ai-btn-primary w-full">
           {type === "MONEY_EXCHANGE" ? "Book money exchange" : "Request a quotation"}
         </button>
@@ -554,6 +557,8 @@ export function SupplierPaymentRequestForm() {
             />
           </div>
         </div>
+
+        <TermsConsent />
 
         <button type="submit" className="ai-btn ai-btn-copper w-full">
           Submit payment request

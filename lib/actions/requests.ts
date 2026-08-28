@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import { nextBookingReference, nextPickupReference } from "@/lib/ids";
 import type { Locale } from "@/lib/locale";
 import { prisma } from "@/lib/prisma";
+import { acceptTermsField, recordTermsAcceptance } from "@/lib/terms-accept";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
 
 /**
@@ -90,6 +91,7 @@ const bookingSchema = z.object({
     .max(1000)
     .optional()
     .transform((v) => (v?.length ? v : null)),
+  acceptTerms: acceptTermsField(),
 });
 
 /**
@@ -122,6 +124,24 @@ export async function submitBooking(
 
   try {
     const created = await prisma.$transaction(async (tx) => {
+      /*
+        The acceptance, in the transaction that creates the request.
+
+        Somebody booking a shipment on the public site has no account and no
+        Customer row — so it is recorded against the contact details they gave,
+        which is all we have and all we need to show who agreed to what. See
+        lib/terms-accept.ts.
+      */
+      await recordTermsAcceptance(
+        "booking",
+        {
+          name: input.customerName,
+          phone: normalisePhone(input.phone),
+          email: input.email,
+        },
+        tx
+      );
+
       const reference = await nextBookingReference(tx);
       return tx.bookingRequest.create({
         data: {
@@ -197,6 +217,7 @@ const pickupSchema = z.object({
     .max(1000)
     .optional()
     .transform((v) => (v?.length ? v : null)),
+  acceptTerms: acceptTermsField(),
 });
 
 export async function submitPickup(
@@ -223,6 +244,16 @@ export async function submitPickup(
 
   try {
     const created = await prisma.$transaction(async (tx) => {
+      await recordTermsAcceptance(
+        "pickup",
+        {
+          name: input.customerName,
+          phone: normalisePhone(input.phone),
+          email: input.email,
+        },
+        tx
+      );
+
       const reference = await nextPickupReference(tx);
       return tx.pickupRequest.create({
         data: {

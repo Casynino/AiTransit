@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
+import { TermsConsent } from "@/components/brand/terms-consent";
 import { registerCustomer } from "@/lib/actions/portal";
 
 /**
@@ -143,6 +144,8 @@ export function RegisterForm() {
           />
         </div>
       </div>
+
+      <TermsConsent />
 
       <button type="submit" className="ai-btn ai-btn-primary w-full">
         Create my account

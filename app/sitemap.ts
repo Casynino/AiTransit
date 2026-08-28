@@ -40,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/pickup", priority: 0.7, frequency: "monthly" },
     { path: "/register", priority: 0.6, frequency: "monthly" },
     { path: "/contact", priority: 0.6, frequency: "monthly" },
+    { path: "/terms", priority: 0.3, frequency: "yearly" },
   ];
 
   /* Every market guide is its own page and each one is a genuine landing point

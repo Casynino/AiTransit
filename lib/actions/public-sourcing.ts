@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { nextSourcingNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { acceptTermsField, recordTermsAcceptance } from "@/lib/terms-accept";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
 
 /**
@@ -51,6 +52,7 @@ const schema = z.object({
       (v) => v === null || (Number.isFinite(v) && v >= 0 && v <= 1_000_000),
       "That budget is not a number we can use."
     ),
+  acceptTerms: acceptTermsField(),
 });
 
 export async function submitSourcingEnquiry(
@@ -72,6 +74,12 @@ export async function submitSourcingEnquiry(
 
   try {
     const created = await prisma.$transaction(async (tx) => {
+      await recordTermsAcceptance(
+        "sourcing",
+        { name: input.name, phone: input.phone },
+        tx
+      );
+
       const requestNumber = await nextSourcingNumber(tx);
       return tx.sourcingRequest.create({
         data: {

@@ -35,6 +35,8 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { TERMS_VERSION } from "../lib/terms";
+
 const prisma = new PrismaClient();
 
 const PREFIX = "DEMO-AIT-";
@@ -145,12 +147,25 @@ async function remove() {
       before it could be reported.
     */
     ["portal logins", () => prisma.user.deleteMany({ where: { id: { in: userIds } } })],
+    [
+      "terms acceptances",
+      () =>
+        prisma.termsAcceptance.deleteMany({
+          where: { customerId: { in: customerIds } },
+        }),
+    ],
   ];
 
   for (const [label, run] of steps) {
     const { count } = await run();
     if (count) console.log(`  removed ${count} ${label}`);
   }
+
+  /* The gate's own state, which is denormalised and does not cascade. */
+  await prisma.customer.updateMany({
+    where: { id: { in: customerIds } },
+    data: { termsVersion: null, termsAcceptedAt: null },
+  });
 
   console.log("\nPortal demo data removed. Cargo, invoices and customers were not touched.");
 }
@@ -265,6 +280,36 @@ async function seed() {
   const inZambia =
     cargo.find((c) => c.status === "RECEIVED_AT_ZAMBIA") ?? cargo[0]!;
   const unpaid = cargo.find((c) => c.invoice) ?? cargo[0]!;
+
+  /*
+    THE DEMO CUSTOMER HAS AGREED TO THE TERMS.
+
+    Without this both demo logins meet the acceptance gate before they can see
+    anything, which is correct behaviour and useless for a demonstration — the
+    point of these accounts is to show the portal, not the gate. The SECOND
+    account is deliberately left un-accepted so the gate can be shown too: sign
+    in as Bwalya and you meet it.
+  */
+  await prisma.termsAcceptance.create({
+    data: {
+      version: TERMS_VERSION,
+      /*
+        "seed", not "register". This acceptance was written by a script, and
+        labelling it as a registration would put a fabricated consent in the
+        same bucket as real ones — which is exactly the record this table exists
+        to keep honest. There is no IP and no user agent for the same reason.
+      */
+      source: "seed",
+      customerId: main.id,
+      name: main.name,
+      phone: main.phone,
+      email: main.email,
+    },
+  });
+  await prisma.customer.update({
+    where: { id: main.id },
+    data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() },
+  });
 
   const made: string[] = [];
 

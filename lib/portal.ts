@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { EXCEPTION_OPEN_STATUSES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { TERMS_VERSION } from "@/lib/terms";
 
 /**
  * The customer portal's one and only gate.
@@ -35,6 +36,8 @@ export type PortalViewer = {
   /** The customer's own code — CUS-000123 — which is what the desk asks for. */
   code: string;
   phone: string | null;
+  /** Which terms they have agreed to, or null. Drives requireAcceptedTerms. */
+  termsVersion: string | null;
 };
 
 /**
@@ -56,7 +59,15 @@ export const requireCustomer = cache(async (): Promise<PortalViewer> => {
       name: true,
       email: true,
       customerId: true,
-      customer: { select: { id: true, code: true, name: true, phone: true } },
+      customer: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          phone: true,
+          termsVersion: true,
+        },
+      },
     },
   });
 
@@ -76,8 +87,43 @@ export const requireCustomer = cache(async (): Promise<PortalViewer> => {
     email: user.email,
     code: user.customer.code,
     phone: user.customer.phone,
+    termsVersion: user.customer.termsVersion,
   };
 });
+
+/**
+ * The same gate, plus: have they agreed to the terms that are current now?
+ *
+ * WHY IT IS A SECOND FUNCTION RATHER THAN PART OF requireCustomer. The
+ * acceptance screen itself needs a signed-in customer and must NOT be bounced
+ * to the acceptance screen, or it redirects to itself forever. So there are two
+ * gates: one that says who you are, and one that says whether you may proceed.
+ * Exactly one page uses the first alone.
+ *
+ * IT COMPARES VERSIONS, NOT DATES. Somebody who accepted last year's terms has
+ * not accepted this year's. Checking only that a date exists is how a versioned
+ * document quietly stops meaning anything — see lib/terms.ts.
+ *
+ * The redirect carries `next`, so somebody who followed a link to their invoice
+ * from an email lands on the invoice after accepting, rather than on the
+ * overview wondering where the link went.
+ */
+export async function requireAcceptedTerms(next?: string): Promise<PortalViewer> {
+  const viewer = await requireCustomer();
+  if (viewer.termsVersion !== TERMS_VERSION) {
+    /*
+      /accept-terms, NOT /portal/terms.
+
+      A gate inside the portal would be caught by this very check and redirect
+      itself to itself forever. It sits at the top level for that reason, and
+      because a blocking screen should have nothing to navigate away into.
+    */
+    redirect(
+      next ? `/accept-terms?next=${encodeURIComponent(next)}` : "/accept-terms"
+    );
+  }
+  return viewer;
+}
 
 /**
  * The signed-in customer, or null — for surfaces that render either way.
@@ -96,7 +142,15 @@ export async function currentCustomer(): Promise<PortalViewer | null> {
       name: true,
       email: true,
       customerId: true,
-      customer: { select: { id: true, code: true, name: true, phone: true } },
+      customer: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          phone: true,
+          termsVersion: true,
+        },
+      },
     },
   });
   if (!user?.customerId || !user.customer) return null;
@@ -108,6 +162,7 @@ export async function currentCustomer(): Promise<PortalViewer | null> {
     email: user.email,
     code: user.customer.code,
     phone: user.customer.phone,
+    termsVersion: user.customer.termsVersion,
   };
 }
 

@@ -10,6 +10,8 @@ import { nextTicketNumber } from "@/lib/ids";
 import { requireCustomer } from "@/lib/portal";
 import { prisma } from "@/lib/prisma";
 import { putImage } from "@/lib/storage";
+import { TERMS_VERSION } from "@/lib/terms";
+import { recordTermsAcceptance, ticked } from "@/lib/terms-accept";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
 
 /**
@@ -547,6 +549,56 @@ export async function changePassword(
       metadata: { customerId: viewer.customerId },
     });
 
+    return ok();
+  } catch (error) {
+    return fail(toActionError(error));
+  }
+}
+
+/* ------------------------------------------------------------------- terms */
+
+/**
+ * "I agree."
+ *
+ * The only write in the portal that a customer can make before they have
+ * accepted the terms — everything else is behind requireAcceptedTerms, and this
+ * is what gets them through it.
+ *
+ * It uses requireCustomer rather than requireAcceptedTerms, deliberately: the
+ * acceptance action cannot demand acceptance as a precondition of accepting.
+ *
+ * The tick is re-checked here even though the form marks it required. `required`
+ * is a browser behaviour, and a browser is not a place to enforce anything.
+ */
+export async function acceptTerms(
+  _prev: ActionResult | undefined,
+  formData: FormData
+): Promise<ActionResult> {
+  try {
+    const viewer = await requireCustomer();
+
+    if (!ticked(formData.get("acceptTerms"))) {
+      return fail("Tick the box to agree to the terms before continuing.");
+    }
+
+    await recordTermsAcceptance("portal", {
+      customerId: viewer.customerId,
+      name: viewer.name,
+      phone: viewer.phone,
+      email: viewer.email,
+    });
+
+    await recordAudit({
+      actor: null,
+      action: "portal.termsAccepted",
+      entity: "Customer",
+      entityId: viewer.customerId,
+      summary: `${viewer.name} accepted the terms of business (${TERMS_VERSION})`,
+      metadata: { customerId: viewer.customerId, version: TERMS_VERSION },
+    });
+
+    /* Every portal page reads the gate, so every one of them is now stale. */
+    revalidatePath("/portal", "layout");
     return ok();
   } catch (error) {
     return fail(toActionError(error));

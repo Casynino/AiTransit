@@ -4,7 +4,7 @@ import { AIRPORT_LABELS, CATEGORY_LABELS } from "@/lib/cargo";
 import { accountsForInvoice } from "@/lib/company-settings";
 import { formatDate, toNumber } from "@/lib/format";
 import { renderInvoicePdf } from "@/lib/invoice-pdf";
-import { requireCustomer } from "@/lib/portal";
+import { requireAcceptedTerms } from "@/lib/portal";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -41,7 +41,16 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const viewer = await requireCustomer();
+  /*
+    requireAcceptedTerms, not requireCustomer.
+
+    A route handler is not wrapped by the portal layout, so the terms gate that
+    covers every page does not cover this. Without it, a customer who has not
+    agreed to anything could still pull their invoice down by typing the URL —
+    which is a small hole and the only one, which is exactly the sort that gets
+    found.
+  */
+  const viewer = await requireAcceptedTerms();
   const { id } = await params;
 
   const invoice = await prisma.invoice.findFirst({

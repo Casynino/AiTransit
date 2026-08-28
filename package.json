@@ -31,8 +31,9 @@
     "db:deploy": "prisma migrate deploy",
     "verify:workflow": "tsx prisma/verify-workflow.ts",
     "test:portal": "npx tsx --tsconfig scripts/tsconfig.test.json scripts/test-portal-isolation.mts",
-    "test:portal:pages": "npx tsx scripts/test-portal-pages.mts",
-    "seed:portal": "npx tsx prisma/seed-demo-portal.mts"
+    "test:portal:pages": "npx tsx --tsconfig scripts/tsconfig.test.json scripts/test-portal-pages.mts",
+    "seed:portal": "npx tsx prisma/seed-demo-portal.mts",
+    "test:terms": "npx tsx --tsconfig scripts/tsconfig.test.json scripts/test-terms-gate.mts"
   },
   "prisma": {
     "seed": "tsx prisma/seed-all.ts"

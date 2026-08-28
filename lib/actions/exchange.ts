@@ -10,6 +10,7 @@ import {
   nextSupplierPaymentReference,
 } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { acceptTermsField, recordTermsAcceptance } from "@/lib/terms-accept";
 import { authorize } from "@/lib/session";
 import { putDocument } from "@/lib/storage";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
@@ -88,6 +89,7 @@ const requestSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
   /** Set by the portal form only; the public form never sends it. */
   customerId: z.string().trim().optional(),
+  acceptTerms: acceptTermsField(),
 });
 
 const blank = (v: string | undefined) => (v && v.length > 0 ? v : null);
@@ -142,6 +144,17 @@ export async function submitExchangeRequest(
 
     const created = await prisma.$transaction(async (tx) => {
       const reference = await nextExchangeReference(tx);
+      await recordTermsAcceptance(
+        "exchange",
+        {
+          customerId: input.customerId?.length ? input.customerId : null,
+          name: input.contactName,
+          phone: input.contactPhone,
+          email: input.contactEmail ?? null,
+        },
+        tx
+      );
+
       return tx.exchangeRequest.create({
         data: {
           reference,

@@ -8,6 +8,7 @@ import { recordAudit } from "@/lib/audit";
 import { normalisePhone } from "@/lib/format";
 import { nextCustomerCode, nextSubmissionNumber } from "@/lib/ids";
 import { requireCustomer } from "@/lib/portal";
+import { recordTermsAcceptance } from "@/lib/terms-accept";
 import { prisma } from "@/lib/prisma";
 import { putDocument } from "@/lib/storage";
 import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types";
@@ -35,6 +36,22 @@ import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types"
  * which is how a customer ends up unable to see their own cargo.
  */
 
+/**
+ * The tick, as a schema rule rather than an if-statement further down.
+ *
+ * An unticked HTML checkbox submits nothing at all, so the field is absent
+ * rather than false — which is why this is a literal("on") on an optional
+ * field rather than a boolean. The message is what a customer reads when they
+ * hurry past it, so it says what to do, not what went wrong.
+ */
+const acceptTerms = z
+  .literal("on", {
+    errorMap: () => ({
+      message:
+        "Please read and agree to our terms of business before opening an account.",
+    }),
+  });
+
 const registerSchema = z
   .object({
     name: z.string().trim().min(2, "Please give us your name."),
@@ -50,6 +67,7 @@ const registerSchema = z
       .min(8, "Use at least 8 characters.")
       .max(200),
     confirmPassword: z.string(),
+    acceptTerms,
   })
   .refine((value) => value.password === value.confirmPassword, {
     message: "The two passwords do not match.",
@@ -142,6 +160,24 @@ export async function registerCustomer(
         },
         select: { id: true, email: true },
       });
+
+      /*
+        The acceptance, inside the same transaction as the account.
+
+        Outside it, a registration that half-failed could leave an account that
+        has agreed to nothing — and the whole point of the gate is that no such
+        account exists.
+      */
+      await recordTermsAcceptance(
+        "register",
+        {
+          customerId,
+          name: input.name,
+          phone,
+          email: input.email,
+        },
+        tx
+      );
 
       return { user, customerId, matched: Boolean(existing) };
     });

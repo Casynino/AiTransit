@@ -1,5 +1,7 @@
 import { PortalShell } from "@/components/portal/portal-shell";
-import { portalBadges, requireCustomer } from "@/lib/portal";
+import { headers } from "next/headers";
+
+import { portalBadges, requireAcceptedTerms } from "@/lib/portal";
 
 /**
  * The customer portal's shell.
@@ -24,7 +26,21 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const viewer = await requireCustomer();
+  /*
+    THE TERMS GATE, HERE, ONCE.
+
+    In the layout rather than on twenty-three pages, because a gate you have to
+    remember to add to each new page is a gate that is missing from the next
+    one somebody writes. `requireAcceptedTerms` redirects to /accept-terms,
+    which deliberately sits OUTSIDE this layout — a gate inside it would bounce
+    itself to itself forever.
+
+    The path comes from a header the middleware sets, so somebody who followed a
+    link to an invoice lands back on that invoice after agreeing rather than on
+    the overview wondering where the link went.
+  */
+  const path = (await headers()).get("x-pathname") ?? undefined;
+  const viewer = await requireAcceptedTerms(path);
   const badges = await portalBadges(viewer.customerId, viewer.userId);
 
   return (
