@@ -28,10 +28,11 @@
  * 3. IT IS REVERSIBLE. `--remove` deletes exactly what the prefix matches, in
  *    dependency order, and nothing else.
  *
- * FILTERING DEMO OUT OF REPORTS. Everything carries the prefix, so
- * `where: { trackingNumber: { startsWith: "DEMO-AIT-" } }` isolates it, and
- * `NOT` excludes it. Customers additionally read "DEMO —" in the name, which is
- * what a person sees on a dashboard that has not been taught the filter.
+ * FILTERING DEMO OUT OF REPORTS. Cargo is `AT-DEMO-0001`, everything else is
+ * `DEMO-AIT-…`, so `{ trackingNumber: { startsWith: "AT-DEMO-" } }` isolates
+ * the consignments and `NOT` excludes them. Customers additionally read
+ * "DEMO —" in the name, which is what a person sees on a dashboard that has
+ * not been taught the filter.
  */
 import { PrismaClient, Prisma } from "@prisma/client";
 
@@ -42,6 +43,23 @@ import { STORAGE_POLICY } from "../lib/constants";
 const prisma = new PrismaClient();
 
 const PREFIX = "DEMO-AIT-";
+
+/*
+  TRACKING NUMBERS MUST STILL LOOK LIKE TRACKING NUMBERS.
+
+  Four pages resolve a cargo URL with `id.startsWith("AT-") ? {trackingNumber} :
+  {id}` — the cargo detail page, its edit page and both label routes. A number
+  beginning "DEMO-AIT-" failed that test, was treated as a database id, matched
+  nothing, and 404'd. Forty consignments existed and not one of them could be
+  opened.
+
+  Changing that check in four places would have been the larger edit and the
+  riskier one, so the number satisfies the assumption instead: it begins "AT-"
+  like every real one, and carries DEMO where a person and a query can both
+  see it. `normaliseCode` leaves it alone — it only reformats bare AT+digits —
+  so public tracking resolves it too.
+*/
+const TRACK = "AT-DEMO-";
 const REMOVE = process.argv.includes("--remove");
 
 const pad = (n: number, w = 6) => String(n).padStart(w, "0");
@@ -208,8 +226,23 @@ const BATCHES = [
 /* ------------------------------------------------------------------ remove */
 
 async function remove() {
+  /*
+    BOTH PREFIXES, on purpose.
+
+    Demo cargo was originally numbered `DEMO-AIT-000001`; that failed the
+    `startsWith("AT-")` test four pages use to tell a tracking number from a
+    database id, so every one of them 404'd and the numbering moved to
+    `AT-DEMO-0001`. A cleanup that only knew the new shape left the old rows
+    behind, and the next seed collided on `invoiceNumber`. Matching both means
+    this can always clean up after any version of itself.
+  */
   const shipments = await prisma.shipment.findMany({
-    where: { trackingNumber: { startsWith: PREFIX } },
+    where: {
+      OR: [
+        { trackingNumber: { startsWith: TRACK } },
+        { trackingNumber: { startsWith: PREFIX } },
+      ],
+    },
     select: { id: true },
   });
   const ids = shipments.map((s) => s.id);
@@ -226,8 +259,12 @@ async function remove() {
 
   // Child to parent. Nothing here can reach a record without the prefix.
   const steps: [string, () => Promise<{ count: number }>][] = [
-    ["pickup notes", () => prisma.pickupNote.deleteMany({ where: { shipmentId: { in: ids } } })],
-    ["invoices", () => prisma.invoice.deleteMany({ where: { shipmentId: { in: ids } } })],
+    ["pickup notes", () => prisma.pickupNote.deleteMany({
+      where: { OR: [{ shipmentId: { in: ids } }, { noteNumber: { startsWith: PREFIX } }] },
+    })],
+    ["invoices", () => prisma.invoice.deleteMany({
+      where: { OR: [{ shipmentId: { in: ids } }, { invoiceNumber: { startsWith: PREFIX } }] },
+    })],
     ["status history", () => prisma.shipmentStatusHistory.deleteMany({ where: { shipmentId: { in: ids } } })],
     ["packages", () => prisma.package.deleteMany({ where: { shipmentId: { in: ids } } })],
     ["shipments", () => prisma.shipment.deleteMany({ where: { id: { in: ids } } })],
@@ -322,7 +359,7 @@ async function seed() {
   const placeItems = async (spec: (typeof BATCHES)[number], batchId: string) => {
     for (const [i, item] of spec.items.entries()) {
       seq += 1;
-      const tracking = `${PREFIX}${pad(seq)}`;
+      const tracking = `${TRACK}${pad(seq, 4)}`;
 
       if (await prisma.shipment.findUnique({ where: { trackingNumber: tracking }, select: { id: true } })) {
         skipped += 1;
@@ -566,10 +603,10 @@ async function verify() {
     and they were there before this script ran and stay after it is removed.
   */
   const batches = await prisma.batch.findMany({
-    where: { shipments: { some: { trackingNumber: { startsWith: PREFIX } } } },
+    where: { shipments: { some: { trackingNumber: { startsWith: TRACK } } } },
     include: {
       shipments: {
-        where: { trackingNumber: { startsWith: PREFIX } },
+        where: { trackingNumber: { startsWith: TRACK } },
         select: { status: true, customerId: true },
       },
     },
@@ -591,7 +628,7 @@ async function verify() {
   }
 
   const ships = await prisma.shipment.findMany({
-    where: { trackingNumber: { startsWith: PREFIX } },
+    where: { trackingNumber: { startsWith: TRACK } },
     select: { status: true },
   });
   const count = (s: string) => ships.filter((x) => x.status === s).length;
@@ -613,10 +650,10 @@ async function verify() {
   console.log(`    demo billed value                 USD ${sum.toFixed(2)}`);
   console.log(`  demo pickup notes                   ${await prisma.pickupNote.count({ where: { noteNumber: { startsWith: PREFIX } } })}`);
 
-  const realCargo = await prisma.shipment.count({ where: { NOT: { trackingNumber: { startsWith: PREFIX } } } });
+  const realCargo = await prisma.shipment.count({ where: { NOT: { trackingNumber: { startsWith: TRACK } } } });
   const realCustomers = await prisma.customer.count({ where: { NOT: { code: { startsWith: PREFIX } } } });
   console.log(`\n  REAL (non-demo) records untouched: ${realCargo} cargo, ${realCustomers} customers`);
-  console.log(`  Filter demo out with: { NOT: { trackingNumber: { startsWith: "${PREFIX}" } } }`);
+  console.log(`  Filter demo out with: { NOT: { trackingNumber: { startsWith: "${TRACK}" } } }`);
 }
 
 async function main() {
