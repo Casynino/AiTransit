@@ -80,17 +80,54 @@ export type CategoryRate = {
   pricePerKg: number;
 };
 
+/*
+  THESE ARE THE SOURCE SYSTEM'S NUMBERS, copied deliberately as a starting
+  point for the owner to edit — not AITRANSIT's own card.
+
+  Currency is USD, as it is upstream. What changed on the way over is the LOCAL
+  currency the books convert into: kwacha, not shilling. Nothing here is in
+  ZMW; ZMW is what a USD figure is displayed as, at the rate on the invoice.
+
+  Wigs has no counterpart upstream — there it is one ITEM inside normal goods,
+  not a category — so it takes the normal-goods rate. That is the closest thing
+  to a faithful copy, and it is the row most likely to want changing first.
+*/
 export const CATEGORY_RATES: CategoryRate[] = [
-  // Wigs — Guangzhou route.
-  { category: "WIGS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 14.4 },
-  { category: "WIGS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 14.0 },
+  // Wigs — Guangzhou route. Priced as normal goods; see the note above.
+  { category: "WIGS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 13.5 },
+  { category: "WIGS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 12.5 },
   // Normal goods — Guangzhou route. The bulk of the trade.
   { category: "NORMAL_GOODS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 13.5 },
-  { category: "NORMAL_GOODS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 13.0 },
-  // Special category — Hong Kong route.
-  { category: "SPECIAL_CATEGORY", minWeightKg: null, maxWeightKg: 10, pricePerKg: 16.3 },
-  { category: "SPECIAL_CATEGORY", minWeightKg: 10, maxWeightKg: null, pricePerKg: 15.3 },
+  { category: "NORMAL_GOODS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 12.5 },
+  /*
+    Special category — Hong Kong route. ONE rate at every weight upstream,
+    where normal goods has two tiers. Expressed here as a single unbounded
+    band rather than two identical ones, so the card reads honestly.
+  */
+  { category: "SPECIAL_CATEGORY", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
 ];
+
+/*
+  PER-PIECE ITEMS — the mechanism, not just the numbers.
+
+  Upstream, a laptop costs USD 45 whether it weighs two kilos or five, because
+  what the customer is buying is carriage of a laptop. Nine items work that
+  way and everything else in the category falls back to the per-kg rate above.
+
+  A product-specific rule beats a category-wide one in lib/pricing.ts, which is
+  what makes this work without any special case in the engine.
+*/
+export const PER_PIECE_USD: Record<string, number> = {
+  "Smart Phone (Full Box)": 25,
+  "Smart Phone (Unboxed)": 20,
+  Laptop: 45,
+  Tablet: 25,
+  "Kids Tablet": 15,
+  "Smart Watch": 10,
+  Camera: 45,
+  Documents: 40,
+  AirPods: 10,
+};
 
 /**
  * NORMAL GOODS — the ordinary trade, out of Guangzhou.

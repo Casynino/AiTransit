@@ -22,6 +22,7 @@ import {
   MIN_BILLABLE_KG,
   NORMAL_GOODS_KEYWORDS,
   OPENING_ZMW_RATE,
+  PER_PIECE_USD,
   USD,
   type Product,
 } from "./price-list";
@@ -145,9 +146,44 @@ async function main() {
       notes:
         rate.maxWeightKg !== null
           ? `${MIN_BILLABLE_KG} to ${rate.maxWeightKg} kg. Freight and duty to the Lusaka warehouse.`
-          : `${rate.minWeightKg} kg and above. Freight and duty to the Lusaka warehouse.`,
+          : rate.minWeightKg !== null
+            ? `${rate.minWeightKg} kg and above. Freight and duty to the Lusaka warehouse.`
+            : "All weights. Freight and duty to the Lusaka warehouse.",
     });
   }
+
+  /*
+    PER-PIECE RULES, on top of the per-kg ones.
+
+    Nine items are carried at a flat price whatever they weigh — a laptop is a
+    laptop. These are PRODUCT-specific rules (`cargoTypeId` set), and
+    lib/pricing.ts resolves the most specific rule first, so each of these
+    overrides the category rate for that item and nothing else in the category
+    is affected. Anything not on this list still falls through to the per-kg
+    band above, which is why there is no "unpriced electronics" hole.
+  */
+  let perPiece = 0;
+  for (const [name, price] of Object.entries(PER_PIECE_USD)) {
+    const type = await prisma.cargoType.findFirst({
+      where: { name, active: true },
+      select: { id: true, category: true },
+    });
+    if (!type) {
+      console.warn(`  per-piece rule skipped — no active product named "${name}"`);
+      continue;
+    }
+    await addRule({
+      category: type.category,
+      cargoTypeId: type.id,
+      method: "FIXED_PER_ITEM",
+      price: new Prisma.Decimal(price),
+      currency: USD,
+      minChargeableKg: new Prisma.Decimal(MIN_BILLABLE_KG),
+      notes: "Per item, any weight.",
+    });
+    perPiece++;
+  }
+  console.log(`Per-piece rules: ${perPiece} item(s) at a flat price.`);
 
   // ----------------------------------------------------------- opening FX rate
   const existingRate = await prisma.exchangeRate.findFirst({

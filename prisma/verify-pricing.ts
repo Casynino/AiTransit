@@ -35,21 +35,25 @@ const CASES: Case[] = [
     stops matching any rule at all and comes back unpriced.
   */
 
-  // Wigs — 14.40 under 10 kg, 14.00 from 10 kg.
-  { name: "Wigs, 5 kg → 14.40/kg", category: "WIGS", weightKg: 5, expect: 72 },
-  { name: "Wigs, 9.5 kg → 14.40/kg", category: "WIGS", weightKg: 9.5, expect: 136.8 },
-  { name: "Wigs, exactly 10 kg → 14.00/kg", category: "WIGS", weightKg: 10, expect: 140 },
-  { name: "Wigs, 25 kg → 14.00/kg", category: "WIGS", weightKg: 25, expect: 350 },
+  // Wigs — priced as normal goods: 13.50 under 10 kg, 12.50 from 10 kg.
+  { name: "Wigs, 5 kg → 13.50/kg", category: "WIGS", weightKg: 5, expect: 67.5 },
+  { name: "Wigs, 9.5 kg → 13.50/kg", category: "WIGS", weightKg: 9.5, expect: 128.25 },
+  { name: "Wigs, exactly 10 kg → 12.50/kg", category: "WIGS", weightKg: 10, expect: 125 },
+  { name: "Wigs, 25 kg → 12.50/kg", category: "WIGS", weightKg: 25, expect: 312.5 },
 
-  // Normal goods — 13.50 under 10 kg, 13.00 from 10 kg.
+  // Normal goods — 13.50 under 10 kg, 12.50 from 10 kg.
   { name: "Normal goods, 9 kg → 13.50/kg", category: "NORMAL_GOODS", weightKg: 9, expect: 121.5 },
-  { name: "Normal goods, exactly 10 kg → 13.00/kg", category: "NORMAL_GOODS", weightKg: 10, expect: 130 },
-  { name: "Normal goods, 15 kg → 13.00/kg", category: "NORMAL_GOODS", weightKg: 15, expect: 195 },
+  { name: "Normal goods, exactly 10 kg → 12.50/kg", category: "NORMAL_GOODS", weightKg: 10, expect: 125 },
+  { name: "Normal goods, 15 kg → 12.50/kg", category: "NORMAL_GOODS", weightKg: 15, expect: 187.5 },
 
-  // Special category — 16.30 under 10 kg, 15.30 from 10 kg.
-  { name: "Special, 4 kg → 16.30/kg", category: "SPECIAL_CATEGORY", weightKg: 4, expect: 65.2 },
-  { name: "Special, exactly 10 kg → 15.30/kg", category: "SPECIAL_CATEGORY", weightKg: 10, expect: 153 },
-  { name: "Special, 30 kg → 15.30/kg", category: "SPECIAL_CATEGORY", weightKg: 30, expect: 459 },
+  /*
+    Special category — ONE rate at every weight, unlike normal goods. The 30 kg
+    case is the one worth keeping: these items were once priced per piece, so a
+    30 kg printer billed as a single USD 13.50 item instead of USD 405.
+  */
+  { name: "Special, 4 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 4, expect: 54 },
+  { name: "Special, exactly 10 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 10, expect: 135 },
+  { name: "Special, 30 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 30, expect: 405 },
 
   /*
     THE MINIMUM BILLABLE WEIGHT. Anything under a kilo is billed as a kilo, so
@@ -57,8 +61,8 @@ const CASES: Case[] = [
     none of them may come back unpriced.
   */
   { name: "Normal goods, 0.4 kg → billed as 1 kg at 13.50", category: "NORMAL_GOODS", weightKg: 0.4, expect: 13.5 },
-  { name: "Wigs, 0.2 kg → billed as 1 kg at 14.40", category: "WIGS", weightKg: 0.2, expect: 14.4 },
-  { name: "Special, 0.05 kg → billed as 1 kg at 16.30", category: "SPECIAL_CATEGORY", weightKg: 0.05, expect: 16.3 },
+  { name: "Wigs, 0.2 kg → billed as 1 kg at 13.50", category: "WIGS", weightKg: 0.2, expect: 13.5 },
+  { name: "Special, 0.05 kg → billed as 1 kg at 13.50", category: "SPECIAL_CATEGORY", weightKg: 0.05, expect: 13.5 },
   { name: "Normal goods, exactly 1 kg → 13.50", category: "NORMAL_GOODS", weightKg: 1, expect: 13.5 },
 
   /*
@@ -66,7 +70,21 @@ const CASES: Case[] = [
     4 kg cartons is a 12 kg shipment and earns the over-10 kg rate — quantity
     prices per-item cargo and must never scale the weight.
   */
-  { name: "Normal goods, 12 kg in 3 cartons → 13.00/kg", category: "NORMAL_GOODS", weightKg: 12, quantity: 3, expect: 156 },
+  { name: "Normal goods, 12 kg in 3 cartons → 12.50/kg", category: "NORMAL_GOODS", weightKg: 12, quantity: 3, expect: 150 },
+
+  /*
+    PER-PIECE ITEMS. A laptop is USD 45 whether it weighs two kilos or eight,
+    and three of them are USD 135 — quantity is what prices this cargo, weight
+    is not. Looked up by product NAME below, because these are product-specific
+    rules rather than category ones.
+  */
+  { name: "Laptop, 2 kg → USD 45 flat", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 2, expect: 45 },
+  { name: "Laptop, 8 kg → still USD 45", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 8, expect: 45 },
+  { name: "Laptop x3 → USD 135", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 6, quantity: 3, expect: 135 },
+  { name: "AirPods → USD 10", category: "SPECIAL_CATEGORY", typeName: "AirPods", weightKg: 0.3, expect: 10 },
+  { name: "Smart Phone (Full Box) → USD 25", category: "SPECIAL_CATEGORY", typeName: "Smart Phone (Full Box)", weightKg: 0.5, expect: 25 },
+  { name: "Camera → USD 45", category: "SPECIAL_CATEGORY", typeName: "Camera", weightKg: 3, expect: 45 },
+  { name: "Documents → USD 40", category: "SPECIAL_CATEGORY", typeName: "Documents", weightKg: 1.2, expect: 40 },
 ];
 
 async function main() {
