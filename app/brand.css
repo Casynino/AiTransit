@@ -209,6 +209,21 @@ body:has(> .ai-site) {
    Display sizes clamp so a headline is a headline on a phone too — the
    commonest way a site like this is read is one-handed, on data, in a market.
    --------------------------------------------------------------------------- */
+/*
+  The poster headline. One step above `ai-display-xl`, and it exists because the
+  homepage hero is now centred type over a photograph rather than a column
+  beside a panel — at that job the headline IS the composition, and xl was sized
+  to share a row with something else.
+*/
+:where(.ai-site) .ai-display-hero {
+  font-family: var(--ai-display);
+  font-size: clamp(2.6rem, 7.2vw, 5.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
 :where(.ai-site) .ai-display-xl {
   font-family: var(--ai-display);
   font-size: clamp(2.5rem, 6.2vw, 4.75rem);

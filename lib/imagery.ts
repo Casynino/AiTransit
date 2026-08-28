@@ -93,8 +93,8 @@ export function img(url: string, width: number, quality = 68) {
  * to the contact page. 1600px across a 16:9 crop is plenty for a hero at any
  * width we serve, and it arrives in well under a second.
  */
-export function banner(url: string, width = 1600) {
-  const height = Math.round((width * 9) / 16);
+export function banner(url: string, width = 1600, aspect = 16 / 9) {
+  const height = Math.round(width / aspect);
   return `${url}?auto=format&fit=crop&w=${width}&h=${height}&q=62`;
 }
 

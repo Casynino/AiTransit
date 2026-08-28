@@ -45,7 +45,7 @@ import {
 import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
 import { MIN_BILLABLE_KG } from "@/lib/billing-policy";
 import { publishedFxBoard } from "@/lib/exchange";
-import { IMAGES, img } from "@/lib/imagery";
+import { IMAGES, banner, img } from "@/lib/imagery";
 import { publicMarkets } from "@/lib/public-markets";
 import { publicRateCard } from "@/lib/rate-card";
 import { siteStats } from "@/lib/site-stats";
@@ -183,114 +183,94 @@ export default async function HomePage() {
   return (
     <>
       {/* ================================================================
-          HERO — full-bleed photography, the corridor on a globe
+          HERO — a poster, not a column
       ================================================================= */}
-      <section className="ai-on-ink relative overflow-hidden pb-36 pt-32 md:pb-44 md:pt-40">
+      <section className="ai-on-ink relative isolate flex min-h-[clamp(40rem,92vh,54rem)] items-center overflow-hidden pb-16 pt-32 md:pt-36">
         {/*
-          NO PHOTOGRAPH HERE, on purpose.
+          CENTRED, OVER A PHOTOGRAPH OF THE ACTUAL WORK.
 
-          This band used to open on a dark airport apron — the same stock
-          photograph the source system uses, in the same composition, with a
-          globe in a box on the right. Side by side the two sites read as one
-          company with two logos, which is the one thing this brand was not
-          allowed to be.
+          Two rewrites ago this was a headline in a left column with a panel
+          opposite it. That is the source system's axis, and mirroring or
+          restyling it was never going to help — the shape itself was the
+          resemblance. So the shape is gone: the type is centred and set very
+          large, the picture runs the full bleed behind it, and the practical
+          business of the page — tracking, prices, routes — sits underneath as a
+          rail rather than beside as a box.
 
-          What carries it instead is the thing the source system does not have:
-          the sky. Starfield, two slow colour drifts, and the route globe scaled
-          up and bled off the right edge so it is atmosphere rather than an
-          illustration sitting in a column. Nothing here is stock.
+          The photograph is cargo being loaded, not an anonymous apron. It is
+          the one image that says what this company does rather than what
+          industry it is in.
         */}
-        <StarField />
-
-        {/* The corridor, as ambience. Enormous, half off the page, and behind
-            everything — it still spins and can still be dragged where the copy
-            does not cover it. */}
-        <div
-          aria-hidden="false"
-          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] items-center justify-center lg:flex"
-        >
-          <RouteGlobe className="pointer-events-auto w-[46rem] max-w-none translate-x-[18%] opacity-[0.85]" />
+        <div aria-hidden className="absolute inset-0">
+          <Image
+            unoptimized
+            src={banner(IMAGES.cargoLoading, 2000)}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+          {/* Two passes. The radial keeps the middle dark enough to carry the
+              headline; the linear seats the band against the header above and
+              the section below. Both were originally set so heavy that they
+              stacked to near-opaque and the aircraft disappeared entirely —
+              which defeats the point of putting a photograph there. */}
+          <span
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(120% 95% at 50% 44%, hsl(213 62% 6% / 0.56) 0%, hsl(213 62% 6% / 0.38) 46%, hsl(213 62% 6% / 0.06) 100%)",
+            }}
+          />
+          <span
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, hsl(213 62% 6% / 0.52) 0%, transparent 22%, transparent 60%, hsl(213 62% 6% / 0.72) 100%)",
+            }}
+          />
         </div>
 
-        <Wrap className="relative">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              {/* The old headline said "delivered with confidence", which is
-                  what every freight company on earth says. This one says what
-                  the customer actually buys: the whole middle of the journey
-                  stops being their problem. */}
-              <h1 className="ai-display-xl ai-rise ai-rise-1">
-                Buy in China.
-                <br className="hidden sm:block" /> Collect in Lusaka.{" "}
-                <span style={{ color: "hsl(var(--ai-copper))" }}>
-                  We do the rest.
-                </span>
-              </h1>
+        <StarField />
 
-              <p className="ai-lede ai-rise ai-rise-2 mt-7 max-w-xl">
-                We pay your supplier in RMB, walk the Guangzhou markets with
-                you, inspect and pack what you buy, and fly it to our Lusaka
-                warehouse with the duty already in the price.{" "}
-                <strong className="font-semibold">
-                  One company, both ends of the route.
-                </strong>
-              </p>
+        <Wrap className="relative z-10 w-full">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="ai-rise ai-rise-1 ai-display-hero">
+              Buy in China.
+              <br />
+              Collect in Lusaka.
+              <br />
+              <span style={{ color: "hsl(var(--ai-copper))" }}>
+                We do the rest.
+              </span>
+            </h1>
 
-              <div className="ai-rise ai-rise-3 mt-9">
-                <TrackInput />
-              </div>
+            <p className="ai-lede ai-rise ai-rise-2 mx-auto mt-8 max-w-2xl">
+              We pay your supplier in RMB, walk the Guangzhou markets with you,
+              inspect and pack what you buy, and fly it to our Lusaka warehouse
+              with the duty already in the price.
+            </p>
 
-              <div className="ai-rise ai-rise-4 mt-7 flex flex-wrap gap-2.5">
-                <BtnLink href="/calculator" tone="primary">
-                  Calculate cargo price
-                  <ArrowRight className="h-4 w-4" />
-                </BtnLink>
-                <BtnLink href="/markets" tone="outline-invert">
-                  <Store className="h-4 w-4" />
-                  Explore China markets
-                </BtnLink>
-                <BtnLink href="/exchange#rates" tone="outline-invert">
-                  <Coins className="h-4 w-4" />
-                  Today&rsquo;s rates
-                </BtnLink>
-              </div>
-
-              <ul className="ai-rise ai-rise-4 mt-10 flex flex-wrap gap-x-7 gap-y-3">
-                {[
-                  [BadgeCheck, "Duty included"],
-                  [Building2, "Lusaka warehouse"],
-                  [ScanLine, "QR tracking"],
-                  [MessageCircle, "A person answers"],
-                ].map(([Icon, label]) => {
-                  const I = Icon as typeof BadgeCheck;
-                  return (
-                    <li
-                      key={label as string}
-                      className="flex items-center gap-2 text-sm"
-                      style={{ color: "hsl(var(--ai-stone)/0.72)" }}
-                    >
-                      <I
-                        className="h-4 w-4"
-                        style={{ color: "hsl(var(--ai-copper))" }}
-                      />
-                      {label as string}
-                    </li>
-                  );
-                })}
-              </ul>
+            <div className="ai-rise ai-rise-3 mx-auto mt-10 max-w-lg">
+              <TrackInput />
             </div>
 
-            {/*
-              The board, over the globe. See components/brand/route-board.
-
-              On a handset the globe is hidden entirely and this stands alone —
-              a phone has no room for both, and of the two it is the board that
-              answers the question a visitor arrived with.
-            */}
-            <div className="ai-rise ai-rise-3 relative">
-              <RouteGlobe className="mx-auto mb-8 w-full max-w-[15rem] sm:max-w-[17rem] lg:hidden" />
-              <RouteBoard categories={rates} className="lg:ml-auto lg:max-w-[26rem]" />
+            <div className="ai-rise ai-rise-4 mt-7 flex flex-wrap justify-center gap-2.5">
+              <BtnLink href="/calculator" tone="primary">
+                Calculate cargo price
+                <ArrowRight className="h-4 w-4" />
+              </BtnLink>
+              <BtnLink href="/markets" tone="outline-invert">
+                <Store className="h-4 w-4" />
+                Explore China markets
+              </BtnLink>
             </div>
+          </div>
+
+          {/* The routes, as a rail across the foot of the picture. */}
+          <div className="ai-rise ai-rise-4 mt-16 md:mt-20">
+            <RouteBoard categories={rates} variant="rail" />
           </div>
         </Wrap>
       </section>
@@ -493,21 +473,16 @@ export default async function HomePage() {
             lede="From your supplier's gate in Guangzhou to your hands in Makeni. Every stage is somebody's named job, and your tracking page moves as they finish it."
             aside={
               <Reveal delay={120}>
-                <Photo
-                  src={IMAGES.warehouseTablet}
-                  alt="Cargo being checked in at the warehouse counter"
-                  ratio="wide"
-                  width={900}
-                  parallax
-                  sizes="(max-width: 1024px) 92vw, 42vw"
-                  className="shadow-[var(--ai-shadow-lg)]"
-                />
+                {/* The globe moved here out of the hero. Beside seven steps
+                    from a Guangzhou gate to a Makeni counter it is explaining
+                    the route rather than decorating a banner. */}
+                <RouteGlobe className="mx-auto w-full max-w-[17rem] sm:max-w-[21rem]" />
                 <p
-                  className="mt-4 text-[0.82rem]"
+                  className="mt-5 text-center text-[0.82rem]"
                   style={{ color: "hsl(var(--ai-charcoal-soft))" }}
                 >
-                  Every box is scanned and photographed at both ends, so the
-                  tracking page is never guesswork.
+                  Our loading airports, the hubs we connect through, and home.
+                  <span className="hidden sm:inline"> Drag to spin.</span>
                 </p>
               </Reveal>
             }

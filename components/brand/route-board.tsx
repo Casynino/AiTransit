@@ -55,9 +55,16 @@ const LANES: Lane[] = [
 export function RouteBoard({
   categories,
   className,
+  variant = "panel",
 }: {
   categories: RateCardCategory[];
   className?: string;
+  /**
+   * `panel` is the boxed board. `rail` lays the same lanes out horizontally,
+   * for the foot of a full-bleed hero where a box floating over the picture
+   * would fight it.
+   */
+  variant?: "panel" | "rail";
 }) {
   const lanes = LANES.map((lane) => {
     const category = categories.find(lane.match);
@@ -66,6 +73,85 @@ export function RouteBoard({
     const fromPrice = category?.tiers[0]?.price ?? null;
     return { ...lane, fromPrice };
   });
+
+  if (variant === "rail") {
+    return (
+      <div
+        className={cn(
+          "ai-on-photo grid gap-px overflow-hidden rounded-[var(--ai-radius-lg)] border backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-3",
+          className
+        )}
+        style={{
+          borderColor: "hsl(var(--ai-light) / 0.14)",
+          background: "hsl(var(--ai-light) / 0.14)",
+          boxShadow: "0 30px 70px -40px hsl(213 62% 3% / 0.9)",
+        }}
+      >
+        {lanes.map((lane) => (
+          <div
+            key={lane.from}
+            className="px-6 py-5"
+            style={{ background: "hsl(213 62% 7% / 0.72)" }}
+          >
+            <div className="flex items-baseline gap-3">
+              <span className="ai-num text-base font-semibold tracking-[0.06em]">
+                {lane.from}
+              </span>
+              <span
+                aria-hidden
+                className="h-px flex-1"
+                style={{
+                  background:
+                    "linear-gradient(to right, hsl(var(--ai-emerald) / 0.7), hsl(var(--ai-light) / 0.16))",
+                }}
+              />
+              <span className="ai-num text-base font-semibold tracking-[0.06em]">
+                LUN
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4">
+              <span
+                className="text-[0.8rem]"
+                style={{ color: "hsl(var(--ai-light) / 0.66)" }}
+              >
+                {lane.fromCity} — {lane.carries}
+              </span>
+              {lane.fromPrice ? (
+                <span className="ai-num text-[0.85rem] font-semibold">
+                  {lane.fromPrice}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ))}
+
+        <Link
+          href="/calculator"
+          className="flex items-center justify-between px-6 py-5 transition-colors hover:bg-[hsl(var(--ai-light)/0.06)] sm:col-span-2 lg:col-span-1"
+          style={{ background: "hsl(213 62% 7% / 0.72)" }}
+        >
+          <span>
+            <span
+              className="ai-num block text-[0.68rem] font-semibold uppercase tracking-[0.2em]"
+              style={{ color: "hsl(var(--ai-light) / 0.55)" }}
+            >
+              Every rate
+            </span>
+            <span
+              className="mt-1 block text-[0.9rem] font-semibold"
+              style={{ color: "hsl(var(--ai-copper))" }}
+            >
+              Duty included · 5–12 days
+            </span>
+          </span>
+          <ArrowUpRight
+            className="h-5 w-5"
+            style={{ color: "hsl(var(--ai-copper))" }}
+          />
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div
