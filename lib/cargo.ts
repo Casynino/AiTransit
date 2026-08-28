@@ -50,7 +50,7 @@ export function cargoLabel(
 /**
  * The three commercial buckets, in the words AITRANSIT prints on its rate card.
  *
- * SPECIAL_CATEGORY's label is the one thing here that is not final — the
+ * LIQUID_SPECIAL's label is the one thing here that is not final — the
  * business is still deciding what to call the higher-rate bucket. Admin can
  * rename it under Company settings (`cargo.specialCategoryName`); this is the
  * fallback, and `specialCategoryLabel()` in lib/company-settings.ts is what the
@@ -59,16 +59,20 @@ export function cargoLabel(
  */
 export const CATEGORY_LABELS: Record<CargoCategory, string> = {
   NORMAL_GOODS: "Normal goods",
-  WIGS: "Wigs",
-  SPECIAL_CATEGORY: "Special category",
+  ELECTRONICS: "Electronics",
+  LIQUID_SPECIAL: "Liquid & special goods",
+  /* Retired — folded into normal goods. Kept so an old row still renders. */
+  WIGS: "Normal goods",
 };
 
 export const CATEGORY_EXAMPLES: Record<CargoCategory, string> = {
   NORMAL_GOODS:
-    "Clothes, shoes, bags, household items, furniture, toys, general merchandise",
-  WIGS: "Wigs, hair bundles, closures, frontals, hair pieces, braiding hair",
-  SPECIAL_CATEGORY:
-    "Electronics, phones, laptops, batteries, cosmetics, liquids, medicines, branded goods",
+    "Clothing, shoes, bags, wigs and hair, home products, furniture, toys, general merchandise",
+  ELECTRONICS:
+    "Phones, laptops, tablets, smart watches, cameras, AirPods, LED displays, documents",
+  LIQUID_SPECIAL:
+    "Medicines, food products, liquids, oils, cosmetics, batteries, speakers, printers",
+  WIGS: "Wigs, hair bundles, closures, frontals, braiding hair",
 };
 
 /**
@@ -77,14 +81,17 @@ export const CATEGORY_EXAMPLES: Record<CargoCategory, string> = {
  * a shipment cannot be sent to the wrong hub by mistake.
  *
  * AITRANSIT runs two loading batches. Guangzhou takes the ordinary trade —
- * normal goods and wigs, which is the bulk of what flies. Hong Kong takes the
- * cargo that needs the other route: electronics, batteries, liquids and
- * anything else on the special rate.
+ * clothing, shoes, bags, hair and general merchandise, which is the bulk of
+ * what flies. Hong Kong takes the two categories that need the other route:
+ * electronics, and the liquids and powered goods on the special rate. More
+ * airlines out of Hong Kong will carry both.
  */
 export const ROUTE_FOR_CATEGORY: Record<CargoCategory, Origin> = {
   NORMAL_GOODS: "GUANGZHOU",
+  ELECTRONICS: "HONG_KONG",
+  LIQUID_SPECIAL: "HONG_KONG",
+  /* Retired, and it flew Guangzhou when it existed. */
   WIGS: "GUANGZHOU",
-  SPECIAL_CATEGORY: "HONG_KONG",
 };
 
 export const AIRPORT_LABELS: Record<Origin, string> = {
@@ -94,8 +101,8 @@ export const AIRPORT_LABELS: Record<Origin, string> = {
 
 /** Which categories are allowed on a batch departing from a given airport. */
 export const CATEGORIES_FOR_ROUTE: Record<Origin, CargoCategory[]> = {
-  GUANGZHOU: ["NORMAL_GOODS", "WIGS"],
-  HONG_KONG: ["SPECIAL_CATEGORY"],
+  GUANGZHOU: ["NORMAL_GOODS"],
+  HONG_KONG: ["ELECTRONICS", "LIQUID_SPECIAL"],
 };
 
 export const METHOD_LABELS: Record<PricingMethod, string> = {
@@ -187,13 +194,13 @@ const CATEGORY_KEYWORDS: [RegExp, CargoCategory][] = [
      words ("bundles", "closure") would otherwise be read as general trade. */
   [
     /\u5047\u53D1|wig|hairpiece|hair piece|human hair|\u4EBA\u53D1|closure|frontal|bundle|weave|braid|\u8FAB\u53D1|\u53D1\u5305|lace front|ponytail|extension/i,
-    "WIGS",
+    "ELECTRONICS",
   ],
   /* Then everything on the higher rate and the Hong Kong route: electronics,
      batteries and liquids together, because they share a rate and an airport. */
   [
     /\u624B\u673A|phone|ipad|\u5E73\u677F|tablet|laptop|\u7B14\u8BB0\u672C|\u7535\u8111|computer|\u76F8\u673A|camera|\u8033\u673A|earphone|airpod|\u624B\u8868|watch|\u97F3\u7BB1|speaker|\u7535\u6C60|battery|\u5145\u7535\u5668|charger|\u6253\u5370\u673A|printer|\u663E\u793A\u5668|monitor|led|playstation|\u6E38\u620F\u673A|console|\u82AF\u7247|chip|usb|\u8DEF\u7531\u5668|router|\u7535\u5B50|electronic|\u9006\u53D8\u5668|inverter|\u9EA6\u514B\u98CE|microphone|lcd|\u84DD\u7259|bluetooth|solar|\u592A\u9633\u80FD|\u836F|medicine|\u4FDD\u5065\u54C1|health product|\u9999\u6C34|perfume|\u5316\u5986\u54C1|cosmetic|\u80A5\u7682|soap|\u6CB9|oil|\u6DB2\u4F53|liquid|\u98DF\u54C1|food|gel|\u51DD\u80F6|cream|lotion|aerosol|spray/i,
-    "SPECIAL_CATEGORY",
+    "LIQUID_SPECIAL",
   ],
 ];
 

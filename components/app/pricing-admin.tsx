@@ -49,8 +49,9 @@ export type AdminRule = {
 
 const CATEGORY_LABEL: Record<string, string> = {
   NORMAL_GOODS: "Normal goods",
-  WIGS: "Electronics",
-  SPECIAL_CATEGORY: "Special goods",
+  ELECTRONICS: "Electronics",
+  LIQUID_SPECIAL: "Liquid & special goods",
+  WIGS: "Normal goods",
 };
 
 const ROUTE_LABEL: Record<string, string> = {

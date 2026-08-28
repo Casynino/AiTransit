@@ -25,7 +25,7 @@ import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types"
  *     and a shipment must keep saying what it contained.
  */
 
-const CATEGORY = z.enum(["NORMAL_GOODS", "WIGS", "SPECIAL_CATEGORY"]);
+const CATEGORY = z.enum(["NORMAL_GOODS", "ELECTRONICS", "LIQUID_SPECIAL"]);
 const METHOD = z.enum(["WEIGHT_BASED", "FIXED_PER_ITEM"]);
 const ROUTE = z.enum(["GUANGZHOU", "HONG_KONG"]);
 

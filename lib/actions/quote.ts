@@ -6,7 +6,7 @@ import { fail, ok, toActionError, type ActionResult } from "@/lib/actions/types"
 import { quote, type Quote } from "@/lib/pricing";
 
 const schema = z.object({
-  category: z.enum(["NORMAL_GOODS", "WIGS", "SPECIAL_CATEGORY"]),
+  category: z.enum(["NORMAL_GOODS", "ELECTRONICS", "LIQUID_SPECIAL"]),
   cargoTypeId: z
     .string()
     .trim()

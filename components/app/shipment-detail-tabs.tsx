@@ -114,8 +114,10 @@ export type DocumentEntry = {
 
 const CATEGORY_LABEL: Record<string, string> = {
   NORMAL_GOODS: "Normal goods",
-  WIGS: "Electronics",
-  SPECIAL_CATEGORY: "Special goods",
+  ELECTRONICS: "Electronics",
+  LIQUID_SPECIAL: "Liquid & special goods",
+  /* Retired. Its cargo was folded into normal goods; an old row still reads. */
+  WIGS: "Normal goods",
 };
 
 const TABS = [

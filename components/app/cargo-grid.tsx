@@ -75,17 +75,25 @@ export type CargoCell = {
   photos: { id: string; url: string; kind: string; caption: string | null }[];
 };
 
-/** Short forms, because this column is read at a glance a hundred times a day. */
+/**
+ * Short forms, because this column is read at a glance a hundred times a day.
+ *
+ * WIGS is retired and maps to "Normal", which is where its cargo now lives —
+ * it said "Electronics", which was wrong even before the categories changed and
+ * would have put an electronics chip on a box of hair.
+ */
 const CATEGORY_SHORT: Record<string, string> = {
   NORMAL_GOODS: "Normal",
-  WIGS: "Electronics",
-  SPECIAL_CATEGORY: "Special",
+  ELECTRONICS: "Electronics",
+  LIQUID_SPECIAL: "Liquid",
+  WIGS: "Normal",
 };
 
 const CATEGORY_CHIP: Record<string, string> = {
   NORMAL_GOODS: "bg-brand/10 text-brand",
-  WIGS: "bg-info/10 text-info",
-  SPECIAL_CATEGORY: "bg-warning/10 text-warning",
+  ELECTRONICS: "bg-info/10 text-info",
+  LIQUID_SPECIAL: "bg-warning/10 text-warning",
+  WIGS: "bg-brand/10 text-brand",
 };
 
 /**
@@ -102,8 +110,9 @@ const SHORT_STATUS: Record<string, string> = {
 
 const CATEGORY_LABEL: Record<string, string> = {
   NORMAL_GOODS: "Normal goods",
-  WIGS: "Electronics",
-  SPECIAL_CATEGORY: "Special goods",
+  ELECTRONICS: "Electronics",
+  LIQUID_SPECIAL: "Liquid & special goods",
+  WIGS: "Normal goods",
 };
 
 /**

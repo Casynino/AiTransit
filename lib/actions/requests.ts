@@ -54,7 +54,7 @@ const bookingSchema = z.object({
     .trim()
     .min(3, "Tell us roughly what you are sending."),
   cargoCategory: z
-    .enum(["NORMAL_GOODS", "WIGS", "SPECIAL_CATEGORY"])
+    .enum(["NORMAL_GOODS", "ELECTRONICS", "LIQUID_SPECIAL"])
     .default("NORMAL_GOODS"),
   estimatedWeightKg: z
     .string()

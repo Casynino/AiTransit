@@ -15,7 +15,7 @@ const prisma = new PrismaClient();
 
 type Case = {
   name: string;
-  category: "NORMAL_GOODS" | "WIGS" | "SPECIAL_CATEGORY";
+  category: "NORMAL_GOODS" | "ELECTRONICS" | "LIQUID_SPECIAL";
   typeName?: string;
   weightKg: number;
   quantity?: number;
@@ -36,10 +36,10 @@ const CASES: Case[] = [
   */
 
   // Wigs — priced as normal goods: 13.50 under 10 kg, 12.50 from 10 kg.
-  { name: "Wigs, 5 kg → 13.50/kg", category: "WIGS", weightKg: 5, expect: 67.5 },
-  { name: "Wigs, 9.5 kg → 13.50/kg", category: "WIGS", weightKg: 9.5, expect: 128.25 },
-  { name: "Wigs, exactly 10 kg → 12.50/kg", category: "WIGS", weightKg: 10, expect: 125 },
-  { name: "Wigs, 25 kg → 12.50/kg", category: "WIGS", weightKg: 25, expect: 312.5 },
+  { name: "Hair (normal goods), 5 kg → 13.50/kg", category: "NORMAL_GOODS", weightKg: 5, expect: 67.5 },
+  { name: "Hair (normal goods), 9.5 kg → 13.50/kg", category: "NORMAL_GOODS", weightKg: 9.5, expect: 128.25 },
+  { name: "Hair (normal goods), exactly 10 kg → 12.50/kg", category: "NORMAL_GOODS", weightKg: 10, expect: 125 },
+  { name: "Hair (normal goods), 25 kg → 12.50/kg", category: "NORMAL_GOODS", weightKg: 25, expect: 312.5 },
 
   // Normal goods — 13.50 under 10 kg, 12.50 from 10 kg.
   { name: "Normal goods, 9 kg → 13.50/kg", category: "NORMAL_GOODS", weightKg: 9, expect: 121.5 },
@@ -51,9 +51,9 @@ const CASES: Case[] = [
     case is the one worth keeping: these items were once priced per piece, so a
     30 kg printer billed as a single USD 13.50 item instead of USD 405.
   */
-  { name: "Special, 4 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 4, expect: 54 },
-  { name: "Special, exactly 10 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 10, expect: 135 },
-  { name: "Special, 30 kg → 13.50/kg", category: "SPECIAL_CATEGORY", weightKg: 30, expect: 405 },
+  { name: "Liquid & special, 4 kg → 13.50/kg", category: "LIQUID_SPECIAL", weightKg: 4, expect: 54 },
+  { name: "Liquid & special, exactly 10 kg → 13.50/kg", category: "LIQUID_SPECIAL", weightKg: 10, expect: 135 },
+  { name: "Liquid & special, 30 kg → 13.50/kg", category: "LIQUID_SPECIAL", weightKg: 30, expect: 405 },
 
   /*
     THE MINIMUM BILLABLE WEIGHT. Anything under a kilo is billed as a kilo, so
@@ -61,8 +61,8 @@ const CASES: Case[] = [
     none of them may come back unpriced.
   */
   { name: "Normal goods, 0.4 kg → billed as 1 kg at 13.50", category: "NORMAL_GOODS", weightKg: 0.4, expect: 13.5 },
-  { name: "Wigs, 0.2 kg → billed as 1 kg at 13.50", category: "WIGS", weightKg: 0.2, expect: 13.5 },
-  { name: "Special, 0.05 kg → billed as 1 kg at 13.50", category: "SPECIAL_CATEGORY", weightKg: 0.05, expect: 13.5 },
+  { name: "Hair (normal goods), 0.2 kg → billed as 1 kg at 13.50", category: "NORMAL_GOODS", weightKg: 0.2, expect: 13.5 },
+  { name: "Liquid & special, 0.05 kg → billed as 1 kg at 13.50", category: "LIQUID_SPECIAL", weightKg: 0.05, expect: 13.5 },
   { name: "Normal goods, exactly 1 kg → 13.50", category: "NORMAL_GOODS", weightKg: 1, expect: 13.5 },
 
   /*
@@ -78,13 +78,13 @@ const CASES: Case[] = [
     is not. Looked up by product NAME below, because these are product-specific
     rules rather than category ones.
   */
-  { name: "Laptop, 2 kg → USD 45 flat", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 2, expect: 45 },
-  { name: "Laptop, 8 kg → still USD 45", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 8, expect: 45 },
-  { name: "Laptop x3 → USD 135", category: "SPECIAL_CATEGORY", typeName: "Laptop", weightKg: 6, quantity: 3, expect: 135 },
-  { name: "AirPods → USD 10", category: "SPECIAL_CATEGORY", typeName: "AirPods", weightKg: 0.3, expect: 10 },
-  { name: "Smart Phone (Full Box) → USD 25", category: "SPECIAL_CATEGORY", typeName: "Smart Phone (Full Box)", weightKg: 0.5, expect: 25 },
-  { name: "Camera → USD 45", category: "SPECIAL_CATEGORY", typeName: "Camera", weightKg: 3, expect: 45 },
-  { name: "Documents → USD 40", category: "SPECIAL_CATEGORY", typeName: "Documents", weightKg: 1.2, expect: 40 },
+  { name: "Laptop, 2 kg → USD 45 flat", category: "ELECTRONICS", typeName: "Laptop", weightKg: 2, expect: 45 },
+  { name: "Laptop, 8 kg → still USD 45", category: "ELECTRONICS", typeName: "Laptop", weightKg: 8, expect: 45 },
+  { name: "Laptop x3 → USD 135", category: "ELECTRONICS", typeName: "Laptop", weightKg: 6, quantity: 3, expect: 135 },
+  { name: "AirPods → USD 10", category: "ELECTRONICS", typeName: "AirPods", weightKg: 0.3, expect: 10 },
+  { name: "Smart Phone (Full Box) → USD 25", category: "ELECTRONICS", typeName: "Smart Phone (Full Box)", weightKg: 0.5, expect: 25 },
+  { name: "Camera → USD 45", category: "ELECTRONICS", typeName: "Camera", weightKg: 3, expect: 45 },
+  { name: "Documents → USD 40", category: "ELECTRONICS", typeName: "Documents", weightKg: 1.2, expect: 40 },
 ];
 
 async function main() {

@@ -118,7 +118,7 @@ export const publicRateCard = cache(async (): Promise<RateCardCategory[]> => {
   /* Fixed order, not database order. Normal goods is the bulk of the trade and
      leads on the flyer; the special category is last because it is the
      exception. A card whose columns move between page loads is unreadable. */
-  const ORDER: CargoCategory[] = ["NORMAL_GOODS", "WIGS", "SPECIAL_CATEGORY"];
+  const ORDER: CargoCategory[] = ["NORMAL_GOODS", "ELECTRONICS", "LIQUID_SPECIAL"];
 
   return ORDER.filter((category) => byCategory.has(category)).map((category) => ({
     category,

@@ -56,7 +56,7 @@ const settingsSchema = z.object({
   /*
     What the higher-rate cargo bucket is CALLED on screen.
 
-    The enum value SPECIAL_CATEGORY never moves — every priced invoice, every
+    The enum value LIQUID_SPECIAL never moves — every priced invoice, every
     pricing rule and every batch-route check is written against it — so a rename
     here cannot orphan a single record. Only the words change. The business has
     not settled on the label yet, which is why it is a setting rather than a

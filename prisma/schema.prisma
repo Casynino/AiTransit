@@ -172,16 +172,34 @@ enum ShippingMethod {
 /// airport, how the price is calculated, and which batch the cargo may join.
 /// Staff choose the category; the system derives everything else.
 enum CargoCategory {
-  NORMAL_GOODS // clothes, shoes, household items, bags, toys — flies Guangzhou
-  WIGS // wigs, hair pieces, human hair, closures, bundles — flies Guangzhou
-  /// Everything on the higher rate and the Hong Kong route: electronics,
-  /// batteries, liquids, cosmetics, branded goods.
+  /// Clothes, shoes, bags, hair and hair pieces, household items, toys,
+  /// general merchandise. Flies Guangzhou. The bulk of the trade.
+  NORMAL_GOODS
+
+  /// Phones, laptops, tablets, watches, cameras, AirPods, LED displays.
+  /// Flies Hong Kong, where more airlines will carry them.
+  ELECTRONICS
+
+  /// Medicines, food, oils, cosmetics, batteries and the powered goods that are
+  /// not handsets. Flies Hong Kong.
   ///
-  /// The customer-facing NAME of this category is deliberately not fixed in
-  /// code — it is `cargo.specialCategoryName` in company settings, because the
-  /// exact label the business wants to print is still being confirmed. The enum
-  /// value never moves; only what it is called on screen does.
-  SPECIAL_CATEGORY
+  /// Named SPECIAL_CATEGORY until the counter was aligned with the three
+  /// categories the desk actually sorts by. Renamed in place with ALTER TYPE
+  /// RENAME VALUE, so not one priced row moved.
+  LIQUID_SPECIAL
+
+  /**
+   * RETIRED — folded into NORMAL_GOODS.
+   * Wigs were a category of their own and were priced identically to normal
+   * goods at every weight, so the split earned nothing at the counter and cost
+   * a decision on every consignment. Hair is now an ITEM under normal goods,
+   * which is how the desk describes it and how the flyer reads.
+   * The value stays in the enum because removing one from a Postgres enum means
+   * rebuilding the type across four tables, and the reward for that is tidiness
+   * on a value no row uses and no screen offers. It is absent from CATEGORIES in
+   * lib/cargo.ts, so nothing can select it.
+   */
+  WIGS
 }
 
 /// How a price is arrived at. Weight-based multiplies a per-kg rate by the
@@ -556,6 +574,8 @@ model Customer {
   /// The portal account, if this customer has registered on the website. One
   /// account per customer — see the note on User.customerId.
   /**
+   * /**
+   * /**
    * /**
    * HOW THIS CUSTOMER WANTS TO BE TOLD THINGS.
    * In-app is not listed because it is not optional: the portal's notification

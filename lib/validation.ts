@@ -4,7 +4,7 @@ import { z } from "zod";
 /* GoodsType, NOT CargoCategory. Two different enums that both describe what is
    in the box: this one is descriptive (what a manifest calls it) and the other
    is commercial (which rate it is billed on). AITRANSIT renamed a category to
-   WIGS; this list is the descriptive one and keeps ELECTRONICS. */
+   wigs; this list is the descriptive one and keeps ELECTRONICS. */
 const GOODS_TYPES = [
   "GENERAL_MERCHANDISE",
   "ELECTRONICS",
@@ -83,7 +83,7 @@ export const shipmentSchema = z.object({
     .transform((v) => (v && v.length > 0 ? v : null))
     .refine((v) => v === null || v.length >= 7, "That phone number is too short."),
   customerCity: z.string().trim().optional(),
-  cargoCategory: z.enum(["NORMAL_GOODS", "WIGS", "SPECIAL_CATEGORY"]),
+  cargoCategory: z.enum(["NORMAL_GOODS", "ELECTRONICS", "LIQUID_SPECIAL"]),
   /// Required, not defaulted. A quantity with a silently assumed unit is the
   /// thing this field exists to prevent — the desk has to say what it counted.
   packageType: z.enum(

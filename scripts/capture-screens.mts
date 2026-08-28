@@ -70,7 +70,16 @@ export const DEPARTMENTS: {
     email: "china@aitransit.co.zm",
     shots: [
       { id: "cn-home", path: "/app" },
-      { id: "cn-receive", path: "/app/receive" },
+      /*
+        /app/cargo/new, NOT /app/receive.
+
+        `/app/receive` is the LUSAKA receiving queue and is gated on
+        batch.receive, which the China desk does not hold — so this shot was a
+        photograph of "That area is not yours", printed in the China Warehouse
+        guide book under the heading "Receiving cargo". The China desk's
+        receiving screen is the cargo form.
+      */
+      { id: "cn-receive", path: "/app/cargo/new" },
       { id: "cn-loading-tables", path: "/app/batches" },
       { id: "cn-search", path: "/app/search" },
       { id: "cn-customers", path: "/app/customers" },

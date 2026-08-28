@@ -93,18 +93,21 @@ export type CategoryRate = {
   to a faithful copy, and it is the row most likely to want changing first.
 */
 export const CATEGORY_RATES: CategoryRate[] = [
-  // Wigs — Guangzhou route. Priced as normal goods; see the note above.
-  { category: "WIGS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 13.5 },
-  { category: "WIGS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 12.5 },
-  // Normal goods — Guangzhou route. The bulk of the trade.
+  // Normal goods — Guangzhou route. The bulk of the trade, hair included.
   { category: "NORMAL_GOODS", minWeightKg: null, maxWeightKg: 10, pricePerKg: 13.5 },
   { category: "NORMAL_GOODS", minWeightKg: 10, maxWeightKg: null, pricePerKg: 12.5 },
   /*
-    Special category — Hong Kong route. ONE rate at every weight upstream,
-    where normal goods has two tiers. Expressed here as a single unbounded
-    band rather than two identical ones, so the card reads honestly.
+    The two Hong Kong categories. ONE rate at every weight for both, where
+    normal goods has two tiers — expressed as a single unbounded band rather
+    than two identical ones, so the rate card reads honestly.
+
+    Electronics and liquid & special are priced the same. They are separate
+    categories because the DESK sorts them separately — a phone and a drum of
+    oil need different handling and different paperwork — not because they cost
+    different money.
   */
-  { category: "SPECIAL_CATEGORY", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
+  { category: "ELECTRONICS", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
+  { category: "LIQUID_SPECIAL", minWeightKg: null, maxWeightKg: null, pricePerKg: 13.5 },
 ];
 
 /*
@@ -147,6 +150,14 @@ export const NORMAL_GOODS: Product[] = [
   "Chains",
   "Bracelets",
   "Rings (without stones)",
+  /* Hair, which was a category of its own until the counter was cut to three.
+     Priced identically to the rest of normal goods at every weight, so folding
+     it in changed no quote — it only removed a decision from the clerk. */
+  "Wigs",
+  "Hair bundles",
+  "Closures & frontals",
+  "Braiding hair",
+  "Hair products",
   "LCD",
   "Flash & Memory Cards",
   "Car Accessories",
@@ -186,43 +197,29 @@ export const NORMAL_GOODS_KEYWORDS: Record<string, string> = {
   "Furniture & fittings": "furniture,家具,fitting,fixture,hinge,handle",
   Stationery: "stationery,文具,pen,paper,notebook,exercise book",
   "General Merchandise": "general,assorted,配件,accessories,杂货,mixed",
+  Wigs: "wig,wigs,假发,lace front,ponytail",
+  "Hair bundles": "bundle,bundles,weave,人发,发包,human hair",
+  "Closures & frontals": "closure,frontal,lace closure",
+  "Braiding hair": "braid,braiding,辫发,crochet",
+  "Hair products": "hair product,hair care,护发,shampoo,relaxer",
   Others: "other,misc",
 };
 
 /**
- * WIGS — a category of its own, and the reason AITRANSIT's card has three rows
- * where the source system has two. Hair is a large enough share of the Zambian
- * trade to be priced separately, and it flies Guangzhou like normal goods.
- */
-export const WIGS: Product[] = [
-  { name: "Wigs", keywords: "wig,wigs,假发,lace front,ponytail" },
-  { name: "Hair bundles", keywords: "bundle,bundles,weave,人发,发包,human hair" },
-  { name: "Closures & frontals", keywords: "closure,frontal,lace closure" },
-  { name: "Braiding hair", keywords: "braid,braiding,辫发,crochet" },
-  { name: "Hair products", keywords: "hair product,hair care,护发,shampoo,relaxer" },
-  { name: "Others", keywords: "other,misc" },
-].map((item) => ({
-  ...item,
-  category: "WIGS" as const,
-  method: "WEIGHT_BASED" as const,
-  route: "GUANGZHOU" as const,
-}));
-
-/**
- * SPECIAL CATEGORY — the higher rate and the Hong Kong route.
+ * ELECTRONICS — the Hong Kong route, and the list the desk sorts by.
  *
- * ITEMISED, not grouped. These used to be eleven umbrella names — "Phones &
- * accessories", "Cameras & audio" — which is tidier to read and worse to use:
- * a clerk holding a PlayStation had to decide whether it was electronics or
- * audio, and Finance lost the one field that tells them what is actually in
- * the box. The list is now the same granularity the desks already work at.
+ * Split out of what used to be one "special category" because the two need
+ * different handling at the counter: a phone is a declared, serialised,
+ * per-piece item and a drum of oil is not. They are priced the same; they are
+ * separated because the WORK is different, and because a clerk holding a
+ * PlayStation should not have to decide whether it is electronics or liquid.
  *
- * Everything here is WEIGHT_BASED, deliberately. The source system prices some
- * of these per piece; AITRANSIT's card is per kilo across the board, and
- * importing a per-item method under a per-kilo rate would bill a 30 kg printer
- * as one item.
+ * Everything here is WEIGHT_BASED. The per-piece prices in PER_PIECE_USD above
+ * are applied as product-specific rules on top, which beat the category rate in
+ * lib/pricing.ts — so a laptop is USD 45 whatever it weighs, and a box of
+ * chargers falls back to the per-kilo rate without a special case in the engine.
  */
-export const SPECIAL_CATEGORY: Product[] = [
+export const ELECTRONICS: Product[] = [
   { name: "Smart Phone (Full Box)", keywords: "phone,smartphone,手机,full box" },
   { name: "Smart Phone (Unboxed)", keywords: "unboxed,老人机,senior phone" },
   { name: "Laptop", keywords: "laptop,notebook,笔记本,电脑" },
@@ -230,22 +227,42 @@ export const SPECIAL_CATEGORY: Product[] = [
   { name: "Kids Tablet", keywords: "kids tablet,儿童平板" },
   { name: "Smart Watch", keywords: "watch,smart watch,手表" },
   { name: "Camera", keywords: "camera,相机,摄像头" },
+  { name: "Documents", keywords: "document,papers,文件" },
   { name: "AirPods", keywords: "airpods,earbuds,耳机" },
+  { name: "LED Displays", keywords: "led,display,模组,module" },
+  { name: "Others", keywords: "other,misc" },
+].map((item) => ({
+  ...item,
+  category: "ELECTRONICS" as const,
+  method: "WEIGHT_BASED" as const,
+  route: "HONG_KONG" as const,
+}));
+
+/**
+ * LIQUID & SPECIAL GOODS — the rest of the Hong Kong route.
+ *
+ * Medicines, food, oils and cosmetics, plus the powered goods that are not
+ * handsets: speakers, consoles, batteries, monitors, chargers, printers. What
+ * they have in common is that an airline asks questions about them.
+ *
+ * LED Displays sits in ELECTRONICS and NOT here, even though the system this
+ * was modelled on lists it in both. One item in two categories means two prices
+ * for one thing and no way to say which applied.
+ */
+export const LIQUID_SPECIAL: Product[] = [
+  { name: "Medicines & Food Stuff", keywords: "medicine,药,food,食品,蛋白粉,protein,保健品,capsule,胶囊" },
   { name: "Speakers", keywords: "speaker,音箱,soundbar" },
   { name: "PlayStation", keywords: "playstation,console,游戏机,xbox" },
   { name: "Batteries", keywords: "battery,电池,power bank,inverter,逆变器" },
   { name: "Monitors", keywords: "monitor,显示器,screen" },
   { name: "Chargers", keywords: "charger,充电器,cable,adapter" },
   { name: "Printers", keywords: "printer,打印机,3d printer,toner" },
-  { name: "LED Displays", keywords: "led,display,模组,module" },
-  { name: "Medicines & Food Stuff", keywords: "medicine,药,food,食品,蛋白粉,protein,保健品,capsule,胶囊" },
-  { name: "Cosmetics", keywords: "cosmetic,化妆品,perfume,香水,cream,lotion,makeup" },
   { name: "Oils", keywords: "oil,油,lubricant,润滑剂,凝胶,gel,沐浴露,liquid,液体" },
-  { name: "Documents", keywords: "document,papers,文件" },
+  { name: "Cosmetics", keywords: "cosmetic,化妆品,perfume,香水,cream,lotion,makeup" },
   { name: "Others", keywords: "other,misc" },
 ].map((item) => ({
   ...item,
-  category: "SPECIAL_CATEGORY" as const,
+  category: "LIQUID_SPECIAL" as const,
   method: "WEIGHT_BASED" as const,
   route: "HONG_KONG" as const,
 }));
@@ -253,6 +270,6 @@ export const SPECIAL_CATEGORY: Product[] = [
 /** Every product AITRANSIT's catalogue ships with. */
 export const ALL_PRODUCTS: Product[] = [
   ...NORMAL_GOODS,
-  ...WIGS,
-  ...SPECIAL_CATEGORY,
+  ...ELECTRONICS,
+  ...LIQUID_SPECIAL,
 ];

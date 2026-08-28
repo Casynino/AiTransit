@@ -29,8 +29,8 @@ import { UnsavedGuard } from "@/components/app/unsaved-guard";
 
 const CATEGORIES: CargoCategory[] = [
   "NORMAL_GOODS",
-  "WIGS",
-  "SPECIAL_CATEGORY",
+  "ELECTRONICS",
+  "LIQUID_SPECIAL",
 ];
 
 

@@ -137,9 +137,15 @@ export function BookingForm() {
             className="ai-field"
             defaultValue="NORMAL_GOODS"
           >
-            <option value="NORMAL_GOODS">Normal goods</option>
-            <option value="WIGS">Wigs</option>
-            <option value="SPECIAL_CATEGORY">Special category</option>
+            <option value="NORMAL_GOODS">
+              Normal goods — clothing, shoes, bags, hair, home products
+            </option>
+            <option value="ELECTRONICS">
+              Electronics — phones, laptops, tablets, watches, cameras
+            </option>
+            <option value="LIQUID_SPECIAL">
+              Liquid &amp; special — medicines, food, oils, cosmetics, batteries
+            </option>
           </select>
         </div>
         <div>

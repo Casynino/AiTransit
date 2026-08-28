@@ -40,7 +40,7 @@ export type CompanySettings = {
   /**
    * What the higher-rate cargo bucket is CALLED.
    *
-   * The enum value SPECIAL_CATEGORY never moves — every priced invoice, every
+   * The enum value LIQUID_SPECIAL never moves — every priced invoice, every
    * pricing rule and every batch-route check is written against it. Only the
    * words on screen change, because the business has not finished deciding what
    * to call it and the specification says so explicitly.
@@ -56,7 +56,7 @@ export function defaultSettings(): CompanySettings {
   const zambia = COMPANY.offices[0];
   return {
     accounts: PAYMENT_METHODS.map((account) => ({ ...account })),
-    specialCategoryName: CATEGORY_LABELS.SPECIAL_CATEGORY,
+    specialCategoryName: CATEGORY_LABELS.LIQUID_SPECIAL,
     contact: {
       phone: COMPANY.phone,
       phoneAlt: COMPANY.phoneAlt,
