@@ -369,8 +369,18 @@ export default function AboutPage() {
         </div>
       </FeatureSplit>
 
+      {/*
+        A COUNTER, NOT A STREET.
+
+        This was `lusakaShopfront` — a roadside row of shops with a food stall
+        and a bicycle. It is a good photograph of Zambia and a bad one for this
+        section, which is about a warehouse with a scale and a release desk: it
+        made the collection point look like a kiosk. `warehouseDesk` shows the
+        moment the words describe — somebody at a counter with cargo behind them.
+      */}
       <FeatureSplit
-        src={IMAGES.lusakaShopfront}
+        src={IMAGES.warehouseDesk}
+        alt="Our counter, where cargo is released against a pickup note"
         eyebrow="Lusaka"
         title="Where you collect"
         flip
