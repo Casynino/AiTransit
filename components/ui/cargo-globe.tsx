@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 /**
  * The route, on a rotating earth.
  *
- * A dotted wireframe globe with the great circle from Guangzhou to Lusaka es
- * Salaam drawn on it and an aircraft flying the line. It is the one piece of
- * the site that has to make somebody stop, and it earns that by showing the
- * actual thing the company does rather than decorating.
+ * A dotted wireframe globe with the great circles from Guangzhou and Hong Kong
+ * to Lusaka drawn on it, through the two hubs cargo connects at, and an
+ * aircraft flying each line. It is the one piece of the site that has to make
+ * somebody stop, and it earns that by showing the actual thing the company does
+ * rather than decorating.
  *
  * Deliberate departures from the usual version of this component:
  *
@@ -31,7 +32,15 @@ import { cn } from "@/lib/utils";
  *    circle bolted onto the page.
  */
 
-const ZAMBIA: [number, number] = [39.28, -6.79];
+/*
+  LUSAKA, [longitude, latitude].
+
+  This said [39.28, -6.79] — Dar es Salaam — and the comment above described a
+  route to "Lusaka es Salaam", which is the sentence a find-and-replace leaves
+  behind. The component was never mounted anywhere, so nobody saw the aircraft
+  landing in Tanzania.
+*/
+const LUSAKA: [number, number] = [28.32, -15.39];
 
 /**
  * The same four lanes the flat route map draws, on the sphere.
@@ -60,7 +69,7 @@ const LANES: Lane[] = [
 ];
 
 /** Longitude that puts the whole network on screen at once. */
-const ROUTE_CENTRE = -(113.26 + ZAMBIA[0]) / 2;
+const ROUTE_CENTRE = -(113.26 + LUSAKA[0]) / 2;
 
 type Dot = [number, number];
 
@@ -118,11 +127,21 @@ export function CargoGlobe({
 
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    /*
+      THE PUBLIC SITE'S TOKENS, NOT THE STAFF APP'S.
+
+      This read --brand, --signal and --gold, which are defined in the internal
+      application and nowhere on the marketing site — so every colour fell
+      through to its hardcoded fallback and the globe came out blue and red on a
+      page built in emerald and copper. It now reads the brand layer, and keeps
+      the old names as the second choice so the component still works if it is
+      ever mounted inside /app.
+    */
     const palette = {
-      land: readColour(wrap, "--brand", "hsl(213 84% 64%)"),
-      grid: readColour(wrap, "--muted-foreground", "hsl(216 14% 62%)"),
-      route: readColour(wrap, "--signal", "hsl(3 84% 58%)"),
-      transit: readColour(wrap, "--gold", "hsl(43 78% 62%)"),
+      land: readColour(wrap, "--ai-emerald", readColour(wrap, "--brand", "hsl(165 62% 48%)")),
+      grid: readColour(wrap, "--ai-charcoal-soft", readColour(wrap, "--muted-foreground", "hsl(216 14% 62%)")),
+      route: readColour(wrap, "--ai-copper", readColour(wrap, "--signal", "hsl(32 88% 62%)")),
+      transit: readColour(wrap, "--ai-emerald", readColour(wrap, "--gold", "hsl(165 62% 48%)")),
     };
 
     let features: GeoJSON.FeatureCollection | null = null;
@@ -140,7 +159,7 @@ export function CargoGlobe({
     const path = geoPath(projection, context);
 
     /** Great-circle position at t, one per lane, for the aircraft. */
-    const along = LANES.map((lane) => geoInterpolate(lane.at, ZAMBIA));
+    const along = LANES.map((lane) => geoInterpolate(lane.at, LUSAKA));
 
     function size() {
       const rect = wrap!.getBoundingClientRect();
@@ -222,7 +241,7 @@ export function CargoGlobe({
         context!.beginPath();
         path({
           type: "LineString",
-          coordinates: [lane.at, ZAMBIA],
+          coordinates: [lane.at, LUSAKA],
         } as GeoJSON.LineString);
         context!.strokeStyle = lane.main ? palette.route : palette.transit;
         context!.globalAlpha = lane.main ? 0.85 : 0.55;
@@ -268,8 +287,8 @@ export function CargoGlobe({
       }
 
       // Destination. Every lane ends here, so it gets the larger mark.
-      if (facing(ZAMBIA)) {
-        const p = projection(ZAMBIA);
+      if (facing(LUSAKA)) {
+        const p = projection(LUSAKA);
         if (p) {
           context!.beginPath();
           context!.arc(p[0], p[1], 4.5, 0, Math.PI * 2);

@@ -72,6 +72,7 @@ export function SiteFooter() {
               ["Create an account", "/register"],
               ["Sign in", "/login"],
               ["Contact us", "/contact"],
+              ["Who we are", "/about"],
             ]}
           />
 

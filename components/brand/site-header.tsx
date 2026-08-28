@@ -30,6 +30,9 @@ import { cn } from "@/lib/utils";
  */
 
 const NAV = [
+  /* First, deliberately. Somebody who has never heard of us is asking who we
+     are before they ask what we charge. */
+  { href: "/about", label: "About us" },
   { href: "/services", label: "Services" },
   { href: "/markets", label: "China markets" },
   { href: "/calculator", label: "Rates" },

@@ -856,3 +856,63 @@ body:has(> .ai-site) {
    app/login/page.tsx. */
 :where(.ai-site) .ai-login-globe { opacity: 0.46; }
 :where(.dark .ai-site) .ai-login-globe { opacity: 0.7; }
+
+/* ─────────────────────────────────────────────────────── the corridor map
+   The route schematic on /about. Two animations, both cheap and both off
+   when the reader has asked for less motion.
+
+   `ai-corridor-flow` moves the dash pattern along each flight path, which is
+   the oldest trick for showing direction on a line and still the clearest.
+   It animates stroke-dashoffset only — no layout, no paint of anything but
+   the stroke.
+
+   `ai-corridor-plane` fades the moving aircraft in, because an <animateMotion>
+   element is at its start position on the first frame and popping into
+   existence at an airport looks like a bug.
+*/
+:where(.ai-site) .ai-corridor-flow {
+  animation: ai-corridor-dash 1.6s linear infinite;
+}
+@keyframes ai-corridor-dash {
+  to { stroke-dashoffset: -32; }
+}
+
+:where(.ai-site) .ai-corridor-plane {
+  animation: ai-fade-in 700ms ease-out both;
+}
+@keyframes ai-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The halo on the origin and destination nodes. Scale and opacity only. */
+:where(.ai-site) .ai-corridor-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ai-corridor-halo 3.2s ease-in-out infinite;
+}
+@keyframes ai-corridor-halo {
+  0%, 100% { transform: scale(0.82); opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 0.18; }
+}
+
+/*
+  REDUCED MOTION STOPS ALL THREE, and the SVG's own <animateMotion> with them.
+
+  A CSS media query cannot reach SMIL, so the aircraft would keep flying after
+  the dashes stopped — which is worse than either, because it reads as a page
+  that half-listened. `animation-play-state` on the container does not help
+  either. The component is told about the preference in CSS here for the two
+  CSS animations, and the flying dot is drawn stationary by the browser once
+  its parent is hidden from animation via `visibility` — so it is simply not
+  shown, and the dashed line stands as a static diagram, which is all the
+  diagram ever needed to be.
+*/
+@media (prefers-reduced-motion: reduce) {
+  :where(.ai-site) .ai-corridor-flow,
+  :where(.ai-site) .ai-corridor-pulse,
+  :where(.ai-site) .ai-corridor-plane {
+    animation: none;
+  }
+  :where(.ai-site) .ai-corridor-plane { display: none; }
+}
