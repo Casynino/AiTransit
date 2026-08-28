@@ -633,40 +633,27 @@ const FINANCE_SECTIONS: NavSection[] = [
         icon: "QrCode",
         permission: "pickupNote.view",
       },
-      {
-        href: "/app/finance/transactions",
-        label: "General ledger",
-        icon: "ArrowLeftRight",
-        permission: "ledger.view",
-      },
-      {
-        /*
-          The rate book, with its own door.
-
-          It used to be reachable only as a tab inside the finance row. That row
-          came off the page — it governs every figure the money pages report and
-          is opened deliberately, not wandered into — so without a row here the
-          desk that sets prices would have had no way in at all.
-        */
-        href: "/app/finance/pricing",
-        label: "Price Configuration",
-        icon: "Tags",
-        permission: "pricing.view",
-      },
       /*
-        The money desk — AITRANSIT's second line of business.
+        THE MONEY DESK, directly under Pickup notes — AITRANSIT's second line
+        of business, in the order it is worked.
 
-        Currency bookings, supplier payments and the public exchange board are
-        worked by this desk every day, so they get rows rather than living
-        behind a tab. Grouped at the bottom of Finance because they are the part
-        of the department that is not about cargo: everything above answers "what
-        does this consignment owe", and these three answer "what is this money
-        doing".
+        A booking is taken at the money desk, priced off the exchange board,
+        and paid out as a supplier payment; Price Configuration closes the
+        group because it is the book all of it is priced from and is opened
+        deliberately rather than wandered into. Everything above this comment
+        answers "what does this consignment owe"; everything below it answers
+        "what is this money doing".
       */
       {
         href: "/app/finance/exchange",
         label: "Money desk",
         icon: "Coins",
+        permission: "fx.manage",
+      },
+      {
+        href: "/app/finance/fx-board",
+        label: "Exchange board",
+        icon: "ArrowLeftRight",
         permission: "fx.manage",
       },
       {
@@ -676,10 +663,16 @@ const FINANCE_SECTIONS: NavSection[] = [
         permission: "accounting.view",
       },
       {
-        href: "/app/finance/fx-board",
-        label: "Exchange board",
+        href: "/app/finance/pricing",
+        label: "Price Configuration",
+        icon: "Tags",
+        permission: "pricing.view",
+      },
+      {
+        href: "/app/finance/transactions",
+        label: "General ledger",
         icon: "ArrowLeftRight",
-        permission: "fx.manage",
+        permission: "ledger.view",
       },
     ],
   },

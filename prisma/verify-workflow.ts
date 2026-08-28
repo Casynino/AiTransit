@@ -56,7 +56,14 @@ async function main() {
     batches" read as six.
   */
   const batches = await prisma.batch.findMany({
-    where: { permanent: false },
+    /*
+      `permanent: false` excludes the two LOADING TABLES, and the prefix filter
+      excludes anything seed-demo-cargo put in. This check is about the sample
+      set that ships with `prisma db seed`; a deployment that has also been
+      given demo cargo has more of both, legitimately, and counting them here
+      would make this fail for a reason that is not a fault.
+    */
+    where: { permanent: false, NOT: { batchNumber: { startsWith: "DEMO-AIT-" } } },
     include: { shipments: { select: { customerId: true } } },
     orderBy: { batchNumber: "asc" },
   });
@@ -111,6 +118,7 @@ async function main() {
 
   console.log("\nINVOICES CARRY THEIR OWN RATE");
   const invoices = await prisma.invoice.findMany({
+    where: { NOT: { invoiceNumber: { startsWith: "DEMO-AIT-" } } },
     select: { invoiceNumber: true, currency: true, exchangeRate: true, total: true },
   });
   check("invoices exist", invoices.length > 0, `${invoices.length}`);
