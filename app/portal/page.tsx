@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowRight,
-  BadgeAlert,
   Banknote,
   CalendarClock,
   CheckCircle2,
@@ -16,10 +14,10 @@ import {
   Receipt,
   Store,
   Warehouse,
-  Wallet,
 } from "lucide-react";
 
 import { CargoTimeline } from "@/components/portal/cargo-timeline";
+import { PortalHero } from "@/components/portal/portal-hero";
 import { Empty, Metric, Note, Panel, Pill, RecordRow } from "@/components/portal/ui";
 import { SHIPMENT_STATUS_META, storageStatus, STORAGE_POLICY } from "@/lib/constants";
 import { formatDate, formatDateTime, formatRelative, toNumber } from "@/lib/format";
@@ -68,23 +66,6 @@ export default async function PortalHome() {
     return sum + (toNumber(invoice.total) - toNumber(invoice.amountPaid));
   }, 0);
 
-  /*
-    Storage owed is read off the CONFIRMED invoices, not recomputed from the
-    arrival dates. A customer must not be shown a storage figure we have not
-    billed — the desk waives storage often, and a portal quoting a number the
-    invoice does not carry is a portal that starts arguments.
-  */
-  const storageBilled = invoices.reduce(
-    (sum, invoice) =>
-      ["VOID", "WRITTEN_OFF"].includes(invoice.status)
-        ? sum
-        : sum + toNumber(invoice.storageCharge),
-    0
-  );
-
-  const creditLimit =
-    customer?.creditLimitUsd == null ? null : toNumber(customer.creditLimitUsd);
-
   /* Cargo whose free week has run out, or runs out today. */
   const storageWarnings = shipments
     .map((s) => ({ s, storage: storageStatus(s.arrivedAt, s.deliveredAt) }))
@@ -104,20 +85,79 @@ export default async function PortalHome() {
 
   return (
     <div className="space-y-10">
-      {/* ────────────────────────────────────────────────────────── greeting */}
-      <div>
-        <p
-          className="text-[0.7rem] font-bold uppercase tracking-[0.18em]"
-          style={{ color: "hsl(var(--ai-emerald))" }}
-        >
-          Your account
-        </p>
-        <h1 className="ai-display-lg mt-3">Hello, {viewer.name.split(" ")[0]}</h1>
-        <p className="ai-muted mt-2">
-          Account <span className="ai-num font-semibold">{viewer.code}</span> — quote
-          it when you call or message us.
-        </p>
-      </div>
+      {/* ────────────────────────────────────────────────────────── the band */}
+      <PortalHero
+        eyebrow="Your account"
+        code={viewer.code}
+        title={`Hello, ${viewer.name.split(" ")[0]}`}
+        lede={
+          /*
+            THE PORTFOLIO, NOT THE URGENCY.
+
+            This first said "1 consignment is ready to collect" — which the
+            copper figure in the band already says, and which the green note
+            directly below then said a third time WITH the tracking number. One
+            screen, three sentences, one fact. The band states the shape of the
+            account; the notes underneath carry what needs doing, because only
+            they can name the consignment it needs doing to.
+          */
+          live.length > 0
+            ? `${live.length} consignment${live.length === 1 ? "" : "s"} on the move. We will tell you the moment anything changes.`
+            : "Nothing in motion right now. Quote your account number when you send cargo to our China warehouse."
+        }
+        facts={[
+          {
+            label: "On the move",
+            value: String(live.length),
+            hint: `${shipments.length} in total`,
+            href: "/portal/cargo",
+          },
+          {
+            label: "Ready to collect",
+            value: String(ready.length),
+            hint: ready.length ? "Bring your pickup note" : "Nothing waiting",
+            href: "/portal/cargo?status=READY_FOR_PICKUP",
+            accent: ready.length > 0,
+          },
+          {
+            label: "Total due",
+            value: formatUsd(outstanding),
+            hint: overdue.length
+              ? `${overdue.length} overdue`
+              : outstanding > 0
+                ? "Not yet overdue"
+                : "Nothing outstanding",
+            href: "/portal/invoices",
+            accent: outstanding > 0,
+          },
+          {
+            label: "Needs you",
+            value: String(activity.openClaims.length + overdue.length),
+            hint:
+              activity.openClaims.length + overdue.length > 0
+                ? "Issues and overdue bills"
+                : "Nothing waiting on you",
+            href: activity.openClaims.length ? "/portal/claims" : "/portal/invoices",
+            accent: activity.openClaims.length + overdue.length > 0,
+          },
+        ]}
+        actions={[
+          { href: "/portal/track", label: "Track cargo", icon: Radar, primary: true },
+          ...(outstanding > 0
+            ? [{ href: "/portal/invoices", label: "Pay an invoice", icon: Receipt }]
+            : []),
+          ...(ready.length > 0
+            ? [
+                {
+                  href: "/portal/appointments",
+                  label: "Book a pickup",
+                  icon: CalendarClock,
+                },
+              ]
+            : []),
+          { href: "/portal/support", label: "Talk to us", icon: MessageSquare },
+        ]}
+      />
 
       {/* ─────────────────────────────────────────────── what needs doing now */}
       {(overdue.length > 0 || storageWarnings.length > 0 || ready.length > 0) && (
@@ -170,7 +210,7 @@ export default async function PortalHome() {
       {/* ────────────────────────────────────────────────────────── the cargo */}
       <section>
         <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">
-          Your cargo
+          Where your cargo is
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <Metric
@@ -194,64 +234,31 @@ export default async function PortalHome() {
             hint="At our Makeni warehouse"
             href="/portal/cargo?status=RECEIVED_AT_ZAMBIA"
           />
+          {/*
+            Collected, not "ready to collect" — that one is in the band above,
+            in copper, because it is the thing that needs doing. This row is the
+            journey, and the last stop on it is the customer's hands.
+          */}
           <Metric
             icon={CheckCircle2}
-            label="Ready to collect"
-            value={String(ready.length)}
-            hint={ready.length ? "Bring your pickup note" : "Nothing waiting"}
-            href="/portal/cargo?status=READY_FOR_PICKUP"
-            tone={ready.length > 0 ? "emerald" : undefined}
+            label="Collected"
+            value={String(shipments.filter((s) => s.deliveredAt).length)}
+            hint="Handed over to you"
+            href="/portal/cargo?status=DELIVERED"
           />
         </div>
       </section>
 
-      {/* ────────────────────────────────────────────────────────── the money */}
-      <section>
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">
-          Your account
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <Metric
-            icon={Receipt}
-            label="Total due"
-            value={formatUsd(outstanding)}
-            hint={`${invoices.filter((i) => !["PAID", "VOID", "WRITTEN_OFF"].includes(i.status)).length} unpaid invoice(s)`}
-            href="/portal/invoices"
-            tone={outstanding > 0 ? "copper" : undefined}
-          />
-          <Metric
-            icon={Warehouse}
-            label="Storage charged"
-            value={formatUsd(storageBilled)}
-            hint={storageBilled > 0 ? "Included in your invoices" : "None charged"}
-            href="/portal/invoices"
-          />
-          <Metric
-            icon={Wallet}
-            label="Credit limit"
-            value={creditLimit === null ? "—" : formatUsd(creditLimit)}
-            hint={
-              creditLimit === null
-                ? "No credit facility"
-                : customer?.creditTermDays
-                  ? `${customer.creditTermDays} day terms`
-                  : "Agreed with Finance"
-            }
-            href="/portal/invoices"
-          />
-          <Metric
-            icon={BadgeAlert}
-            label="Open issues"
-            value={String(activity.openClaims.length)}
-            hint={
-              activity.openClaims.length ? "We are working on them" : "Nothing open"
-            }
-            href="/portal/claims"
-            tone={activity.openClaims.length > 0 ? "amber" : undefined}
-          />
-        </div>
-      </section>
+      {/*
+        THE ACCOUNT ROW USED TO BE HERE and has gone into the band.
 
+        It carried total due, storage charged, credit limit and open issues.
+        The band now states total due and what needs doing, so two of the four
+        were being read twice on one screen. The other two were not headline
+        figures at all: storage is itemised on the invoice that charges it, and
+        the credit facility belongs with the rest of the account on the profile
+        page. Neither is something a customer opens the portal to find.
+      */}
       {/* ────────────────────────────────────────────────────── quick actions */}
       <section>
         <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">

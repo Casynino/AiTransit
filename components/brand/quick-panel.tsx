@@ -7,12 +7,13 @@ import {
   Headset,
   ScanLine,
   Store,
+  UserRound,
 } from "lucide-react";
 
 /**
  * The quick-service panel.
  *
- * Seven doors, directly under the hero, because the visitors this site gets are
+ * Eight doors, directly under the hero, because the visitors this site gets are
  * overwhelmingly here to DO one specific thing — look up a box, price a
  * consignment, check a rate — and making them read a marketing page first is
  * how a business loses the customer it already has.
@@ -20,6 +21,16 @@ import {
  * It sits half over the hero and half over the section below it. That overlap
  * is the point: it tells you the page continues, and it puts the actions at the
  * fold on a laptop instead of just below it.
+ *
+ * EIGHT, NOT SEVEN, AND THE COUNT IS LOAD-BEARING. There were seven, and seven
+ * divides by none of the column counts this grid uses: on a phone it left a
+ * hole in the bottom-right of the last row, and on a tablet it left one at the
+ * end of the second. An empty cell in a tiled panel does not read as spacing —
+ * it reads as a tile that failed to load.
+ *
+ * So the rule for this list is that its length must stay a multiple of four.
+ * Adding a ninth door means finding a tenth, an eleventh and a twelfth, or
+ * changing the breakpoints below to suit.
  */
 const ACTIONS = [
   { href: "/track", label: "Track cargo", hint: "Where is my box?", icon: ScanLine },
@@ -29,6 +40,16 @@ const ACTIONS = [
   { href: "/markets", label: "China markets", hint: "Explore & visit", icon: Store },
   { href: "/exchange#pay-supplier", label: "Pay a supplier", hint: "In RMB, today", icon: HandCoins },
   { href: "/contact", label: "Talk to us", hint: "A person answers", icon: Headset },
+  /*
+    The customer's own account, which this panel had no door to at all.
+
+    /portal sends a signed-in customer to their overview and everybody else to
+    the login page with a return address, so one link serves both without the
+    site having to ask who is holding the phone. The header's "Log in" is the
+    same door worded for somebody who has not been here before; this one is
+    worded for somebody who has.
+  */
+  { href: "/portal", label: "My account", hint: "Cargo, bills, bookings", icon: UserRound },
 ];
 
 export function QuickPanel({ flush = false }: { flush?: boolean }) {
@@ -41,7 +62,7 @@ export function QuickPanel({ flush = false }: { flush?: boolean }) {
   const grid = (
     <div
       className={
-        "grid grid-cols-2 gap-px sm:grid-cols-4 lg:grid-cols-7" +
+        "grid grid-cols-2 gap-px sm:grid-cols-4 lg:grid-cols-8" +
         (flush ? "" : " overflow-hidden rounded-[var(--ai-radius-lg)]")
       }
       style={{
