@@ -154,21 +154,33 @@ const HK_ARRIVED: Item[] = [
   asks for cargo that is still there to be worked.
 */
 const BATCHES = [
+  /*
+    THE LOADING TABLES, not two new batches.
+
+    "Open, loading in China" is not a batch anybody creates here — it is the
+    permanent loading table, one per route, and it is where cargo sits between
+    being received in Guangzhou and being assigned to a flight. Creating
+    ordinary OPEN batches for it, as this script first did, put twenty
+    consignments somewhere the China desk's own screen does not look: that page
+    lists `permanent: true` only, so it read "Empty" while the data was sitting
+    in a batch beside it.
+
+    `useLoadingTable` means "find the permanent table for this route and put the
+    cargo on it" rather than "make a batch". There must be exactly one per
+    route — assignToLoadingTable does a findFirst — so a second Guangzhou table
+    would quietly capture real cargo later.
+  */
   {
-    number: `${PREFIX}GZ-001`,
+    useLoadingTable: true,
     origin: "GUANGZHOU" as const,
-    status: "OPEN" as const,
     items: GZ_LOADING,
     landed: false,
-    notes: "DEMO — Guangzhou consolidation, loading in China.",
   },
   {
-    number: `${PREFIX}HK-001`,
+    useLoadingTable: true,
     origin: "HONG_KONG" as const,
-    status: "OPEN" as const,
     items: HK_LOADING,
     landed: false,
-    notes: "DEMO — Hong Kong consolidation, loading in China.",
   },
   {
     number: `${PREFIX}GZ-002`,
@@ -201,8 +213,10 @@ async function remove() {
     select: { id: true },
   });
   const ids = shipments.map((s) => s.id);
+  // Prefix only, and never a loading table: those are infrastructure that
+  // existed before this script and must outlive it.
   const batches = await prisma.batch.findMany({
-    where: { batchNumber: { startsWith: PREFIX } },
+    where: { batchNumber: { startsWith: PREFIX }, permanent: false },
     select: { id: true },
   });
   const customers = await prisma.customer.findMany({
@@ -298,31 +312,14 @@ async function seed() {
   let created = 0;
   let skipped = 0;
 
-  for (const spec of BATCHES) {
-    const batch = await prisma.batch.upsert({
-      where: { batchNumber: spec.number },
-      create: {
-        batchNumber: spec.number,
-        origin: spec.origin,
-        status: spec.status,
-        notes: spec.notes,
-        createdById: china.id,
-        createdAt: daysAgo(spec.landed ? 24 : 6),
-        ...(spec.landed
-          ? {
-              airline: spec.origin === "GUANGZHOU" ? "Ethiopian Airlines" : "Qatar Airways Cargo",
-              flightNumber: spec.origin === "GUANGZHOU" ? "ET 8611" : "QR 8142",
-              waybillNumber: spec.origin === "GUANGZHOU" ? "071-90010021" : "157-90010022",
-              departureDate: daysAgo(16),
-              departedAt: daysAgo(16),
-              arrivalDate: daysAgo(12),
-              arrivedAt: daysAgo(12),
-            }
-          : {}),
-      },
-      update: {},
-    });
-
+  /**
+   * Put one batch's ten consignments on a batch id.
+   *
+   * Shared by both paths — the loading tables and the two arrival batches —
+   * because the consignment itself is identical either way. What differs is
+   * only which batch it hangs off and how far along it is.
+   */
+  const placeItems = async (spec: (typeof BATCHES)[number], batchId: string) => {
     for (const [i, item] of spec.items.entries()) {
       seq += 1;
       const tracking = `${PREFIX}${pad(seq)}`;
@@ -350,7 +347,7 @@ async function seed() {
           trackingNumber: tracking,
           qrToken: generateQrToken(),
           customerId: customer.id,
-          batchId: batch.id,
+          batchId,
           origin: spec.origin,
           cargoCategory: item.category,
           cargoTypeId: typeFor(item.type, item.category),
@@ -507,6 +504,52 @@ async function seed() {
         });
       }
     }
+  };
+
+  /*
+    Two destinations, and the difference matters.
+
+    Cargo still in China belongs on the permanent LOADING TABLE for its route —
+    that is what the China desk's "Loading batches" screen lists, and cargo put
+    anywhere else is invisible to the people who work it. Cargo that has flown
+    belongs to a dispatch batch, which is a real record of a real flight.
+  */
+  for (const spec of BATCHES) {
+    if ((spec as any).useLoadingTable) {
+      const table = await prisma.batch.findFirst({
+        where: { origin: spec.origin, permanent: true },
+        select: { id: true, batchNumber: true },
+      });
+      if (!table) {
+        throw new Error(
+          `No loading table for ${spec.origin}. ` +
+            "Run `npx tsx prisma/seed-loading-tables.ts --apply` first."
+        );
+      }
+      await placeItems(spec, table.id);
+      continue;
+    }
+
+    const batch = await prisma.batch.upsert({
+      where: { batchNumber: (spec as any).number },
+      create: {
+        batchNumber: (spec as any).number,
+        origin: spec.origin,
+        status: (spec as any).status,
+        notes: (spec as any).notes,
+        createdById: china.id,
+        createdAt: daysAgo(24),
+        airline: spec.origin === "GUANGZHOU" ? "Ethiopian Airlines" : "Qatar Airways Cargo",
+        flightNumber: spec.origin === "GUANGZHOU" ? "ET 8611" : "QR 8142",
+        waybillNumber: spec.origin === "GUANGZHOU" ? "071-90010021" : "157-90010022",
+        departureDate: daysAgo(16),
+        departedAt: daysAgo(16),
+        arrivalDate: daysAgo(12),
+        arrivedAt: daysAgo(12),
+      },
+      update: {},
+    });
+    await placeItems(spec, batch.id);
   }
 
   console.log(
@@ -517,18 +560,32 @@ async function seed() {
 /* ------------------------------------------------------------------ verify */
 
 async function verify() {
+  /*
+    Batches HOLDING demo cargo — which is not the same as batches whose number
+    starts with the prefix. Two of the four are the permanent loading tables,
+    and they were there before this script ran and stay after it is removed.
+  */
   const batches = await prisma.batch.findMany({
-    where: { batchNumber: { startsWith: PREFIX } },
-    include: { shipments: { select: { status: true, customerId: true } } },
-    orderBy: { batchNumber: "asc" },
+    where: { shipments: { some: { trackingNumber: { startsWith: PREFIX } } } },
+    include: {
+      shipments: {
+        where: { trackingNumber: { startsWith: PREFIX } },
+        select: { status: true, customerId: true },
+      },
+    },
+    orderBy: [{ permanent: "desc" }, { batchNumber: "asc" }],
   });
 
   console.log("\nVERIFICATION");
-  console.log(`  demo batches                        ${batches.length}  (want 4)`);
+  console.log(`  batches holding demo cargo          ${batches.length}  (want 4)`);
   for (const b of batches) {
-    const where = b.arrivedAt ? "landed at Lusaka" : "loading in China";
+    const where = b.permanent
+      ? "loading table, China"
+      : b.arrivedAt
+        ? "landed at Lusaka"
+        : "not dispatched";
     console.log(
-      `    ${b.batchNumber.padEnd(18)} ${String(b.status).padEnd(8)} ${where.padEnd(17)} ` +
+      `    ${b.batchNumber.padEnd(18)} ${String(b.status).padEnd(8)} ${where.padEnd(21)} ` +
         `${b.shipments.length} items, ${new Set(b.shipments.map((s) => s.customerId)).size} customers`
     );
   }
