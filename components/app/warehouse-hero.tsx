@@ -47,7 +47,7 @@ export async function WarehouseHero({
 }: {
   firstName: string;
   warehouseName: string;
-  emphasis: "CN" | "TZ";
+  emphasis: "CN" | "ZM";
   /** The one thing this desk starts its day with. */
   action: { href: string; label: string };
   /**

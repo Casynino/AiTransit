@@ -18,7 +18,10 @@ import { cn } from "@/lib/utils";
  */
 const ZONES = {
   CN: { label: "China", zone: "Asia/Shanghai", offset: "GMT+8", flag: "🇨🇳" },
-  TZ: { label: "Zambia", zone: "Africa/Lusaka", offset: "GMT+3", flag: "🇹🇿" },
+  /* Zambia is CAT, GMT+2 — not GMT+3, and not the Tanzanian flag. The zone was
+     already `Africa/Lusaka`, so the CLOCK has always been right; it was the two
+     labels beside it that were still describing the source system's country. */
+  ZM: { label: "Zambia", zone: "Africa/Lusaka", offset: "GMT+2", flag: "🇿🇲" },
 } as const;
 
 export function DualClock({
@@ -26,7 +29,7 @@ export function DualClock({
   className,
 }: {
   /** Whose local time is the big one — the warehouse you are standing in. */
-  emphasis?: "CN" | "TZ";
+  emphasis?: "CN" | "ZM";
   className?: string;
 }) {
   const T = useT();
@@ -38,7 +41,7 @@ export function DualClock({
     return () => clearInterval(timer);
   }, []);
 
-  const order: ("CN" | "TZ")[] = emphasis === "CN" ? ["CN", "TZ"] : ["TZ", "CN"];
+  const order: ("CN" | "ZM")[] = emphasis === "CN" ? ["CN", "ZM"] : ["ZM", "CN"];
 
   return (
     <div className={cn("flex items-center gap-5", className)}>

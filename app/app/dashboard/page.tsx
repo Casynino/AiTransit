@@ -124,7 +124,7 @@ function startOfToday() {
 
 /** Percentage change, guarding the divide-by-zero that makes dashboards lie. */
 /** The hour where the warehouse is standing, not where the server is. */
-function localHour(side: "CN" | "TZ") {
+function localHour(side: "CN" | "ZM") {
   const hour = Number(
     new Date().toLocaleString("en-GB", {
       timeZone: side === "CN" ? "Asia/Shanghai" : "Africa/Lusaka",
@@ -296,7 +296,7 @@ export default async function DashboardPage() {
               ? t(locale, "China Warehouse")
               : t(locale, "Lusaka Warehouse")
           }
-          emphasis={inChina ? "CN" : "TZ"}
+          emphasis={inChina ? "CN" : "ZM"}
           // Where this desk's day starts.
           //
           // China registers cargo, so their day begins at the registration
@@ -312,7 +312,7 @@ export default async function DashboardPage() {
           // The same box the money and support desks open on. The floor is
           // asked "where is my cargo" all day too.
           search={{ action: "/app/search" }}
-          hourOfDay={localHour(inChina ? "CN" : "TZ")}
+          hourOfDay={localHour(inChina ? "CN" : "ZM")}
         />
       ) : (
       <DeskHero

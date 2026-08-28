@@ -4847,7 +4847,7 @@ const ZH: Record<string, string> = {
   "Photos are being saved to this machine only and may be lost. Tell the office before relying on them as proof.":
     "照片仅保存在本机，可能会丢失。在将其作为凭证使用前，请先通知办公室。",
   // -- dashboards
-  "GMT+3": "东三区",
+  "GMT+2": "东二区",
   "GMT+8": "东八区",
   "Ready to collect": "可提货",
   "Waiting in China": "在中国待运",
