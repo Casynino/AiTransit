@@ -41,11 +41,32 @@ import { COMPANY, STORAGE_POLICY } from "@/lib/constants";
 /**
  * Bump when an obligation changes. Dated, not numbered, because the first
  * question anybody asks about a version is "from when".
+ *
+ * A `.n` suffix is for a second revision on the same day, which happens while a
+ * document is being drafted and must not be papered over: two different sets of
+ * obligations cannot share one version string, or an acceptance stops
+ * identifying what was accepted.
  */
-export const TERMS_VERSION = "2026-08-28";
+export const TERMS_VERSION = "2026-08-28.2";
 
-/** Superseded versions, kept so an old acceptance still resolves to a document. */
-export const TERMS_HISTORY: { version: string; note: string }[] = [];
+/**
+ * Superseded versions, kept so an old acceptance still resolves to something.
+ *
+ * The note says what CHANGED, not what the version was called. When somebody
+ * asks in two years why a customer who accepted an old version is being held to
+ * a clause, this list is the answer.
+ */
+export const TERMS_HISTORY: { version: string; note: string }[] = [
+  {
+    version: "2026-08-28",
+    note:
+      "First published. Superseded the same day by 2026-08-28.2, which tightened " +
+      "three things: supplier payment instructions became final once confirmed and " +
+      "the risk of wrong account details was stated explicitly; the exchange rate " +
+      "became fixed once confirmed and funded, in both directions; and inspection " +
+      "was spelled out as a visual check with a list of what it is not.",
+  },
+];
 
 /**
  * Awaiting legal review.
@@ -56,6 +77,45 @@ export const TERMS_HISTORY: { version: string; note: string }[] = [];
  * trading with terms a lawyer has not yet blessed.
  */
 export const TERMS_DRAFT = true;
+
+/**
+ * THE LIABILITY CAP — the one figure in this document I cannot give you.
+ *
+ * The Montreal Convention caps a carrier's liability for cargo at a number of
+ * SDR per kilogram. SDR is the IMF's unit of account, not a currency: it floats
+ * against the dollar daily, which is exactly why the Convention is written in
+ * it and why this is not stored as a USD figure.
+ *
+ * The number is revised on a five-yearly cycle and has moved more than once.
+ * Writing a figure into a customer-facing document from memory is how a company
+ * ends up publishing a cap it cannot rely on — and a limitation clause that is
+ * wrong is not merely weakened, it is struck out, leaving no cap at all.
+ *
+ * SO: ASK YOUR LAWYER THESE THREE QUESTIONS.
+ *
+ *   1. What is the Montreal Convention cargo limit in SDR per kilogram TODAY?
+ *   2. Does Zambia apply it, and does China, on this route?
+ *   3. Should our own limit as a forwarder match it, or sit below it under
+ *      standard trading conditions?
+ *
+ * Then set `sdrPerKg` and `confirmedOn` below. Until you do, the clause states
+ * that the Convention limit applies without pretending to know the figure, and
+ * tells the customer to ask us for it — which is true, and is a great deal
+ * safer than a number nobody checked.
+ */
+export const LIABILITY_CAP: {
+  /** SDR per kilogram, from the Convention. Null until a lawyer confirms it. */
+  sdrPerKg: number | null;
+  /** When it was confirmed, so the next reviewer knows how stale it is. */
+  confirmedOn: string | null;
+} = {
+  sdrPerKg: null,
+  confirmedOn: null,
+};
+
+const capSentence = LIABILITY_CAP.sdrPerKg
+  ? `The Convention caps compensation at ${LIABILITY_CAP.sdrPerKg} SDR per kilogram of the goods lost or damaged. SDR is the International Monetary Fund's unit of account and its value against the dollar changes daily; we will tell you the figure that applies on the day you ask.`
+  : "The Convention caps compensation at a fixed number of SDR — the International Monetary Fund's unit of account — per kilogram of the goods lost or damaged. Ask us for the figure that applies to your consignment and we will give it to you before you ship.";
 
 export type Clause = { heading?: string; body: string[]; list?: string[] };
 export type Section = { id: string; title: string; clauses: Clause[] };
@@ -249,7 +309,9 @@ export const TERMS_SECTIONS: Section[] = [
         heading: "What we are responsible for",
         body: [
           "We are responsible for loss of or damage to your goods where it results from our negligence or that of our staff while the goods are in our care.",
-          "Because the goods travel by air, the carrier's liability for the air leg is limited by the Montreal Convention, which caps compensation at a fixed amount per kilogram of the goods lost or damaged unless a higher value was declared and a supplementary charge paid at the time of shipment. Our liability to you for that leg is limited to what we recover, or would be entitled to recover, from the carrier.",
+          "Because the goods travel by air, the carrier's liability for the air leg is limited by the Montreal Convention.",
+          capSentence,
+          "That limit applies however much your goods actually cost you, unless you declared a higher value and paid the supplementary charge before we shipped them. Our liability to you for the air leg is limited to what we recover, or would be entitled to recover, from the carrier.",
         ],
       },
       {
@@ -282,23 +344,62 @@ export const TERMS_SECTIONS: Section[] = [
       {
         heading: "Paying your supplier",
         body: [
-          "Where you ask us to pay a supplier in China, we do so as your agent and on your instruction. You are responsible for the accuracy of the supplier's name, account and payment details. A transfer sent to details you gave us cannot be recalled, and if those details are wrong the loss is yours.",
-          "A payment request is not accepted until we confirm the amount, the rate and our fee with you. We may decline a request without giving a reason, and we may require documents about the underlying trade before we act.",
-          "We are paying a supplier on your behalf. We are not a party to your contract with them, we do not guarantee that they will deliver, and we do not guarantee the goods.",
+          "Where you ask us to pay a supplier in China, we do so as your agent and on your instruction. We are not a party to your contract with that supplier, we do not guarantee that they will deliver, and we do not guarantee the goods.",
+          "A request is not accepted until we have confirmed the amount, the rate and our fee with you. We may decline any request without giving a reason, and we may ask for documents about the underlying trade before we act.",
+        ],
+      },
+      {
+        heading: "Payment details are yours to get right",
+        body: [
+          "You give us the supplier's name, bank or wallet, account number and any reference. We pay exactly what you gave us. We do not verify that the account belongs to the supplier you named, and we cannot — a Chinese bank will not confirm an account holder to a third party.",
+          "Check the details before you confirm. Once you have confirmed a payment we treat your instruction as final:",
+        ],
+        list: [
+          "We will not change the recipient, the amount or the currency after you have confirmed, except where we have not yet sent the money and are able to stop it.",
+          "A transfer that has left us cannot be recalled by us. Recovering money sent to the wrong account is a matter between you, the receiving bank and the account holder, and it usually fails.",
+          "If the details you gave us were wrong, the loss is yours. That is true even where the mistake was your supplier's — a changed account number in an email or a message is the commonest fraud on this route, and we have no way to detect it.",
+          "Where we have already sent the money, our fee remains payable.",
+        ],
+      },
+      {
+        heading: "If you think the details have been tampered with",
+        body: [
+          "Telephone us. Do not reply to the message. If a supplier's account details change part-way through an order, treat it as fraud until you have confirmed the new details with somebody you can hear on a call. We will hold a payment while you check, and we would far rather do that than send it.",
         ],
       },
       {
         heading: "Currency exchange",
         body: [
-          "Rates we publish on our board or in our calculator are indicative and are not an offer. A rate becomes binding only when our money desk confirms your booking, and it holds for the period we state at that time.",
-          "If your funds do not reach us within that period the rate lapses and we will requote.",
+          "Rates we publish on our board or in our calculator are indicative and are not an offer. A rate becomes binding only when our money desk confirms your booking with you, and it holds for the period we state at that time.",
+          "Once a rate is confirmed and your funds have reached us, the exchange is fixed at that rate. Currency moves in both directions and we carry the risk from the moment we confirm — so a rate cannot be reopened afterwards because the market has moved in your favour, and we will not ask you for more if it has moved in ours.",
+          "If your funds do not reach us within the period we stated, the rate lapses and we will requote. You may cancel a booking at any time before your funds reach us. After that we can only cancel if we have not yet bought the currency, and any cost of unwinding it is yours.",
         ],
       },
       {
-        heading: "Inspection and packing",
+        heading: "Inspection is a visual check, and only that",
         body: [
-          "Where we inspect goods for you, we carry out a visual check of what is in the cartons against the description you gave us, and we photograph what we find. It is not a test of quality, a check of specification, or a warranty that the goods are fit for anything. We are telling you what we can see.",
-          "Where we repack goods, we do so to help them survive the flight. Repacking does not make us responsible for the condition the goods were in when your supplier delivered them.",
+          "Where we inspect goods for you, we open the cartons, look at what is inside, compare it with the description you gave us, and photograph what we find. We are telling you what we could see on the day. That is the whole of the service.",
+          "An inspection is NOT:",
+        ],
+        list: [
+          "A test of quality, durability or workmanship. We do not use the goods, power them on, or take them apart.",
+          "A check against a specification, a sample or a technical standard, unless we have agreed one with you in writing beforehand and charged for it.",
+          "A count of every unit. Unless we agree otherwise, we check cartons and a sample of what is in them — a full unit count on a large consignment is a separate job and we will quote for it.",
+          "A check that the goods are genuine, licensed or safe to import.",
+          "An approval of the goods, or advice to pay your supplier. Deciding whether to accept what we photographed is yours.",
+        ],
+      },
+      {
+        heading: "What our photographs mean",
+        body: [
+          "Our photographs record the condition the goods were in when they reached our China warehouse. They are the best evidence either of us will have if something is disputed later, which is why we take them on every consignment.",
+          "They are not a warranty. Goods that pass through inspection and then turn out to be the wrong colour, the wrong size or of poor quality remain a matter between you and your supplier — inspecting them does not make us the seller, and it does not move the risk of a bad purchase onto us.",
+        ],
+      },
+      {
+        heading: "Packing",
+        body: [
+          "Where we repack goods, we do so to help them survive the flight. Repacking does not make us responsible for the condition the goods were in when your supplier delivered them, and it is not an inspection unless you asked for one.",
         ],
       },
       {
