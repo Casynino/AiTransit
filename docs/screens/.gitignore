@@ -1,0 +1,8 @@
+# The raw captures — 2880x1800 PNGs, about 27 MB.
+#
+# Not committed, because they are regenerable (scripts/capture-screens.mts,
+# against a running dev server) and nothing reads them except the downscaler.
+# The print copies in print/ ARE committed: they are what the guide books
+# embed, so a fresh clone can rebuild the books without a database.
+*.png
+manifest.json

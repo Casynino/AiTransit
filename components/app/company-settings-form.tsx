@@ -18,8 +18,8 @@ import type { ActionResult } from "@/lib/actions/types";
  * These fields appear on invoices, PDFs, WhatsApp messages and the public site
  * at the same moment, so this is the most consequential screen in the app for
  * its size. It is built to be read before it is edited: the label a customer
- * will see is shown as they type it, because "MIX BY YAS — LIPA NUMBER" and
- * "Airtel Money" are the difference between a payment arriving and not.
+ * will see is shown as they type it, because "AIRTEL MONEY — MERCHANT NUMBER"
+ * and "Airtel" are the difference between a payment arriving and not.
  *
  * Editing an account does NOT touch invoices already raised. Each one carries
  * the accounts it was issued with, so last year's PDF still prints last year's
@@ -92,7 +92,7 @@ export function CompanySettingsForm({ initial }: { initial: CompanySettings }) {
                   <Input
                     value={account.label}
                     onChange={(e) => setAccount(index, { label: e.target.value })}
-                    placeholder="MIX BY YAS — LIPA NUMBER"
+                    placeholder="AIRTEL MONEY — MERCHANT NUMBER"
                     className="h-11"
                   />
                 </div>

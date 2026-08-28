@@ -143,8 +143,8 @@ export type CollectionAccount = {
   /**
    * How the customer is told to pay, in full.
    *
-   * "MIX BY YAS — LIPA NUMBER", never "Airtel Money". A customer reading "Airtel Money: 7122055"
-   * has to guess whether that is a Lipa number, a personal number or an
+   * "AIRTEL MONEY — MERCHANT NUMBER", never "Airtel". A customer reading "Airtel: 7122055"
+   * has to guess whether that is a merchant number, a personal number or an
    * account, and a guess at this step is money sent to the wrong place. The
    * label states the service, what kind of number it is, and — for banks — the
    * currency, because paying dollars into the kwacha account is a reversal
