@@ -1,161 +1,159 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, MapPin, Users } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 
-import { Badge, Card, Eyebrow } from "@/components/brand/ui";
-import {
-  APPOINTMENT_LABELS,
-  APPOINTMENT_STATUS_LABELS,
-  APPOINTMENT_STATUS_TONE,
-  customerAppointments,
-} from "@/lib/appointments";
-import { formatDate, toNumber } from "@/lib/format";
+import { BookPickupForm, ChangeBookingForm } from "@/components/portal/request-forms";
+import { Empty, Note, PageHead, Panel, Pill, RecordRow } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 import { requireCustomer } from "@/lib/portal";
+import { listAppointments, listCargo } from "@/lib/portal-data";
+import { APPOINTMENT_LABEL, labelFor } from "@/lib/portal-labels";
 
-export const metadata: Metadata = { title: "My bookings" };
+export const metadata: Metadata = { title: "Pickup appointments — AITRANSIT" };
 
 /**
- * The customer's own diary.
+ * Booking a collection, and the history of past ones.
  *
- * Shows the day they ASKED for and the day we CONFIRMED as two separate facts,
- * because until the second one is filled in the first is only a request — and a
- * portal that showed one date would be telling somebody an appointment exists
- * when it does not.
+ * THE FORM ONLY OFFERS COLLECTABLE CARGO. `readyForPickup` is the gate — the
+ * same field the warehouse sets and the release desk reads — so the list a
+ * customer chooses from is exactly the list the warehouse could actually hand
+ * over. bookPickup re-checks it server-side; this is so nobody fills in a form
+ * that was always going to be refused.
+ *
+ * Cargo released on approved credit is ready without being paid for, which is
+ * why the gate is the cargo's own flag and not the invoice's status.
  */
-export default async function PortalAppointmentsPage() {
+export default async function AppointmentsPage() {
   const viewer = await requireCustomer();
-  const appointments = await customerAppointments(viewer.customerId);
+  const [appointments, { rows }] = await Promise.all([
+    listAppointments(viewer.customerId),
+    listCargo(viewer.customerId, {}),
+  ]);
+
+  const pickups = appointments.filter((a) => a.kind === "CARGO_PICKUP");
+  const collectable = rows.filter(
+    (r) => r.readyForPickup !== null && r.deliveredAt === null
+  );
+
+  const upcoming = pickups.filter(
+    (a) => !["COMPLETED", "CANCELLED"].includes(a.status)
+  );
+  const past = pickups.filter((a) => ["COMPLETED", "CANCELLED"].includes(a.status));
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Eyebrow>Appointments</Eyebrow>
-          <h1 className="ai-display-lg mt-3">My bookings</h1>
-          <p className="ai-muted mt-2">
-            Cargo pickups, market days, supplier and factory visits.
-          </p>
-        </div>
-        <Link href="/appointments" className="ai-btn ai-btn-primary">
-          Book something
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+    <div>
+      <PageHead
+        title="Pickup appointments"
+        lede="Tell us when you are coming so your cargo is ready at the counter."
+      />
+
+      <div className="mb-8">
+        <BookPickupForm
+          cargo={collectable.map((c) => ({
+            id: c.id,
+            trackingNumber: c.trackingNumber,
+            description: c.description,
+          }))}
+          defaultName={viewer.name}
+          defaultPhone={viewer.phone ?? ""}
+        />
       </div>
 
-      {appointments.length === 0 ? (
-        <Card>
-          <p className="ai-muted">
-            Nothing booked. You can request a pickup slot at our Makeni
-            warehouse, or a guided day in the China markets.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2.5">
-            <Link
-              href="/appointments?service=CARGO_PICKUP"
-              className="ai-btn ai-btn-outline ai-btn-sm"
-            >
-              Book a pickup
+      {collectable.length === 0 && pickups.length === 0 ? (
+        <Empty
+          icon={CalendarClock}
+          title="Nothing to collect yet"
+          body="Once cargo shows as ready to collect you can book a time here. We will notify you the moment it is."
+          action={
+            <Link href="/portal/cargo" className="ai-btn ai-btn-outline">
+              See my cargo
             </Link>
-            <Link
-              href="/appointments?service=MARKET_VISIT"
-              className="ai-btn ai-btn-outline ai-btn-sm"
-            >
-              Book a market visit
-            </Link>
-          </div>
-        </Card>
-      ) : (
-        <Card className="ai-rows !p-0">
-          {appointments.map((appointment) => (
-            <div key={appointment.id} className="p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="ai-num text-sm">{appointment.reference}</p>
-                  <p className="font-semibold">
-                    {APPOINTMENT_LABELS[appointment.kind]}
-                  </p>
-                  {appointment.locationName ? (
-                    <p className="ai-muted mt-1 flex items-center gap-1.5 text-sm">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {appointment.locationName}
-                    </p>
-                  ) : null}
-                  {appointment.shipment ? (
-                    <p className="ai-muted mt-1 text-sm">
-                      Cargo{" "}
+          }
+        />
+      ) : null}
+
+      {upcoming.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">
+            Coming up
+          </h2>
+          <div className="space-y-3">
+            {upcoming.map((appt) => {
+              const meta = labelFor(APPOINTMENT_LABEL, appt.status);
+              return (
+                <div key={appt.id}>
+                  <RecordRow
+                    title={
                       <span className="ai-num">
-                        {appointment.shipment.trackingNumber}
+                        {appt.shipment?.trackingNumber ?? appt.reference}
                       </span>
-                    </p>
+                    }
+                    subtitle={`Booking ${appt.reference}`}
+                    right={<Pill tone={meta.tone}>{meta.label}</Pill>}
+                    facts={[
+                      {
+                        label: appt.confirmedFor ? "Confirmed for" : "You asked for",
+                        value: `${formatDate(appt.confirmedFor ?? appt.preferredDate)}${
+                          appt.preferredTime ? ` · ${appt.preferredTime}` : ""
+                        }`,
+                      },
+                      { label: "Collector", value: appt.contactName },
+                      { label: "Phone", value: appt.contactPhone },
+                    ]}
+                  />
+
+                  {appt.staffNote ? (
+                    <div className="mt-2">
+                      <Note tone="neutral" title="From our warehouse">
+                        {appt.staffNote}
+                      </Note>
+                    </div>
                   ) : null}
-                </div>
-                <Badge tone={APPOINTMENT_STATUS_TONE[appointment.status]}>
-                  {APPOINTMENT_STATUS_LABELS[appointment.status]}
-                </Badge>
-              </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                <div>
-                  <dt className="ai-muted text-[0.66rem] font-bold uppercase tracking-[0.13em]">
-                    You asked for
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    <CalendarClock className="mr-1.5 inline h-3.5 w-3.5" />
-                    {formatDate(appointment.preferredDate)}
-                    {appointment.preferredTime
-                      ? ` · ${appointment.preferredTime}`
-                      : ""}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="ai-muted text-[0.66rem] font-bold uppercase tracking-[0.13em]">
-                    Confirmed for
-                  </dt>
-                  <dd
-                    className="mt-1 font-medium"
-                    style={{
-                      color: appointment.confirmedFor
-                        ? "hsl(var(--ai-emerald))"
-                        : undefined,
-                    }}
-                  >
-                    {appointment.confirmedFor
-                      ? formatDate(appointment.confirmedFor)
-                      : "Not yet"}
-                  </dd>
-                </div>
-                {appointment.visitors > 1 ? (
-                  <div>
-                    <dt className="ai-muted text-[0.66rem] font-bold uppercase tracking-[0.13em]">
-                      Visitors
-                    </dt>
-                    <dd className="mt-1 font-medium">
-                      <Users className="mr-1.5 inline h-3.5 w-3.5" />
-                      {appointment.visitors}
-                    </dd>
+                  <div className="mt-2">
+                    <ChangeBookingForm
+                      appointmentId={appt.id}
+                      reference={appt.reference}
+                    />
                   </div>
-                ) : null}
-                {appointment.budgetUsd !== null ? (
-                  <div>
-                    <dt className="ai-muted text-[0.66rem] font-bold uppercase tracking-[0.13em]">
-                      Budget
-                    </dt>
-                    <dd className="ai-num mt-1 font-medium">
-                      USD {toNumber(appointment.budgetUsd).toLocaleString()}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
-              {appointment.staffNote ? (
-                <p className="ai-card mt-4 !p-3 text-sm">
-                  <span className="ai-muted">From us: </span>
-                  {appointment.staffNote}
-                </p>
-              ) : null}
-            </div>
-          ))}
-        </Card>
-      )}
+      {past.length > 0 ? (
+        <section>
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">
+            Past bookings
+          </h2>
+          <div className="space-y-3">
+            {past.map((appt) => {
+              const meta = labelFor(APPOINTMENT_LABEL, appt.status);
+              return (
+                <RecordRow
+                  key={appt.id}
+                  title={
+                    <span className="ai-num">
+                      {appt.shipment?.trackingNumber ?? appt.reference}
+                    </span>
+                  }
+                  subtitle={`Booking ${appt.reference}`}
+                  right={<Pill tone={meta.tone}>{meta.label}</Pill>}
+                  facts={[
+                    {
+                      label: "Date",
+                      value: formatDate(appt.confirmedFor ?? appt.preferredDate),
+                    },
+                    { label: "Collector", value: appt.contactName },
+                  ]}
+                />
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

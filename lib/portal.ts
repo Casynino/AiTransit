@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { EXCEPTION_OPEN_STATUSES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -111,6 +112,46 @@ export async function currentCustomer(): Promise<PortalViewer | null> {
 }
 
 /**
+ * The numbers the sidebar puts on links.
+ *
+ * Four counts, deliberately: a badge is a summons, and a menu where every item
+ * carries one is a menu that summons you nowhere. These are the four things
+ * that are genuinely waiting on the customer — money owed, cargo they can
+ * collect today, a claim still open, and unread news.
+ *
+ * Counted rather than fetched. The sidebar renders on every portal page, so
+ * this runs on every portal page, and four COUNT queries against indexed
+ * columns is the cheapest honest way to answer.
+ */
+export async function portalBadges(
+  customerId: string,
+  userId: string
+): Promise<{ unpaid: number; ready: number; openIssues: number; unread: number }> {
+  const [unpaid, ready, openIssues, unread] = await Promise.all([
+    prisma.invoice.count({
+      where: { customerId, status: { in: ["UNPAID", "PARTIALLY_PAID"] } },
+    }),
+    prisma.shipment.count({
+      where: { customerId, deletedAt: null, status: "READY_FOR_PICKUP" },
+    }),
+    /*
+      EXCEPTION_OPEN_STATUSES rather than "not closed": several terminal states
+      exist (RESOLVED, WRITTEN_OFF, CARGO_FOUND) and counting them as open would
+      badge a customer forever over a claim that was settled in March.
+    */
+    prisma.shipmentException.count({
+      where: {
+        shipment: { customerId },
+        status: { in: [...EXCEPTION_OPEN_STATUSES] },
+      },
+    }),
+    prisma.notification.count({ where: { userId, readAt: null } }),
+  ]);
+
+  return { unpaid, ready, openIssues, unread };
+}
+
+/**
  * Everything the portal home needs about one customer, in one round trip.
  *
  * Every query below is filtered by `customerId`. That is not a convention to be
@@ -207,4 +248,124 @@ export async function portalOverview(customerId: string) {
     ]);
 
   return { shipments, invoices, exchangeRequests, sourcing, tickets, customer };
+}
+
+/**
+ * The extra things the front page shows that portalOverview does not.
+ *
+ * Split out rather than folded into the query above because these are the
+ * "what is happening around my cargo" rows — bookings, claims, notifications —
+ * and portalOverview is already six queries deep. Two functions the home page
+ * awaits together is the same round trip and a great deal easier to read than
+ * one function returning eleven things.
+ */
+export async function portalActivity(customerId: string, userId: string) {
+  const now = new Date();
+
+  const [
+    nextPickup,
+    nextVisit,
+    openClaims,
+    notifications,
+    supplierPayments,
+    recentMoves,
+  ] = await Promise.all([
+    /* The soonest booking they can still turn up to. */
+    prisma.appointment.findFirst({
+      where: {
+        customerId,
+        kind: "CARGO_PICKUP",
+        status: { in: ["REQUESTED", "CONFIRMED", "RESCHEDULED"] },
+        preferredDate: { gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
+      },
+      orderBy: { preferredDate: "asc" },
+      select: {
+        id: true,
+        reference: true,
+        status: true,
+        preferredDate: true,
+        preferredTime: true,
+        confirmedFor: true,
+        shipment: { select: { trackingNumber: true } },
+      },
+    }),
+    prisma.appointment.findFirst({
+      where: {
+        customerId,
+        kind: { not: "CARGO_PICKUP" },
+        status: { in: ["REQUESTED", "CONFIRMED", "RESCHEDULED"] },
+        preferredDate: { gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
+      },
+      orderBy: { preferredDate: "asc" },
+      select: {
+        id: true,
+        reference: true,
+        kind: true,
+        status: true,
+        preferredDate: true,
+        confirmedFor: true,
+        locationName: true,
+      },
+    }),
+    prisma.shipmentException.findMany({
+      where: {
+        shipment: { customerId },
+        status: { in: [...EXCEPTION_OPEN_STATUSES] },
+      },
+      orderBy: { raisedAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        raisedAt: true,
+        shipment: { select: { trackingNumber: true } },
+      },
+    }),
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        body: true,
+        href: true,
+        readAt: true,
+        createdAt: true,
+      },
+    }),
+    prisma.supplierPayment.count({
+      where: { customerId, status: "PENDING" },
+    }),
+    /*
+      The activity feed: real transitions, newest first.
+
+      Read from ShipmentStatusHistory rather than assembled from the shipments
+      already fetched, because a timeline is about WHEN things happened and the
+      shipment row only carries where each one is now. Filtered by the customer
+      through the relation, like everything else.
+    */
+    prisma.shipmentStatusHistory.findMany({
+      where: { shipment: { customerId, deletedAt: null } },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: {
+        id: true,
+        toStatus: true,
+        createdAt: true,
+        shipment: { select: { id: true, trackingNumber: true } },
+      },
+    }),
+  ]);
+
+  return {
+    nextPickup,
+    nextVisit,
+    openClaims,
+    notifications,
+    supplierPayments,
+    recentMoves,
+  };
 }

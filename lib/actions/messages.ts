@@ -32,7 +32,7 @@ const schema = z.object({
   kind: z.enum([
     "SHIPMENT_REGISTERED",
     "IN_TRANSIT",
-    "ARRIVED_DAR",
+    "ARRIVED_ZAMBIA",
     "INVOICE_ISSUED",
     "PAYMENT_REMINDER",
     "READY_FOR_PICKUP",

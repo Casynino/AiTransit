@@ -110,18 +110,45 @@ export default async function TicketPage({
 
           <section className="rounded-xl border bg-card shadow-soft">
             <header className="border-b p-4">
-              <h2 className="font-semibold">{t(locale, "Internal notes")}</h2>
+              <h2 className="font-semibold">{t(locale, "The thread")}</h2>
+              {/*
+                This used to say "never shown to the customer", which stopped
+                being true the day the customer portal shipped. A note is now
+                either internal or a reply, and the header cannot promise one
+                thing for both — so each entry says which it is, below.
+              */}
               <p className="text-sm text-muted-foreground">
-                {t(locale, "Working notes for staff. Never shown to the customer.")}
+                {t(
+                  locale,
+                  "Working notes and replies. Each entry says who can read it."
+                )}
               </p>
             </header>
             <ul className="divide-y">
               {ticket.notes.map((note) => (
-                <li key={note.id} className="p-4">
+                <li
+                  key={note.id}
+                  className={
+                    note.internal ? "p-4" : "border-l-[3px] border-l-success p-4"
+                  }
+                >
                   <p className="whitespace-pre-wrap text-sm">{note.body}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {note.author?.name ?? t(locale, "Someone")} ·{" "}
-                    {formatDateTime(note.createdAt, locale)}
+                  <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                    <span
+                      className={
+                        note.internal
+                          ? "font-semibold"
+                          : "font-semibold text-success"
+                      }
+                    >
+                      {note.internal
+                        ? t(locale, "Internal — staff only")
+                        : t(locale, "Sent to the customer")}
+                    </span>
+                    <span>·</span>
+                    <span>{note.author?.name ?? t(locale, "Someone")}</span>
+                    <span>·</span>
+                    <span>{formatDateTime(note.createdAt, locale)}</span>
                   </p>
                 </li>
               ))}

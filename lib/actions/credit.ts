@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { notifyCreditDecision } from "@/lib/portal-notify";
 import {
   CREDIT_TERMS,
   DEFAULT_CREDIT_TERM,
@@ -286,6 +287,12 @@ export async function approveCredit(
         );
       }
 
+      await notifyCreditDecision(
+        { customerId: invoice.customerId, tx },
+        { id: invoice.id, invoiceNumber: invoice.invoiceNumber },
+        true
+      );
+
       /* Recorded for the exposure it created, not just the fact of it: "why was
          this approved when they already owed 4,800 of a 5,000 limit" is the
          question asked later, and only the figures at the moment of the
@@ -379,6 +386,8 @@ export async function rejectCredit(
           invoiceNumber: true,
           creditStatus: true,
           creditRequestedById: true,
+          /* For the portal notification. */
+          customerId: true,
           shipment: { select: { trackingNumber: true } },
         },
       });
@@ -412,6 +421,13 @@ export async function rejectCredit(
           `${invoice.invoiceNumber} was decided by someone else a moment ago. Reload before deciding again.`
         );
       }
+
+      await notifyCreditDecision(
+        { customerId: invoice.customerId, tx },
+        { id: invoice.id, invoiceNumber: invoice.invoiceNumber },
+        false,
+        parsed.data.note
+      );
 
       await recordAudit(
         {

@@ -120,6 +120,31 @@ export const DEPARTMENTS: {
     ],
   },
   {
+    /*
+      The customer portal, photographed as the demo customer.
+      Signs in with a CUSTOMER account, so every page is the customer's own
+      records — the same session the portal itself resolves.
+    */
+    key: "portal",
+    email: "chanda.mwansa@example.co.zm",
+    shots: [
+      { id: "cx-home", path: "/portal" },
+      { id: "cx-cargo", path: "/portal/cargo" },
+      { id: "cx-track", path: "/portal/track" },
+      { id: "cx-invoices", path: "/portal/invoices" },
+      { id: "cx-pickup-notes", path: "/portal/pickup-notes" },
+      { id: "cx-appointments", path: "/portal/appointments" },
+      { id: "cx-china", path: "/portal/china" },
+      { id: "cx-visits", path: "/portal/visits" },
+      { id: "cx-supplier-payments", path: "/portal/supplier-payments" },
+      { id: "cx-exchange", path: "/portal/exchange" },
+      { id: "cx-claims", path: "/portal/claims" },
+      { id: "cx-support", path: "/portal/support" },
+      { id: "cx-notifications", path: "/portal/notifications" },
+      { id: "cx-profile", path: "/portal/profile" },
+    ],
+  },
+  {
     key: "admin",
     email: "admin@aitransit.co.zm",
     shots: [

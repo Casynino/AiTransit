@@ -1,193 +1,152 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { Coins } from "lucide-react";
 
-import { Badge } from "@/components/brand/ui";
-import {
-  EXCHANGE_STATUS_LABELS,
-  EXCHANGE_STATUS_TONE,
-  EXCHANGE_TYPE_LABELS,
-  customerExchangeHistory,
-  publishedFxBoard,
-} from "@/lib/exchange";
+import { RateCalculator } from "@/components/portal/rate-calculator";
+import { ExchangeForm } from "@/components/portal/request-forms";
+import { Empty, Note, PageHead, Panel, Pill, RecordRow } from "@/components/portal/ui";
+import { publishedFxBoard } from "@/lib/exchange";
 import { formatDate, toNumber } from "@/lib/format";
 import { requireCustomer } from "@/lib/portal";
+import { listExchange } from "@/lib/portal-data";
+import { EXCHANGE_LABEL, EXCHANGE_TYPE, labelFor } from "@/lib/portal-labels";
 
-export const metadata: Metadata = { title: "Money exchange" };
-
-const amount = (value: number, currency: string) =>
-  `${currency} ${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+export const metadata: Metadata = { title: "Money exchange — AITRANSIT" };
 
 /**
- * The customer's own money-desk history.
+ * The money desk, from the customer's side.
  *
- * Reads exactly like the internal queue, minus the decision controls — same
- * status labels, same tones, same reference numbers — so a customer on the
- * phone and the clerk answering are describing the same row in the same words.
+ * THE BOARD IS SHOWN WITH ITS STATUS, NOT AS A PRICE. Published pairs are
+ * indicative until the desk confirms a booking, and every surface that shows
+ * them says so — this page, the calculator under it, and the confirmation on
+ * the form. That is the owner's rule and it is not decorative: a customer who
+ * believes a screen figure is a contract will argue about the difference.
  *
- * Booking a new one sends them to the public /exchange page rather than
- * duplicating the form here. One form, one action, one set of validation rules;
- * a second copy behind a login is a second place for the two to drift apart.
+ * SUPPLIER PAYMENTS ARE FILTERED OUT of the list below. They are the same
+ * ExchangeRequest table but they have their own page, with the actual transfers
+ * beside them — showing them here as well would have a customer chasing one
+ * request in two places.
  */
-export default async function PortalExchangePage() {
+export default async function ExchangePage() {
   const viewer = await requireCustomer();
-  const [{ requests, payments }, board] = await Promise.all([
-    customerExchangeHistory(viewer.customerId),
+  const [board, requests] = await Promise.all([
     publishedFxBoard(),
+    listExchange(viewer.customerId),
   ]);
 
+  const mine = requests.filter((r) => r.type !== "SUPPLIER_PAYMENT");
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="ai-display-lg">
-            Money exchange
-          </h1>
-          <p className="mt-1 ai-muted">
-            Your exchange bookings and the payments we have made to your
-            suppliers in China.
-          </p>
-        </div>
-        <Link
-          href="/exchange"
-          className="ai-btn ai-btn-primary"
-        >
-          New request
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+    <div>
+      <PageHead
+        title="Money exchange"
+        lede="Change kwacha to dollars or yuan, or send money to China through us."
+      />
+
+      <div className="mb-8">
+        <ExchangeForm />
       </div>
 
-      {board.length > 0 ? (
-        <section className="rounded-xl border bg-card p-5">
-          <h2 className="ai-display-sm">
-            Today&rsquo;s published rates
-          </h2>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {board.map((pair) => (
-              <div key={pair.id}>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] ai-muted">
-                  {pair.base} → {pair.quote}
-                </p>
-                <p className="mt-1 font-mono text-sm tabular">
-                  buy {pair.buy} · sell {pair.sell}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 flex items-start gap-2 text-xs ai-muted">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Indicative. Your confirmed rate is the one our finance desk agrees
-            with you, and it is shown on the request itself once agreed.
-          </p>
-        </section>
-      ) : null}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* ───────────────────────────────────────────────────────── the board */}
+        <Panel title="Today's rates">
+          {board.length === 0 ? (
+            <p className="ai-muted text-sm">
+              No rates published at the moment. Ask the money desk for today&apos;s
+              figure.
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y" style={{ borderColor: "hsl(var(--ai-stone-3))" }}>
+                {board.map((row) => (
+                  <li key={row.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="ai-num font-semibold">
+                        {row.base} / {row.quote}
+                      </p>
+                      <p
+                        className="text-xs"
+                        style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                      >
+                        {row.note ?? `Updated ${row.updatedLabel}`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="ai-num text-sm font-semibold">
+                        Buy {row.buy ?? "—"}
+                      </p>
+                      <p
+                        className="ai-num text-sm"
+                        style={{ color: "hsl(var(--ai-charcoal-soft))" }}
+                      >
+                        Sell {row.sell ?? "—"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="ai-muted mt-3 text-xs">
+                Rates are indicative and subject to AITRANSIT confirmation.
+              </p>
+            </>
+          )}
+        </Panel>
 
-      <section>
-        <h2 className="ai-display">My requests</h2>
-        {requests.length === 0 ? (
-          <p className="ai-card ai-muted mt-6">
-            Nothing yet. Book an exchange or ask us to pay a supplier and it will
-            appear here with its status.
-          </p>
-        ) : (
-          <ul className="ai-card ai-rows mt-6 !p-0">
-            {requests.map((request) => (
-              <li key={request.id} className="p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="ai-num text-sm">{request.reference}</p>
-                    <p className="font-medium">
-                      {EXCHANGE_TYPE_LABELS[request.type]}
-                    </p>
-                    <p className="mt-1 text-sm ai-muted">
-                      {amount(toNumber(request.amount), request.fromCurrency)} →{" "}
-                      {request.toCurrency}
-                      {request.recipientName
-                        ? ` · to ${request.recipientName}`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge tone={EXCHANGE_STATUS_TONE[request.status]}>
-                      {EXCHANGE_STATUS_LABELS[request.status]}
-                    </Badge>
-                    <p className="mt-1 text-xs ai-muted">
-                      {formatDate(request.createdAt)}
-                    </p>
-                  </div>
-                </div>
+        {/* ──────────────────────────────────────────────────── the calculator */}
+        <Panel title="What would I get?">
+          <RateCalculator board={board} />
+        </Panel>
+      </div>
 
-                {request.agreedRate !== null ? (
-                  <p className="ai-card mt-3 !p-3 text-sm">
-                    <span className="block text-xs uppercase tracking-widest ai-muted">
-                      Agreed with you
-                    </span>
-                    1 {request.fromCurrency} = {request.toCurrency}{" "}
-                    {toNumber(request.agreedRate).toLocaleString()}
-                    {request.agreedAmount !== null
-                      ? ` — you receive ${amount(toNumber(request.agreedAmount), request.toCurrency)}`
-                      : ""}
-                    {request.feeAmount !== null
-                      ? `, fee ${amount(toNumber(request.feeAmount), request.fromCurrency)}`
-                      : ""}
-                  </p>
-                ) : null}
-
-                {request.decisionNote ? (
-                  <p className="mt-2 text-sm ai-muted">
-                    {request.decisionNote}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2 className="ai-display">
-          Payments to your suppliers
+      {/* ─────────────────────────────────────────────────── my bookings */}
+      <section className="mt-8">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.12em]">
+          Your bookings
         </h2>
-        {payments.length === 0 ? (
-          <p className="ai-card ai-muted mt-6">
-            We have not paid a supplier on your behalf yet.
-          </p>
+
+        {mine.length === 0 ? (
+          <Empty
+            icon={Coins}
+            title="No bookings yet"
+            body="Book an exchange above and the money desk will confirm a rate with you before anything moves."
+          />
         ) : (
-          <ul className="ai-card ai-rows mt-6 !p-0">
-            {payments.map((payment) => (
-              <li
-                key={payment.id}
-                className="flex flex-wrap items-start justify-between gap-3 p-4"
-              >
-                <div className="min-w-0">
-                  <p className="ai-num text-sm">{payment.reference}</p>
-                  <p className="font-medium">{payment.supplierName}</p>
-                  <p className="mt-1 text-sm ai-muted">
-                    {amount(toNumber(payment.amount), payment.currency)}
-                    {payment.supplierReference
-                      ? ` · order ${payment.supplierReference}`
-                      : ""}
-                    {payment.shipment
-                      ? ` · cargo ${payment.shipment.trackingNumber}`
-                      : ""}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Badge
-                    tone={payment.status === "PAID" ? "success" : "warning"}
-                  >
-                    {payment.status.toLowerCase()}
-                  </Badge>
-                  <p className="mt-1 text-xs ai-muted">
-                    {formatDate(payment.paidAt ?? payment.createdAt)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-3">
+            {mine.map((req) => {
+              const meta = labelFor(EXCHANGE_LABEL, req.status);
+              return (
+                <RecordRow
+                  key={req.id}
+                  href={`/portal/exchange/${req.id}`}
+                  title={`${req.fromCurrency} → ${req.toCurrency}`}
+                  subtitle={`${EXCHANGE_TYPE[req.type] ?? req.type} · ${req.reference}`}
+                  right={<Pill tone={meta.tone}>{meta.label}</Pill>}
+                  facts={[
+                    {
+                      label: "Amount",
+                      value: `${req.fromCurrency} ${toNumber(req.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                    },
+                    ...(req.agreedRate
+                      ? [
+                          {
+                            label: "Agreed rate",
+                            value: toNumber(req.agreedRate).toLocaleString(),
+                          },
+                        ]
+                      : []),
+                    ...(req.agreedAmount
+                      ? [
+                          {
+                            label: "You receive",
+                            value: `${req.toCurrency} ${toNumber(req.agreedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                          },
+                        ]
+                      : []),
+                    { label: "Booked", value: formatDate(req.createdAt) },
+                  ]}
+                />
+              );
+            })}
+          </div>
         )}
       </section>
     </div>

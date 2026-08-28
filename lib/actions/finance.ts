@@ -5,6 +5,11 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import {
+  notifyInvoiceConfirmed,
+  notifyPaymentConfirmed,
+  notifyReadyForPickup,
+} from "@/lib/portal-notify";
 import { settleBatchIfClear } from "@/lib/batch-close";
 import {
   EXCEPTION_OPEN_STATUSES,
@@ -297,6 +302,9 @@ export async function confirmInvoicePrice(
           storageWaivedUsd: true,
           /* And a granted credit, whose due date it must not overwrite. */
           creditStatus: true,
+          /* Both for the portal notification once the price is confirmed. */
+          customerId: true,
+          currency: true,
           notes: true,
           shipment: {
             select: {
@@ -403,6 +411,17 @@ export async function confirmInvoicePrice(
           ...(invoice.creditStatus === "APPROVED" ? {} : { dueDate: new Date() }),
         },
       });
+
+      await notifyInvoiceConfirmed(
+        { customerId: invoice.customerId, tx },
+        {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          total: total.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+          currency: invoice.currency,
+        },
+        shipment.trackingNumber
+      );
 
       // Keep the working on the shipment in step with the confirmed figure.
       await tx.shipment.update({
@@ -945,6 +964,8 @@ export async function recordPayment(
           currency: true,
           exchangeRate: true,
           issuedAt: true,
+          /* For the portal notification once the payment is applied. */
+          customerId: true,
           shipment: { select: { id: true, trackingNumber: true, batchId: true } },
         },
       });
@@ -1234,8 +1255,33 @@ export async function recordPayment(
           });
 
           issuedNote = note.noteNumber;
+
+          await notifyReadyForPickup(
+            { customerId: shipment.customerId, tx },
+            {
+              id: shipment.id,
+              trackingNumber: invoice.shipment.trackingNumber,
+            },
+            note.noteNumber
+          );
         }
       }
+
+      /*
+        The payment itself, told separately from the release.
+
+        Two notifications rather than one, because they answer different
+        questions and a customer paying a part-payment gets only the first.
+        Sent after the release block so the pair reads in the order the
+        customer experiences it: money in, then cargo out.
+      */
+      await notifyPaymentConfirmed(
+        { customerId: invoice.customerId, tx },
+        { id: invoice.id, invoiceNumber: invoice.invoiceNumber },
+        input.amount.toLocaleString(),
+        tenderedCurrency,
+        settled
+      );
 
       await recordAudit(
         {
@@ -1449,6 +1495,12 @@ export async function issuePickupNote(
             : `Issued ${note.noteNumber} for ${shipment.trackingNumber}`,
         },
         tx
+      );
+
+      await notifyReadyForPickup(
+        { customerId: shipment.customerId, tx },
+        { id: shipment.id, trackingNumber: shipment.trackingNumber },
+        note.noteNumber
       );
 
       return note.noteNumber;

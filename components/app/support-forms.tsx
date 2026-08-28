@@ -377,9 +377,23 @@ export function TicketWorkflow({
   );
 }
 
+/**
+ * A note on a ticket — to ourselves, or to the customer.
+ *
+ * THE TICK IS THE WHOLE POINT OF THIS FORM NOW. Since customers can read their
+ * own tickets in the portal, this box writes into a thread with two audiences,
+ * and the desk has to say which one it is addressing. It is opt-in and starts
+ * unticked, so the habit of years — jotting what you tried and who you rang —
+ * keeps doing exactly what it always did.
+ *
+ * Ticking it also moves the ticket to "waiting for customer" and notifies them,
+ * because a reply nobody is told about is a reply that waits a week.
+ */
 export function TicketNoteForm({ ticketId }: { ticketId: string }) {
   const [state, action] = useActionState(addTicketNote, undefined);
+  const [toCustomer, setToCustomer] = useState(false);
   const t = useT();
+
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="ticketId" value={ticketId} />
@@ -387,13 +401,34 @@ export function TicketNoteForm({ ticketId }: { ticketId: string }) {
       <Textarea
         name="body"
         rows={2}
-        placeholder={t(
-          "Add an internal note — what you tried, who you spoke to."
-        )}
+        placeholder={
+          toCustomer
+            ? t("Write your reply. The customer will read this in their portal.")
+            : t("Add an internal note — what you tried, who you spoke to.")
+        }
         required
       />
+
+      <label className="flex items-start gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="toCustomer"
+          checked={toCustomer}
+          onChange={(event) => setToCustomer(event.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0"
+        />
+        <span>
+          <span className="font-medium">{t("Send this to the customer")}</span>
+          <span className="block text-xs text-muted-foreground">
+            {toCustomer
+              ? t("They will see it in their portal and be notified.")
+              : t("Leave unticked to keep it internal. Only staff can see it.")}
+          </span>
+        </span>
+      </label>
+
       <SubmitButton pendingLabel={t("Adding…")} variant="secondary" size="sm">
-        {t("Add note")}
+        {toCustomer ? t("Send reply") : t("Add note")}
       </SubmitButton>
     </form>
   );

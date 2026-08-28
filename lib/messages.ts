@@ -55,7 +55,7 @@ export type MessageContext = {
 export const MESSAGE_KIND_LABELS: Record<MessageKind, string> = {
   SHIPMENT_REGISTERED: "Cargo received in China",
   IN_TRANSIT: "In transit",
-  ARRIVED_DAR: "Arrived in Zambia",
+  ARRIVED_ZAMBIA: "Arrived in Zambia",
   INVOICE_ISSUED: "Invoice issued",
   PAYMENT_REMINDER: "Payment reminder",
   READY_FOR_PICKUP: "Ready for pickup",
@@ -228,7 +228,7 @@ export function composeMessage(
         sign
       );
 
-    case "ARRIVED_DAR":
+    case "ARRIVED_ZAMBIA":
       return (
         `Hello ${name}, your cargo ${tracking} has arrived in Lusaka. ` +
         `We are checking it in against the manifest and will send your invoice shortly.\n` +
@@ -293,7 +293,7 @@ export function suggestedKind(input: {
     return input.storageDays > 0 ? "STORAGE_REMINDER" : "READY_FOR_PICKUP";
   }
   if (input.status === "RECEIVED_AT_ZAMBIA") {
-    if (!input.hasInvoice) return "ARRIVED_DAR";
+    if (!input.hasInvoice) return "ARRIVED_ZAMBIA";
     return input.outstanding > 0 ? "PAYMENT_REMINDER" : "READY_FOR_PICKUP";
   }
   if (input.status === "IN_TRANSIT") return "IN_TRANSIT";

@@ -11,6 +11,7 @@ import {
   EXCEPTION_TYPE_LABELS,
   ORIGIN_LABELS,
   PACKAGE_TYPE_LABELS,
+  STORAGE_POLICY,
 } from "@/lib/constants";
 import { autoPriceShipments } from "@/lib/auto-price";
 import { recordAudit } from "@/lib/audit";
@@ -18,6 +19,7 @@ import { CLOSEABLE_FROM, batchOwing, buildStatement } from "@/lib/batch-close";
 import { currentRateValue } from "@/lib/fx";
 import { notifyReceivingOutcome } from "@/lib/exception-audience";
 import { contributorsTo, notify } from "@/lib/notify";
+import { notifyArrived, notifyDispatched } from "@/lib/portal-notify";
 import {
   RECEIVING_OUTCOME_EXCEPTION,
   RECEIVING_OUTCOME_LABELS,
@@ -298,7 +300,14 @@ export async function departBatch(
           batchNumber: true,
           shipments: {
             where: { status: "READY_TO_DEPART", deletedAt: null },
-            select: { id: true, origin: true },
+            /* customerId and trackingNumber are here for the portal
+               notification below, not for the dispatch itself. */
+            select: {
+              id: true,
+              origin: true,
+              customerId: true,
+              trackingNumber: true,
+            },
           },
         },
       });
@@ -341,6 +350,23 @@ export async function departBatch(
           actorId: user.id,
         })),
       });
+
+      /*
+        Tell every customer with cargo on the plane.
+
+        Inside the transaction, so a dispatch that rolls back cannot leave
+        customers told their cargo left. Sequential rather than Promise.all:
+        these share the transaction's single connection, and firing forty
+        concurrent writes down one connection serialises them anyway while
+        making a failure harder to attribute.
+      */
+      for (const shipment of batch.shipments) {
+        await notifyDispatched(
+          { customerId: shipment.customerId, tx },
+          shipment,
+          batch.batchNumber
+        );
+      }
 
       await recordAudit(
         {
@@ -973,6 +999,8 @@ export async function verifyShipment(
           trackingNumber: true,
           batchId: true,
           packageType: true,
+          /* For the portal notification when this check-in lands it. */
+          customerId: true,
           packageList: {
             select: { id: true, sequence: true, receivedAt: true },
             orderBy: { sequence: "asc" },
@@ -1049,6 +1077,12 @@ export async function verifyShipment(
         });
 
         if (moved.count > 0) {
+          await notifyArrived(
+            { customerId: shipment.customerId, tx },
+            { id: shipment.id, trackingNumber: shipment.trackingNumber },
+            STORAGE_POLICY.freeDays
+          );
+
           await tx.shipmentStatusHistory.create({
             data: {
               shipmentId,
@@ -1357,6 +1391,8 @@ export async function verifyBatchAll(
         select: {
           id: true,
           status: true,
+          customerId: true,
+          trackingNumber: true,
           packageList: { select: { id: true } },
         },
       });
@@ -1392,6 +1428,14 @@ export async function verifyBatchAll(
           where: { id: { in: arriving.map((s) => s.id) }, status: "IN_TRANSIT" },
           data: { status: "RECEIVED_AT_ZAMBIA", arrivedAt: now },
         });
+        for (const shipment of arriving) {
+          await notifyArrived(
+            { customerId: shipment.customerId, tx },
+            { id: shipment.id, trackingNumber: shipment.trackingNumber },
+            STORAGE_POLICY.freeDays
+          );
+        }
+
         await tx.shipmentStatusHistory.createMany({
           data: arriving.map((shipment) => ({
             shipmentId: shipment.id,

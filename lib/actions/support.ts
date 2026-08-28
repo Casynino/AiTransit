@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { notifySourcingUpdate, notifySupportReply } from "@/lib/portal-notify";
 import { nextSourcingNumber, nextTicketNumber } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { authorize, type SessionUser } from "@/lib/session";
@@ -232,15 +233,37 @@ export async function addTicketNote(
 
   const ticketId = String(formData.get("ticketId") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
+  /*
+    WHO IS THIS FOR — the customer, or us?
+
+    Since the customer portal exists, a ticket carries two kinds of writing and
+    the desk has to say which it is doing. The checkbox is opt-IN: leaving it
+    alone writes an internal note, which is what every note on this screen was
+    before the portal existed and is still the common case. Sending something to
+    a customer is a deliberate act, and it is the one that cannot be undone.
+  */
+  const toCustomer = formData.get("toCustomer") === "on";
   if (!ticketId) return fail("Missing ticket.");
   if (body.length < 2) return fail("Write the note first.");
 
   try {
     const note = await prisma.ticketNote.create({
-      data: { ticketId, body, authorId: user.id },
-      select: { id: true },
+      data: { ticketId, body, authorId: user.id, internal: !toCustomer },
+      select: { id: true, ticket: { select: { id: true, ticketNumber: true, subject: true, customerId: true } } },
     });
+
+    /* Only a reply is worth a notification. An internal note is not news. */
+    if (toCustomer && note.ticket.customerId) {
+      await notifySupportReply({ customerId: note.ticket.customerId }, note.ticket);
+      /* A reply means the ball is now with them. */
+      await prisma.supportTicket.update({
+        where: { id: ticketId },
+        data: { status: "WAITING_CUSTOMER" },
+      });
+    }
+
     revalidatePath(`/app/support/tickets/${ticketId}`);
+    revalidatePath(`/portal/support/${ticketId}`);
     return ok({ id: note.id });
   } catch (error) {
     return fail(toActionError(error));
@@ -378,7 +401,13 @@ export async function updateSourcingRequest(
   try {
     const existing = await prisma.sourcingRequest.findUnique({
       where: { id: input.requestId },
-      select: { requestNumber: true, status: true, findings: true },
+      select: {
+        requestNumber: true,
+        status: true,
+        findings: true,
+        /* For the portal notification when the status moves. */
+        customerId: true,
+      },
     });
     if (!existing) return fail("That request no longer exists.");
 
@@ -400,6 +429,22 @@ export async function updateSourcingRequest(
               : undefined,
         },
       });
+
+      if (
+        existing.customerId &&
+        input.status &&
+        input.status !== existing.status
+      ) {
+        await notifySourcingUpdate(
+          { customerId: existing.customerId, tx },
+          {
+            id: input.requestId,
+            requestNumber: existing.requestNumber,
+            status: input.status,
+          },
+          input.findings ?? null
+        );
+      }
 
       await recordAudit(
         {

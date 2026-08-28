@@ -267,91 +267,13 @@ export async function submitPaymentProof(
   }
 }
 
-const chinaRequestSchema = z.object({
-  type: z.enum([
-    "FIND_SUPPLIER",
-    "FIND_PRODUCT",
-    "REQUEST_QUOTATION",
-    "VERIFY_SUPPLIER",
-    "BUY_ON_BEHALF",
-    "INSPECT_GOODS",
-    "COLLECT_FROM_SUPPLIER",
-    "PACKING",
-    "SEND_IN_ADVANCE",
-    "PAY_ON_COLLECTION",
-  ]),
-  product: z.string().trim().min(2, "What are the goods?"),
-  description: z.string().trim().min(5, "Tell us what you need."),
-  budgetUsd: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v?.length ? Number(v.replace(/,/g, "")) : null))
-    .refine((v) => v === null || (Number.isFinite(v) && v >= 0), {
-      message: "That budget does not look right.",
-    }),
-});
+/*
+  submitChinaRequest lived here and has been replaced by requestChinaService in
+  lib/actions/portal-requests.ts.
 
-/**
- * A China service request from a signed-in customer.
- *
- * Reuses SourcingRequest — the same table, queue and assignee the support desk
- * already works from — rather than inventing a parallel inbox. The five
- * AITRANSIT services (inspection, collection, packing, ship-in-advance, pay on
- * collection) were added to SourcingType for exactly this reason; see the note
- * on that enum.
- */
-export async function submitChinaRequest(
-  _prev: ActionResult<{ reference: string }> | undefined,
-  formData: FormData
-): Promise<ActionResult<{ reference: string }>> {
-  const parsed = chinaRequestSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return fail(parsed.error.issues[0]?.message ?? "Please check the form.");
-  }
-  const input = parsed.data;
-
-  try {
-    const viewer = await requireCustomer();
-
-    const created = await prisma.$transaction(async (tx) => {
-      const year = new Date().getFullYear();
-      const counter = await tx.counter.upsert({
-        where: { key: `sourcing:${year}` },
-        create: { key: `sourcing:${year}`, value: 1 },
-        update: { value: { increment: 1 } },
-      });
-      const reference = `SRC-${year}-${String(counter.value).padStart(6, "0")}`;
-
-      return tx.sourcingRequest.create({
-        data: {
-          requestNumber: reference,
-          customerId: viewer.customerId,
-          contactName: viewer.name,
-          contactPhone: viewer.phone,
-          type: input.type,
-          product: input.product,
-          description: input.description,
-          budgetUsd: input.budgetUsd,
-          status: "NEW",
-        },
-        select: { id: true, requestNumber: true },
-      });
-    });
-
-    await recordAudit({
-      actor: null,
-      action: "portal.chinaRequest",
-      entity: "SourcingRequest",
-      entityId: created.id,
-      summary: `${viewer.name} submitted ${created.requestNumber} (${input.type})`,
-      metadata: { customerId: viewer.customerId },
-    });
-
-    revalidatePath("/portal/requests");
-    revalidatePath("/app/support/sourcing");
-    return ok({ reference: created.requestNumber });
-  } catch (error) {
-    return fail(toActionError(error));
-  }
-}
+  Same table, same queue, same status. The new one also takes an attachment and
+  a supplier name, which is what customers were putting in the description
+  anyway, and it sits beside the other five request actions rather than in the
+  file that handles registration and payment proof. Two actions writing the same
+  row through slightly different validation is how the two drift.
+*/

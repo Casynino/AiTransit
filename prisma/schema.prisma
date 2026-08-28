@@ -555,6 +555,27 @@ model Customer {
 
   /// The portal account, if this customer has registered on the website. One
   /// account per customer — see the note on User.customerId.
+  /**
+   * HOW THIS CUSTOMER WANTS TO BE TOLD THINGS.
+   *
+   * In-app is not listed because it is not optional: the portal's notification
+   * centre is where a notification is written, and the settings below govern
+   * whether it is ALSO pushed down a channel that costs money and interrupts
+   * somebody's evening.
+   *
+   * They default on for WhatsApp and email, which is what somebody registering
+   * for a cargo service expects, and off for SMS, which costs per message and
+   * duplicates WhatsApp for almost everybody in Lusaka.
+   *
+   * These are preferences, and a preference is only honoured by a sender that
+   * exists. Today the portal writes in-app notifications and nothing else. The
+   * settings page says so on the page rather than letting somebody switch on a
+   * channel that silently does nothing.
+   */
+  notifyWhatsapp Boolean @default(true)
+  notifyEmail    Boolean @default(true)
+  notifySms      Boolean @default(false)
+
   portalUser       User?             @relation("CustomerPortalUser")
   exchangeRequests ExchangeRequest[]
   supplierPayments SupplierPayment[]
@@ -1100,6 +1121,18 @@ model ExceptionEvent {
   id          String            @id @default(cuid())
   exceptionId String
   exception   ShipmentException @relation(fields: [exceptionId], references: [id], onDelete: Cascade)
+
+  /**
+   * Whether the customer who raised the claim may read this entry.
+   *
+   * An investigation timeline carries "rang Guangzhou, nobody picked up" next
+   * to "told the customer we are still looking", and only the second is theirs
+   * to see. Unlike TicketNote this defaults to hidden, because the events here
+   * are written mostly by the investigation queue as it works: the common case
+   * is an internal step and a customer update is the deliberate one. Staff say
+   * what the customer sees, explicitly, every time.
+   */
+  customerVisible Boolean @default(false)
 
   /// Short machine string — "opened", "status.changed", "note.added",
   /// "photo.added", "cargo.found", "compensation.recorded", "assigned",
@@ -2026,6 +2059,34 @@ model TicketNote {
   ticketId String
   ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
+  /**
+   * WHO IS ALLOWED TO READ THIS.
+   *
+   * A ticket is one conversation with two kinds of writing in it: what was said
+   * to the customer, and what the desk said to itself while working out what to
+   * say. Both belong on the ticket — splitting them into two tables would mean
+   * reading two timelines to reconstruct one afternoon — so the difference is a
+   * flag instead.
+   *
+   * IT DEFAULTS TO TRUE — hidden — and that default was chosen the second time.
+   *
+   * The first version defaulted to visible, on the reasoning that a reply the
+   * customer never sees makes the portal look broken. That reasoning had the
+   * costs the wrong way round. Every TicketNote written before the portal
+   * existed was a note the desk wrote to ITSELF, because there was nobody else
+   * who could read it — "customer is difficult", "do not release until Finance
+   * confirms", "third time they have claimed this". Defaulting those to visible
+   * would have published years of them the day the portal shipped.
+   *
+   * So the safe direction is hidden, and being seen is the deliberate act:
+   * staff choose "reply to the customer" when they mean it, and the portal's
+   * own writes pass `internal: false` explicitly. A missed reply is a support
+   * failure somebody can fix. A published internal note cannot be unpublished.
+   *
+   * The portal filters on `internal: false`. Nothing else may.
+   */
+  internal Boolean @default(true)
+
   body String
 
   authorId String?
@@ -2092,6 +2153,16 @@ model SourcingRequest {
   /// have a number in mind. Stored in USD, like everything else we quote.
   budgetUsd Decimal? @db.Decimal(12, 2)
 
+  /**
+   * What the customer attached — a product photo, a supplier's quotation, a
+   * screenshot of a WeChat listing. One file, not many: the requests that need
+   * a folder of documents are the ones somebody should be telephoning about,
+   * and offering an upload queue on a form invites a customer to answer a
+   * question with eleven photographs of it.
+   */
+  documentUrl  String?
+  documentName String?
+
   priority TicketPriority @default(NORMAL)
   status   SourcingStatus @default(NEW)
 
@@ -2126,7 +2197,7 @@ enum ContactChannel {
 enum MessageKind {
   SHIPMENT_REGISTERED
   IN_TRANSIT
-  ARRIVED_DAR
+  ARRIVED_ZAMBIA
   INVOICE_ISSUED
   PAYMENT_REMINDER
   READY_FOR_PICKUP
@@ -3345,6 +3416,10 @@ model Appointment {
   /// Budget or scope, for sourcing work. USD like every other figure here.
   budgetUsd Decimal? @db.Decimal(12, 2)
   notes     String?
+
+  /** A supplier's address card, a product list, a photo of what to look for. */
+  documentUrl  String?
+  documentName String?
 
   /**
    * THE STAFF SIDE.
