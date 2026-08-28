@@ -185,7 +185,7 @@ export default async function HomePage() {
       {/* ================================================================
           HERO — a poster, not a column
       ================================================================= */}
-      <section className="ai-on-ink relative isolate flex min-h-[clamp(40rem,92vh,54rem)] items-center overflow-hidden pb-16 pt-32 md:pt-36">
+      <section className="ai-on-ink relative isolate flex min-h-[clamp(40rem,92vh,54rem)] items-center overflow-hidden pb-44 pt-32 md:pb-52 md:pt-36">
         {/*
           CENTRED, OVER A PHOTOGRAPH OF THE ACTUAL WORK.
 
@@ -267,45 +267,98 @@ export default async function HomePage() {
               </BtnLink>
             </div>
           </div>
-
-          {/* The routes, as a rail across the foot of the picture. */}
-          <div className="ai-rise ai-rise-4 mt-16 md:mt-20">
-            <RouteBoard categories={rates} variant="rail" />
-          </div>
         </Wrap>
       </section>
 
-      {/* Seven doors, overlapping the hero. */}
-      <QuickPanel />
+      {/*
+        ONE object overlapping the hero, not two.
+
+        The routes and the seven doors were separate strips that both reached
+        up into the banner and collided — a dark bar butted against a light one
+        with a seam between. Stacked inside a single rounded, shadowed
+        container they read as one console: where the cargo flies and what it
+        costs, then everything a visitor might have come to do.
+      */}
+      <div className="ai-wrap relative z-20 -mt-20 md:-mt-28">
+        <div
+          className="overflow-hidden rounded-[var(--ai-radius-lg)]"
+          style={{ boxShadow: "var(--ai-shadow-lg)" }}
+        >
+          <RouteBoard categories={rates} variant="rail" className="!rounded-none !border-0" />
+          <QuickPanel flush />
+        </div>
+      </div>
 
       {/* ================================================================
-          COUNTERS — real figures out of the operational database
+          THE BAND UNDER THE HERO
+
+          Two versions, and which one shows is decided by whether the business
+          has actually traded — see `hasHistory` in lib/site-stats.
+
+          A new deployment renders the TERMS: the rate, what is included, how
+          long storage is free, how many markets are in the directory. All true
+          on the first day, all things a first customer wants to know anyway.
+
+          Once there is a record worth quoting it switches to VOLUME. Nothing
+          here ever renders a zero, because "0 customers served" is not a
+          neutral statement of fact — it is the one line that would stop
+          somebody booking.
       ================================================================= */}
-      <Section tone="stone" className="!pt-20">
+      <Section tone="stone" className="!py-20">
         <Wrap>
-          <dl className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {[
-              { to: stats.delivered, label: "Consignments delivered", hint: "Collected by their owners in Lusaka" },
-              { to: stats.customers, label: "Customers served", hint: "Importing through us from China" },
-              { to: stats.weightFlownKg, label: "Kilos flown", hint: "Weighed on our own scales", suffix: " kg" },
-              { to: markets.length, label: "China markets", hint: "In our sourcing directory" },
-            ].map((stat, index) => (
-              <Reveal key={stat.label} delay={index * 80}>
-                <div>
-                  <dd>
-                    <CountUp
-                      to={stat.to}
-                      suffix={stat.suffix}
-                      className="ai-display-lg block"
-                      // Display serif carries statistics across the site.
-                    />
-                  </dd>
-                  <dt className="mt-2 font-semibold">{stat.label}</dt>
-                  <p className="ai-muted mt-1 text-sm">{stat.hint}</p>
-                </div>
-              </Reveal>
-            ))}
-          </dl>
+          {stats.hasHistory ? (
+            <dl className="grid grid-cols-2 gap-8 md:grid-cols-4">
+              {[
+                { to: stats.delivered, label: "Consignments delivered", hint: "Collected by their owners in Lusaka" },
+                { to: stats.customers, label: "Customers served", hint: "Importing through us from China" },
+                { to: stats.weightFlownKg, label: "Kilos flown", hint: "Weighed on our own scales", suffix: " kg" },
+                { to: markets.length, label: "China markets", hint: "In our sourcing directory" },
+              ].map((stat, index) => (
+                <Reveal key={stat.label} delay={index * 80}>
+                  <div>
+                    <dd>
+                      <CountUp to={stat.to} suffix={stat.suffix} className="ai-display-lg block" />
+                    </dd>
+                    <dt className="mt-2 font-semibold">{stat.label}</dt>
+                    <p className="ai-muted mt-1 text-sm">{stat.hint}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </dl>
+          ) : (
+            <dl className="grid grid-cols-2 gap-8 md:grid-cols-4">
+              {[
+                {
+                  value: rates[0]?.tiers[0]?.price ?? "USD 13.50",
+                  label: "Per kilo, from",
+                  hint: "Normal goods, freight and duty together",
+                },
+                {
+                  value: "Included",
+                  label: "Import duty",
+                  hint: "Nothing is added at the Lusaka counter",
+                },
+                {
+                  value: `${STORAGE_POLICY.freeDays} days`,
+                  label: "Free storage",
+                  hint: "From the day we check your cargo in",
+                },
+                {
+                  value: `${markets.length}`,
+                  label: "China markets",
+                  hint: "Kept current by our Guangzhou desk",
+                },
+              ].map((stat, index) => (
+                <Reveal key={stat.label} delay={index * 80}>
+                  <div>
+                    <dd className="ai-display-lg block leading-none">{stat.value}</dd>
+                    <dt className="mt-3 font-semibold">{stat.label}</dt>
+                    <p className="ai-muted mt-1 text-sm">{stat.hint}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </dl>
+          )}
         </Wrap>
       </Section>
 

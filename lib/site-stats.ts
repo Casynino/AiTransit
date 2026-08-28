@@ -23,6 +23,16 @@ export type SiteStats = {
   weightFlownKg: number;
   weeklyFlights: number;
   warehouses: number;
+  /**
+   * Whether this install has traded yet.
+   *
+   * A brand-new deployment has delivered nothing to nobody, and a homepage
+   * that announces "0 consignments delivered · 0 customers served" is not
+   * neutral — it is worse than saying nothing, because it volunteers the one
+   * fact that would stop a visitor booking. The page reads this and shows the
+   * TERMS instead until there is a record worth quoting.
+   */
+  hasHistory: boolean;
 };
 
 export async function siteStats(): Promise<SiteStats> {
@@ -43,5 +53,8 @@ export async function siteStats(): Promise<SiteStats> {
     // days generate the whole flight schedule.
     weeklyFlights: 3,
     warehouses: 2,
+    // One delivered consignment is not a track record either. The threshold is
+    // deliberately above zero so the site does not start boasting on day two.
+    hasHistory: delivered >= 25 && customers >= 10,
   };
 }

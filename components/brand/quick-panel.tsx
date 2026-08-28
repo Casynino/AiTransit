@@ -31,16 +31,24 @@ const ACTIONS = [
   { href: "/contact", label: "Talk to us", hint: "A person answers", icon: Headset },
 ];
 
-export function QuickPanel() {
-  return (
-    <div className="ai-wrap relative z-20 -mt-14 md:-mt-20">
-      <div
-        className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--ai-radius-lg)] sm:grid-cols-4 lg:grid-cols-7"
-        style={{
-          background: "hsl(var(--ai-stone-3))",
-          boxShadow: "var(--ai-shadow-lg)",
-        }}
-      >
+export function QuickPanel({ flush = false }: { flush?: boolean }) {
+  /*
+    `flush` drops the wrapper and the negative offset so this can sit inside a
+    shared container with the route rail above it. The two used to be separate
+    overlapping strips and landed on top of one another — two dark bars with a
+    seam between them, which read as a mistake rather than as a design.
+  */
+  const grid = (
+    <div
+      className={
+        "grid grid-cols-2 gap-px sm:grid-cols-4 lg:grid-cols-7" +
+        (flush ? "" : " overflow-hidden rounded-[var(--ai-radius-lg)]")
+      }
+      style={{
+        background: "hsl(var(--ai-stone-3))",
+        boxShadow: flush ? undefined : "var(--ai-shadow-lg)",
+      }}
+    >
         {ACTIONS.map(({ href, label, hint, icon: Icon }) => (
           <Link
             key={href}
@@ -67,8 +75,10 @@ export function QuickPanel() {
               {hint}
             </span>
           </Link>
-        ))}
-      </div>
+      ))}
     </div>
   );
+
+  if (flush) return grid;
+  return <div className="ai-wrap relative z-20 -mt-14 md:-mt-20">{grid}</div>;
 }

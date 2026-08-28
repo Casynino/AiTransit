@@ -851,3 +851,8 @@ body:has(> .ai-site) {
 @media (prefers-reduced-motion: reduce) {
   :where(.ai-site) .ai-pulse { animation: none; }
 }
+
+/* The sign-in globe. Faint by day, present by night — see the note in
+   app/login/page.tsx. */
+:where(.ai-site) .ai-login-globe { opacity: 0.46; }
+:where(.dark .ai-site) .ai-login-globe { opacity: 0.7; }

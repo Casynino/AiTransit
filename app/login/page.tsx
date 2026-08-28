@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { AitransitLockup } from "@/components/brand/logo";
 import { SignInForm } from "@/components/brand/sign-in-form";
+import { RouteGlobe } from "@/components/brand/route-globe";
 import { StarField } from "@/components/brand/star-field";
 import { ThemeSwitch } from "@/components/brand/theme-switch";
 import { COMPANY } from "@/lib/constants";
@@ -39,6 +40,27 @@ export default async function LoginPage({
   return (
     <div className="ai-site relative flex min-h-dvh flex-col overflow-hidden">
       <StarField />
+
+      {/*
+        The corridor, behind the sign-in.
+
+        This page was a form on an empty field — correct, and completely
+        characterless, which is the wrong first impression for the screen a
+        warehouse clerk opens every morning. The globe gives it the same
+        atmosphere the rest of the site has, placed low and left so it sits
+        under the copy rather than behind the form, where it would fight the
+        inputs for attention.
+
+        Lower opacity in daylight: on cream a dark sphere at full strength
+        reads as a hole in the page, and on navy the same value reads as
+        distance.
+      */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 hidden w-[58%] items-center justify-center lg:flex"
+      >
+        <RouteGlobe className="ai-login-globe pointer-events-auto w-[42rem] max-w-none -translate-x-[26%] translate-y-[8%]" />
+      </div>
 
       <header className="relative z-10">
         <div className="ai-wrap flex h-[4.5rem] items-center justify-between gap-4">
