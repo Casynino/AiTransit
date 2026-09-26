@@ -174,6 +174,52 @@ export const CATEGORY_GROUP_OF: Record<string, string> = Object.fromEntries(
   EXPENSE_CATEGORY_GROUPS.flatMap((g) => g.categories.map((c) => [c, g.label]))
 );
 
+/**
+ * An icon per category, for the picker.
+ *
+ * NAMES, NOT COMPONENTS. This file is imported by server pages and by server
+ * actions, and a lucide component is a client thing — importing one here drags
+ * the whole icon set into a server bundle for the sake of a picture. The
+ * picker maps these names to components on its own side.
+ *
+ * Every category has one. A picker where two thirds of the rows share a
+ * fallback icon is a picker whose icons carry no information, and at that point
+ * they are only decoration taking up the space a longer label could have used.
+ */
+export const EXPENSE_CATEGORY_ICON: Record<string, string> = {
+  AIR_FREIGHT: "plane",
+  CUSTOMS_DUTY: "landmark",
+  CLEARING_AGENT: "fileCheck",
+  LOCAL_TRANSPORT: "truck",
+  PORT_CHARGES: "anchor",
+  PERMITS: "stamp",
+  WAREHOUSE_RENT: "warehouse",
+  SALARIES: "users",
+  UTILITIES: "plug",
+  COMMUNICATION: "phone",
+  BANK_CHARGES: "landmark",
+  OFFICE_SUPPLIES: "paperclip",
+  MARKETING: "megaphone",
+  TRAVEL: "luggage",
+  PROFESSIONAL_FEES: "briefcase",
+  EQUIPMENT: "wrench",
+  REPAIRS: "wrench",
+  CUSTOMER_COMPENSATION: "heartHandshake",
+  TAX: "receipt",
+  FUEL: "fuel",
+  CLEANING: "sparkles",
+  INTERNET: "wifi",
+  ELECTRICITY: "zap",
+  WATER: "droplet",
+  ALLOWANCE: "handCoins",
+  STAFF_WELFARE: "heart",
+  TRAINING: "graduationCap",
+  TRANSFER_FEES: "arrowLeftRight",
+  EXCHANGE_LOSS: "trendingDown",
+  EXECUTIVE_DRAW: "crown",
+  OTHER: "circleDashed",
+};
+
 export const EXPENSE_STATUS_LABELS: Record<string, string> = {
   PENDING: "Not paid",
   APPROVED: "Approved",

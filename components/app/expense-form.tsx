@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { ChevronDown, Paperclip, Plus, X, Zap } from "lucide-react";
+import { ChevronDown, Paperclip, Plus, X } from "lucide-react";
 
 import {
   FormError,
@@ -15,6 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { NativeSelect } from "@/components/ui/native-select";
+import {
+  ExpensePicker,
+  PickedCost,
+  type PickerChoice,
+  type PickerItem,
+} from "@/components/app/expense-picker";
 import { recordExpense } from "@/lib/actions/expenses";
 import {
   EXPENSE_CLASSES,
@@ -56,6 +62,7 @@ export function ExpenseForm({
   accounts,
   dispatches,
   quick,
+  usedMost = [],
   rate,
   alwaysOpen = false,
   fixedDispatch,
@@ -75,6 +82,14 @@ export function ExpenseForm({
   fixedDispatch?: ExpenseDispatch;
   /** Most-recorded first, then the seeded common costs. */
   quick: QuickExpense[];
+  /**
+   * What this business has actually recorded in the last six months, with how
+   * many times. Drives the picker's "Used most" rail.
+   *
+   * Optional, and empty is a fine answer — a business on its first day has no
+   * history, and the picker simply opens on Batch operations instead.
+   */
+  usedMost?: PickerItem[];
   rate: number | null;
   /** Rendered inside something that already decided it is open. */
   alwaysOpen?: boolean;
@@ -92,14 +107,43 @@ export function ExpenseForm({
   const [category, setCategory] = useState("OTHER");
   const amountRef = useRef<HTMLInputElement>(null);
 
-  const eligible = accounts.filter((a) => a.currency === currency);
+  /*
+    TWO STEPS: what, then how much.
 
-  /** One tap fills what it is and what kind it is, then asks for the amount. */
-  const pick = (item: QuickExpense) => {
-    setDescription(item.label);
-    setCategory(item.category);
-    amountRef.current?.focus();
+    `choice` is null on step one and set on step two, so it is both the answer
+    and the position — there is no second flag to get out of step with it.
+    Starting at null means the picker is what somebody meets, which is the whole
+    point: the category was previously chosen last, hurriedly, from a list of
+    thirty-one.
+  */
+  const [choice, setChoice] = useState<PickerChoice | null>(null);
+
+  /*
+    WHAT FILLS THE "USED MOST" RAIL.
+
+    `usedMost` when a page has gone to the trouble of counting; otherwise
+    `quick`, which is the same history without the counts followed by the
+    seeded common costs. Every existing caller already passes `quick`, so the
+    picker has something real to show everywhere without three pages each
+    learning about a new prop — and a page that later wants the counts adds
+    one.
+  */
+  const rail: PickerItem[] =
+    usedMost.length > 0
+      ? usedMost
+      : quick.map((q) => ({ label: q.label, category: q.category }));
+
+  /* Picking fills BOTH fields, which is the half that matters — it is not the
+     typing that costs the business, it is one cost filed three ways. */
+  const choose = (picked: PickerChoice) => {
+    setChoice(picked);
+    setDescription(picked.label);
+    setCategory(picked.category);
+    /* The amount is the only thing still unknown, so put the cursor in it. */
+    window.setTimeout(() => amountRef.current?.focus(), 30);
   };
+
+  const eligible = accounts.filter((a) => a.currency === currency);
 
   const categoryOptions =
     categories && categories.length > 0
@@ -109,19 +153,39 @@ export function ExpenseForm({
           label,
         }));
 
-  if (!open) {
-    return (
-      <Button variant="brand" className="rounded-lg" onClick={() => setOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" />
-        {t("Record a cost")}
-      </Button>
-    );
-  }
-
-  return (
+  const panel = (
     <section className="overflow-hidden rounded-xl border bg-card shadow-soft">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
-        <h2 className="font-semibold">{t("Record a cost")}</h2>
+        {/*
+          The two steps, always both visible.
+
+          A progress indicator that only shows where you are tells you nothing;
+          showing both tells somebody on step one that there IS a step two and
+          that it is short — which is what stops a picker feeling like a detour
+          on the way to a form.
+        */}
+        <div className="flex items-center gap-2">
+          {[t("What"), t("How much")].map((label, i) => {
+            const on = (i === 0) === (choice === null);
+            return (
+              <span key={label} className="flex items-center gap-2">
+                {i === 1 ? (
+                  <span aria-hidden className="h-px w-4 bg-border" />
+                ) : null}
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.1em] ${
+                    on
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <span className="tabular-nums">{i + 1}</span>
+                  {label}
+                </span>
+              </span>
+            );
+          })}
+        </div>
         {alwaysOpen ? null : (
           <button
             type="button"
@@ -136,33 +200,37 @@ export function ExpenseForm({
         )}
       </div>
 
-      {/* The usual suspects, one tap each. */}
-      {quick.length > 0 ? (
-        <div className="border-b bg-muted/30 px-5 py-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            <Zap className="h-3.5 w-3.5" />
-            {t("The usual")}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {quick.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => pick(item)}
-                className={`focus-ring rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                  description === item.label
-                    ? "border-brand bg-brand text-brand-foreground"
-                    : "bg-card hover:bg-accent"
-                }`}
-              >
-                {t(item.label)}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      {/*
+        STEP ONE. The quick-chip strip that used to sit here — a dozen pills
+        above a thirty-one-item dropdown — is gone into this. The chips only
+        ever covered the top twelve and the dropdown still had to be read for
+        everything else, so the common case was fast and the uncommon one was
+        the same list nobody finishes.
+      */}
+      {/*
+        A DEFINITE HEIGHT ON THE PICKER, not a max.
 
+        It is a flex column whose middle scrolls and whose footer — "Something
+        else" — is pinned below it. `h-full` inside a max-height box resolves
+        to auto, so the list grew past the panel and took the footer off the
+        bottom edge with it. A fixed height would be wrong on a phone, hence
+        the viewport-relative cap.
+      */}
+      {choice === null ? (
+        <div className="flex h-[min(32rem,70vh)] flex-col">
+          <ExpensePicker
+            usedMost={rail}
+            onPick={choose}
+            onClose={() => (alwaysOpen ? undefined : setOpen(false))}
+          />
+        </div>
+      ) : (
       <form action={action} className="p-5">
+        {/* What was chosen, and the way back to change it. */}
+        <div className="mb-5">
+          <PickedCost choice={choice} onBack={() => setChoice(null)} />
+        </div>
+
         {/* Re-baselined on the expense number the action hands back, so the tap
             straight after recording a cost is not met with "discard changes?"
             about a cost already in the ledger. */}
@@ -366,6 +434,47 @@ export function ExpenseForm({
           </p>
         </div>
       </form>
+      )}
     </section>
+  );
+
+  /*
+    INLINE WHERE IT IS THE PAGE'S SUBJECT, OVER IT WHERE IT IS NOT.
+
+    `alwaysOpen` means a caller has already given this a place — the cash page's
+    "pay something out of cash" section, or RecordCostButton's own overlay — so
+    it renders as a plain panel and does not wrap itself in a second one.
+
+    Everywhere else it is the action on a page header, and the header's action
+    slot is a narrow column at the top right. The old form fitted there because
+    it was a stack of fields; step one is two columns and was squeezed to half
+    a name per row. A modal is the honest answer: this is a task, it takes over
+    until it is done, and the page it came from is still behind it.
+  */
+  if (alwaysOpen) return panel;
+
+  return (
+    <>
+      <Button variant="brand" className="rounded-lg" onClick={() => setOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" />
+        {t("Record a cost")}
+      </Button>
+
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-background/70 p-4 backdrop-blur-sm sm:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("Record a cost")}
+          onClick={(e) => {
+            /* Only the backdrop itself closes. A click that started inside the
+               panel and drifted out while selecting text must not. */
+            if (e.target === e.currentTarget) confirmDiscard(() => setOpen(false));
+          }}
+        >
+          <div className="mx-auto max-w-4xl">{panel}</div>
+        </div>
+      ) : null}
+    </>
   );
 }

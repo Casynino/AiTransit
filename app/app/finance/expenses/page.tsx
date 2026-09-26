@@ -344,6 +344,19 @@ export default async function ExpensesPage({
   const unpaidUsd = toNumber(unpaid._sum.amountUsd);
   const biggest = byCategory[0];
 
+  /*
+    The picker's "Used most" rail — the same six-month history as `quick`, but
+    keeping the count, which `quick` throws away because a chip has nowhere to
+    put it. A row saying "Electricity · 7×" tells a clerk this is the ordinary
+    monthly bill and not a one-off, without this system having to claim it
+    knows anything about a schedule.
+  */
+  const usedMostItems = usedMost.map((row) => ({
+    label: row.description,
+    category: row.category as string,
+    count: row._count,
+  }));
+
   const seen = new Set<string>();
   const quick = [
     ...usedMost.map((row) => ({
@@ -413,6 +426,7 @@ export default async function ExpensesPage({
               accounts={accountOptions}
               dispatches={dispatches.map((d) => ({ id: d.id, label: d.batchNumber }))}
               quick={quick}
+              usedMost={usedMostItems}
               rate={rate}
             />
           ) : null

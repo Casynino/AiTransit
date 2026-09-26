@@ -52,7 +52,9 @@ export function RecordCostButton({
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="mx-auto max-w-3xl">
+          {/* Wider than the old form needed: step one is two columns, and
+               at 3xl the group rail squeezed the cost list to half a name. */}
+          <div className="mx-auto max-w-4xl">
             <div className="mb-3 flex justify-end">
               <button
                 type="button"

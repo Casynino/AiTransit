@@ -98,7 +98,7 @@ const SUPPLIERS = [
 
 type Item = {
   desc: string;
-  category: "NORMAL_GOODS" | "WIGS" | "SPECIAL_CATEGORY";
+  category: "NORMAL_GOODS" | "ELECTRONICS" | "LIQUID_SPECIAL";
   goods: string;
   /** Product name in the catalogue, when one applies. Drives per-piece rates. */
   type?: string;
@@ -113,53 +113,53 @@ const GZ_LOADING: Item[] = [
   { desc: "Handbags and travel luggage", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "Bags", boxes: 5, kg: 47.8 },
   { desc: "Plastic storage containers", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "Household items", boxes: 8, kg: 96.4 },
   { desc: "Non-stick cookware sets", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "Kitchenware", boxes: 3, kg: 52.1 },
-  { desc: "Lace front wigs, assorted", category: "WIGS", goods: "COSMETICS", type: "Wigs", boxes: 2, kg: 18.6 },
-  { desc: "Human hair bundles 20 inch", category: "WIGS", goods: "COSMETICS", type: "Hair bundles", boxes: 3, kg: 24.3 },
-  { desc: "Braiding hair, mixed colours", category: "WIGS", goods: "COSMETICS", type: "Braiding hair", boxes: 4, kg: 31.7 },
+  { desc: "Lace front wigs, assorted", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Wigs", boxes: 2, kg: 18.6 },
+  { desc: "Human hair bundles 20 inch", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Hair bundles", boxes: 3, kg: 24.3 },
+  { desc: "Braiding hair, mixed colours", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Braiding hair", boxes: 4, kg: 31.7 },
   { desc: "Baseball caps and sun hats", category: "NORMAL_GOODS", goods: "TEXTILES_GARMENTS", type: "Hats", boxes: 2, kg: 14.9 },
   { desc: "Children's clothing sets", category: "NORMAL_GOODS", goods: "TEXTILES_GARMENTS", type: "Clothes", boxes: 5, kg: 43.2 },
 ];
 
 /** Batch 2 — Hong Kong, still loading. Electronics and special. */
 const HK_LOADING: Item[] = [
-  { desc: "Smartphones, boxed retail units", category: "SPECIAL_CATEGORY", goods: "PHONE_ACCESSORIES", type: "Smart Phone (Full Box)", boxes: 2, kg: 12.4 },
-  { desc: "Bluetooth headphones", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "AirPods", boxes: 3, kg: 8.7 },
-  { desc: "Laptop computers, 14 inch", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Laptop", boxes: 2, kg: 21.5 },
-  { desc: "Smart watches, assorted", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Smart Watch", boxes: 1, kg: 4.2 },
-  { desc: "Phone charging cables in bulk", category: "SPECIAL_CATEGORY", goods: "PHONE_ACCESSORIES", type: "Chargers", boxes: 6, kg: 38.9 },
-  { desc: "Portable power banks", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Batteries", boxes: 4, kg: 46.3 },
-  { desc: "Bluetooth speakers", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Speakers", boxes: 3, kg: 27.6 },
-  { desc: "Electric kettles and blenders", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Others", boxes: 5, kg: 63.4 },
-  { desc: "Tablet computers, 10 inch", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Tablet", boxes: 2, kg: 15.8 },
-  { desc: "LED display modules", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "LED Displays", boxes: 4, kg: 54.1 },
+  { desc: "Smartphones, boxed retail units", category: "ELECTRONICS", goods: "PHONE_ACCESSORIES", type: "Smart Phone (Full Box)", boxes: 2, kg: 12.4 },
+  { desc: "Bluetooth headphones", category: "ELECTRONICS", goods: "ELECTRONICS", type: "AirPods", boxes: 3, kg: 8.7 },
+  { desc: "Laptop computers, 14 inch", category: "ELECTRONICS", goods: "ELECTRONICS", type: "Laptop", boxes: 2, kg: 21.5 },
+  { desc: "Smart watches, assorted", category: "ELECTRONICS", goods: "ELECTRONICS", type: "Smart Watch", boxes: 1, kg: 4.2 },
+  { desc: "Phone charging cables in bulk", category: "LIQUID_SPECIAL", goods: "PHONE_ACCESSORIES", type: "Chargers", boxes: 6, kg: 38.9 },
+  { desc: "Portable power banks", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Batteries", boxes: 4, kg: 46.3 },
+  { desc: "Bluetooth speakers", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Speakers", boxes: 3, kg: 27.6 },
+  { desc: "Electric kettles and blenders", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Others", boxes: 5, kg: 63.4 },
+  { desc: "Tablet computers, 10 inch", category: "ELECTRONICS", goods: "ELECTRONICS", type: "Tablet", boxes: 2, kg: 15.8 },
+  { desc: "LED display modules", category: "ELECTRONICS", goods: "ELECTRONICS", type: "LED Displays", boxes: 4, kg: 54.1 },
 ];
 
 /** Batch 3 — Guangzhou, landed at Lusaka. Awaiting payment. */
 const GZ_ARRIVED: Item[] = [
   { desc: "Ladies' winter coats", category: "NORMAL_GOODS", goods: "TEXTILES_GARMENTS", type: "Clothes", boxes: 7, kg: 112.6 },
   { desc: "Sports trainers, mixed sizes", category: "NORMAL_GOODS", goods: "FOOTWEAR", type: "Shoes", boxes: 9, kg: 148.3 },
-  { desc: "Lace closures and frontals", category: "WIGS", goods: "COSMETICS", type: "Closures & frontals", boxes: 2, kg: 9.4 },
-  { desc: "Synthetic wigs, boxed", category: "WIGS", goods: "COSMETICS", type: "Wigs", boxes: 4, kg: 27.8 },
+  { desc: "Lace closures and frontals", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Closures & frontals", boxes: 2, kg: 9.4 },
+  { desc: "Synthetic wigs, boxed", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Wigs", boxes: 4, kg: 27.8 },
   { desc: "Bed linen and towels", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "Household items", boxes: 6, kg: 88.2 },
   { desc: "Leather handbags", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "Bags", boxes: 3, kg: 34.7 },
   { desc: "School exercise books", category: "NORMAL_GOODS", goods: "STATIONERY", type: "Stationery", boxes: 12, kg: 204.5 },
   { desc: "Fabric rolls, printed cotton", category: "NORMAL_GOODS", goods: "TEXTILES_GARMENTS", type: "Fabrics", boxes: 5, kg: 96.1 },
-  { desc: "Hair care products", category: "WIGS", goods: "COSMETICS", type: "Hair products", boxes: 3, kg: 22.9 },
+  { desc: "Hair care products", category: "NORMAL_GOODS", goods: "COSMETICS", type: "Hair products", boxes: 3, kg: 22.9 },
   { desc: "Sample pack, trade fair", category: "NORMAL_GOODS", goods: "GENERAL_MERCHANDISE", type: "General Merchandise", boxes: 1, kg: 0.6 },
 ];
 
 /** Batch 4 — Hong Kong, landed at Lusaka. Payment, credit and pickup. */
 const HK_ARRIVED: Item[] = [
-  { desc: "Smartphones, boxed retail units", category: "SPECIAL_CATEGORY", goods: "PHONE_ACCESSORIES", type: "Smart Phone (Full Box)", boxes: 3, kg: 18.2 },
-  { desc: "Laptop computers, business", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Laptop", boxes: 2, kg: 24.6 },
-  { desc: "Digital cameras", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Camera", boxes: 1, kg: 6.3 },
-  { desc: "Wireless earbuds", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "AirPods", boxes: 2, kg: 7.1 },
-  { desc: "Computer monitors, 24 inch", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Monitors", boxes: 4, kg: 71.4 },
-  { desc: "Rechargeable batteries", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Batteries", boxes: 5, kg: 58.7 },
-  { desc: "Cosmetics and skin care", category: "SPECIAL_CATEGORY", goods: "COSMETICS", type: "Cosmetics", boxes: 4, kg: 33.5 },
-  { desc: "Phone cases and protectors", category: "SPECIAL_CATEGORY", goods: "PHONE_ACCESSORIES", type: "Others", boxes: 3, kg: 16.8 },
-  { desc: "Printers and toner", category: "SPECIAL_CATEGORY", goods: "ELECTRONICS", type: "Printers", boxes: 2, kg: 42.9 },
-  { desc: "Courier documents", category: "SPECIAL_CATEGORY", goods: "GENERAL_MERCHANDISE", type: "Documents", boxes: 1, kg: 0.4 },
+  { desc: "Smartphones, boxed retail units", category: "ELECTRONICS", goods: "PHONE_ACCESSORIES", type: "Smart Phone (Full Box)", boxes: 3, kg: 18.2 },
+  { desc: "Laptop computers, business", category: "ELECTRONICS", goods: "ELECTRONICS", type: "Laptop", boxes: 2, kg: 24.6 },
+  { desc: "Digital cameras", category: "ELECTRONICS", goods: "ELECTRONICS", type: "Camera", boxes: 1, kg: 6.3 },
+  { desc: "Wireless earbuds", category: "ELECTRONICS", goods: "ELECTRONICS", type: "AirPods", boxes: 2, kg: 7.1 },
+  { desc: "Computer monitors, 24 inch", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Monitors", boxes: 4, kg: 71.4 },
+  { desc: "Rechargeable batteries", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Batteries", boxes: 5, kg: 58.7 },
+  { desc: "Cosmetics and skin care", category: "LIQUID_SPECIAL", goods: "COSMETICS", type: "Cosmetics", boxes: 4, kg: 33.5 },
+  { desc: "Phone cases and protectors", category: "LIQUID_SPECIAL", goods: "PHONE_ACCESSORIES", type: "Others", boxes: 3, kg: 16.8 },
+  { desc: "Printers and toner", category: "LIQUID_SPECIAL", goods: "ELECTRONICS", type: "Printers", boxes: 2, kg: 42.9 },
+  { desc: "Courier documents", category: "ELECTRONICS", goods: "GENERAL_MERCHANDISE", type: "Documents", boxes: 1, kg: 0.4 },
 ];
 
 /*
