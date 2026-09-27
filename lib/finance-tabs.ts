@@ -74,6 +74,20 @@ export function financeTabs(role: Role): FinanceTab[] {
     },
     {
       /*
+        MONEY IN, BESIDE MONEY OUT.
+
+        The income register had no tab either — the same door-with-no-handle as
+        Expenses, on the page that answers "what did we actually take this
+        week". It sits directly after Expenses because the two are the same
+        question asked in opposite directions, and a finance desk reconciling a
+        day reads both.
+      */
+      href: "/app/finance/payments",
+      label: "Income",
+      visible: can(role, "payment.record"),
+    },
+    {
+      /*
         Beside Expenses, because that is what it becomes.
 
         Payroll is the largest regular payment the company makes and it reaches
