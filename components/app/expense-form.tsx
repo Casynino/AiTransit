@@ -18,8 +18,10 @@ import { NativeSelect } from "@/components/ui/native-select";
 import {
   ExpensePicker,
   PickedCost,
+  type PickerBatch,
   type PickerChoice,
   type PickerItem,
+  type PickerPerson,
 } from "@/components/app/expense-picker";
 import { recordExpense } from "@/lib/actions/expenses";
 import {
@@ -63,6 +65,8 @@ export function ExpenseForm({
   dispatches,
   quick,
   usedMost = [],
+  pickerBatches = [],
+  people = [],
   rate,
   alwaysOpen = false,
   fixedDispatch,
@@ -90,6 +94,17 @@ export function ExpenseForm({
    * history, and the picker simply opens on Batch operations instead.
    */
   usedMost?: PickerItem[];
+  /**
+   * Flights a cost can be attached to, with how many each already has.
+   *
+   * Separate from `dispatches`, which is the plain list behind the "which
+   * batch" select on step two. This one carries the COUNT, which is what lets
+   * the picker put the flights with nothing recorded at the top — and those are
+   * the ones somebody is looking for.
+   */
+  pickerBatches?: PickerBatch[];
+  /** Staff, for the "who was paid" and "whose draw" modes. */
+  people?: PickerPerson[];
   rate: number | null;
   /** Rendered inside something that already decided it is open. */
   alwaysOpen?: boolean;
@@ -117,6 +132,11 @@ export function ExpenseForm({
     thirty-one.
   */
   const [choice, setChoice] = useState<PickerChoice | null>(null);
+  const [batchId, setBatchId] = useState("");
+  const [vendor, setVendor] = useState("");
+  const [expenseClass, setExpenseClass] = useState<"OPERATING" | "NON_OPERATING">(
+    "OPERATING"
+  );
 
   /*
     WHAT FILLS THE "USED MOST" RAIL.
@@ -139,6 +159,17 @@ export function ExpenseForm({
     setChoice(picked);
     setDescription(picked.label);
     setCategory(picked.category);
+    /*
+      The flight and the person come through too, and both are the reason the
+      mode existed. A cost picked under "A flight" that then had to have its
+      batch chosen again on step two would be a picker that asked a question
+      and threw the answer away.
+    */
+    setBatchId(picked.batchId ?? "");
+    setVendor(picked.vendor ?? "");
+    setExpenseClass(picked.expenseClass ?? "OPERATING");
+    /* Anything with a person or a flight on it has details worth seeing. */
+    if (picked.vendor || picked.batchId) setMore(true);
     /* The amount is the only thing still unknown, so put the cursor in it. */
     window.setTimeout(() => amountRef.current?.focus(), 30);
   };
@@ -220,8 +251,9 @@ export function ExpenseForm({
         <div className="flex h-[min(32rem,70vh)] flex-col">
           <ExpensePicker
             usedMost={rail}
+            batches={pickerBatches}
+            people={people}
             onPick={choose}
-            onClose={() => (alwaysOpen ? undefined : setOpen(false))}
           />
         </div>
       ) : (
@@ -241,6 +273,19 @@ export function ExpenseForm({
         {/* Carried, not asked for — this form is already inside the flight. */}
         {fixedDispatch ? (
           <input type="hidden" name="batchId" value={fixedDispatch.id} />
+        ) : null}
+
+        {/*
+          THE PICKED FLIGHT, WHEN THERE IS NO SELECT TO HOLD IT.
+
+          The batch select below only renders when this form was given a list of
+          dispatches — the cash page is not — and it lives inside a disclosure.
+          A flight chosen in the picker and then silently dropped on submit is
+          the worst version of this: the cost is recorded, it looks right, and
+          the flight's profit is still wrong. This carries it either way.
+        */}
+        {!fixedDispatch && batchId && !(dispatches && dispatches.length > 0) ? (
+          <input type="hidden" name="batchId" value={batchId} />
         ) : null}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="space-y-1.5 lg:col-span-4">
@@ -360,6 +405,8 @@ export function ExpenseForm({
                 <Input
                   id="vendor"
                   name="vendor"
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
                   placeholder={t("Who received it")}
                 />
               </div>
@@ -368,7 +415,12 @@ export function ExpenseForm({
                   <Label htmlFor="expenseBatch" className="text-xs">
                     {t("Against a dispatch")}
                   </Label>
-                  <NativeSelect id="expenseBatch" name="batchId" defaultValue="">
+                  <NativeSelect
+                    id="expenseBatch"
+                    name="batchId"
+                    value={batchId}
+                    onChange={(e) => setBatchId(e.target.value)}
+                  >
                     <option value="">{t("Not one batch")}</option>
                     {dispatches.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -398,7 +450,10 @@ export function ExpenseForm({
                 <NativeSelect
                   id="expenseClass"
                   name="expenseClass"
-                  defaultValue="OPERATING"
+                  value={expenseClass}
+                  onChange={(e) =>
+                    setExpenseClass(e.target.value as "OPERATING" | "NON_OPERATING")
+                  }
                 >
                   {EXPENSE_CLASSES.map((value) => (
                     <option key={value} value={value}>

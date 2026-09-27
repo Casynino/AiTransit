@@ -370,20 +370,144 @@ export const EXPENSE_CLASS_HINTS: Record<
  * The list being always visible is the point. A blank row is a reminder that
  * the clearing agent has not been paid yet; a blank form can never be that.
  */
+/**
+ * The costs one flight actually incurs, in the order they are paid.
+ *
+ * THESE WERE ZANZIBAR AND DAR ES SALAAM. The list read "Zanzibar customs",
+ * "Transport · Zanzibar to Lusaka" and "Lusaka port to warehouse" — a sea-freight
+ * route belonging to the system this was modelled on, left behind by a
+ * find-and-replace that changed the city names and not the geography. AITRANSIT
+ * flies Guangzhou and Hong Kong into Lusaka. There is no port and no Zanzibar.
+ *
+ * Each maps to the category the cost is filed under, so choosing the thing that
+ * happened also files it correctly — which is the whole reason this list is
+ * worth having over a free-text box.
+ */
 export const BATCH_COST_TYPES = [
-  { key: "zanzibar-customs", label: "Zanzibar customs", category: "CUSTOMS_DUTY" },
-  { key: "zanzibar-permit", label: "Zanzibar special permit", category: "PERMITS" },
   {
-    key: "zanzibar-dar-transport",
-    label: "Transport · Zanzibar to Lusaka",
-    category: "LOCAL_TRANSPORT",
+    key: "air-freight",
+    label: "Air freight",
+    category: "AIR_FREIGHT",
+    hint: "What the airline charged to fly this batch.",
   },
-  { key: "dar-customs", label: "Lusaka customs", category: "CUSTOMS_DUTY" },
-  { key: "dar-permit", label: "Lusaka special permit", category: "PERMITS" },
   {
-    key: "port-warehouse-transport",
-    label: "Transport · Lusaka port to warehouse",
+    key: "china-handling",
+    label: "China handling & loading",
+    category: "PORT_CHARGES",
+    hint: "Build-up, palletising and handover at Guangzhou or Hong Kong.",
+  },
+  {
+    key: "customs-duty",
+    label: "Customs duty",
+    category: "CUSTOMS_DUTY",
+    hint: "Duty settled at Lusaka. Included in what the customer was quoted.",
+  },
+  {
+    key: "clearing-agent",
+    label: "Clearing agent",
+    category: "CLEARING_AGENT",
+    hint: "The agent's fee for clearing this batch through ZRA.",
+  },
+  {
+    key: "airport-charges",
+    label: "Airport & handling charges",
+    category: "PORT_CHARGES",
+    hint: "Ground handling, storage and release at Kenneth Kaunda.",
+  },
+  {
+    key: "permit",
+    label: "Special permit",
+    category: "PERMITS",
+    hint: "A permit some of the cargo on this batch needed.",
+  },
+  {
+    key: "airport-warehouse-transport",
+    label: "Transport · airport to Makeni",
     category: "LOCAL_TRANSPORT",
+    hint: "Trucking the batch from the airport to our warehouse.",
+  },
+] as const;
+
+/**
+ * What a person can be paid, as staff.
+ *
+ * Per-person costs, which is why they get a mode of their own in the picker:
+ * the question is "who" before it is "what", and a salary recorded without a
+ * name on it is a salary nobody can reconcile against a payslip.
+ */
+export const STAFF_COST_TYPES = [
+  { key: "salary", label: "Salary", category: "SALARIES", hint: "The monthly wage." },
+  {
+    key: "allowance",
+    label: "Allowance",
+    category: "ALLOWANCE",
+    hint: "Transport, lunch, airtime — paid on top of the wage.",
+  },
+  {
+    key: "overtime",
+    label: "Overtime",
+    category: "SALARIES",
+    hint: "Hours worked beyond the normal week.",
+  },
+  {
+    key: "welfare",
+    label: "Staff welfare",
+    category: "STAFF_WELFARE",
+    hint: "Medical, funeral support, anything the company does for somebody.",
+  },
+  {
+    key: "training",
+    label: "Training",
+    category: "TRAINING",
+    hint: "A course, a certificate, somebody being taught something.",
+  },
+  {
+    key: "advance",
+    label: "Salary advance",
+    category: "SALARIES",
+    hint: "Paid early against a wage not yet earned.",
+  },
+] as const;
+
+/**
+ * Money the owner takes out of the business.
+ *
+ * ALL NON-OPERATING, and that is the point of naming them separately. A draw is
+ * not a cost of flying cargo: counting one in operating profit makes a good
+ * month look bad and tells the owner their business is failing when what
+ * actually happened is that they paid themselves. It still leaves the account
+ * and it still appears in the ledger — it is simply kept out of the figure the
+ * business is judged on.
+ *
+ * Naming the KIND matters for the same reason: a dividend, a director's loan
+ * and a capital withdrawal have different consequences at the year end, and
+ * "Executive draw · 40,000" six months later answers none of them.
+ */
+export const DRAW_TYPES = [
+  {
+    key: "drawings",
+    label: "Owner's drawings",
+    hint: "The ordinary case — the owner taking money for themselves.",
+  },
+  {
+    key: "advance",
+    label: "Director's advance",
+    hint: "Taken now against money expected later.",
+  },
+  {
+    key: "dividend",
+    label: "Dividend",
+    hint: "A declared share of profit.",
+  },
+  {
+    key: "loan",
+    label: "Loan to a director",
+    hint: "Expected back. Record the repayment as income when it comes.",
+  },
+  {
+    key: "capital",
+    label: "Capital withdrawal",
+    hint: "Money put into the business being taken back out.",
   },
 ] as const;
 

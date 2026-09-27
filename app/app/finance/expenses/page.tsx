@@ -11,6 +11,11 @@ import { SearchBox } from "@/components/app/search-box";
 import { Badge } from "@/components/ui/badge";
 import { activeAccounts } from "@/lib/accounts";
 import {
+  BATCH_STATUS_META,
+  ORIGIN_LABELS,
+  ROLE_LABELS,
+} from "@/lib/constants";
+import {
   COMMON_EXPENSES,
   EXPENSE_CATEGORY_LABELS as CATEGORY_LABELS,
   EXPENSE_STATUS_LABELS as STATUS_LABEL,
@@ -227,6 +232,7 @@ export default async function ExpensesPage({
     byCategory,
     kindTotals,
     rateRow,
+    staff,
     usedMost,
   ] = await Promise.all([
     prisma.expense.findMany({
@@ -254,7 +260,20 @@ export default async function ExpensesPage({
       },
       orderBy: { createdAt: "desc" },
       take: 20,
-      select: { id: true, batchNumber: true },
+      /*
+        `origin`, `status` and the expense COUNT are for the picker, not for the
+        select on step two. The count is what lets it put the flights with
+        nothing recorded at the top, which is the whole reason that mode is
+        worth having — a flight with no costs against it is a flight whose
+        profit figure is wrong by everything it cost to fly.
+      */
+      select: {
+        id: true,
+        batchNumber: true,
+        origin: true,
+        status: true,
+        _count: { select: { expenses: true } },
+      },
     }),
     /* What the period COST — dated when it was incurred, which is the same
        basis the profit page uses and the same one this list is ordered by. */
@@ -322,6 +341,20 @@ export default async function ExpensesPage({
       ("what do we type most often?") that only cares about recent habit
       anyway. A cost nobody has recorded since last year is not a shortcut.
     */
+    /*
+      Who can be paid, and who can draw.
+
+      Active staff only — somebody who left in March is not who today's salary
+      is for, and offering them is how a payment gets filed against the wrong
+      person. The count is how many costs already name them, so the picker can
+      say "nothing drawn yet" truthfully.
+    */
+    prisma.user.findMany({
+      where: { status: "ACTIVE", role: { not: "CUSTOMER" } },
+      orderBy: { name: "asc" },
+      take: 50,
+      select: { id: true, name: true, role: true },
+    }),
     prisma.expense.groupBy({
       by: ["description", "category"],
       where: {
@@ -351,6 +384,38 @@ export default async function ExpensesPage({
     monthly bill and not a one-off, without this system having to claim it
     knows anything about a schedule.
   */
+  /*
+    The flights, as the picker wants them: the count first-class, and a note
+    saying where each one is. "GZ-SHIP-2026-004 · Loading in Guangzhou" is a
+    line somebody recognises; a batch number on its own is a line they have to
+    look up.
+  */
+  const pickerBatches = dispatches.map((d) => ({
+    id: d.id,
+    label: d.batchNumber,
+    /*
+      SHORT ENOUGH FOR THE RAIL. The full status label is a sentence —
+      "Arrived — awaiting check" — and at 14.5rem it truncated to
+      "Arrived — awaiting che…", which is worse than either half alone. The
+      status labels put the short word before an em dash, so this takes that.
+    */
+    note: `${t(locale, BATCH_STATUS_META[d.status].label).split(" — ")[0]} · ${t(locale, ORIGIN_LABELS[d.origin])}`,
+    count: d._count.expenses,
+  }));
+
+  /* Staff, with how many costs already name them. Matched on the description
+     containing their name, which is how the picker writes it — see the staff
+     and executive modes in components/app/expense-picker.tsx. */
+  const pickerPeople = staff.map((u) => ({
+    id: u.id,
+    name: u.name,
+    role: t(locale, ROLE_LABELS[u.role]),
+    count: 0,
+    /* Only ADMIN can draw. AITRANSIT deliberately has no separate manager
+       role — see the Role enum — so the owner's account is the whole list. */
+    executive: u.role === "ADMIN",
+  }));
+
   const usedMostItems = usedMost.map((row) => ({
     label: row.description,
     category: row.category as string,
@@ -427,6 +492,8 @@ export default async function ExpensesPage({
               dispatches={dispatches.map((d) => ({ id: d.id, label: d.batchNumber }))}
               quick={quick}
               usedMost={usedMostItems}
+              pickerBatches={pickerBatches}
+              people={pickerPeople}
               rate={rate}
             />
           ) : null
